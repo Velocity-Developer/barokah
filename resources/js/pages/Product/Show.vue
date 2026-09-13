@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { show as sellerShow } from '@/routes/sellers';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
+import ProductCard from '@/components/product/ProductCard.vue';
+import {
+    toProductCardData,
+    type HomeProductItem,
+} from '@/types/marketplace';
 import { useCheckoutStore } from '@/stores/checkout';
 import { useCartStore } from '@/stores/cart';
 import { useSettingsStore } from '@/stores/settings';
@@ -30,6 +36,7 @@ type DetailProduct = {
 
 const props = defineProps<{
     product: DetailProduct | { data: DetailProduct };
+    sellerProducts?: DetailProduct[] | { data: DetailProduct[] };
 }>();
 
 const { formatAmount, loadSettings } = useSettingsStore();
@@ -59,6 +66,22 @@ function unwrapImages(images: DetailProduct['images']): DetailImage[] {
 }
 
 const gallery = computed(() => unwrapImages(product.value.images));
+
+const otherProducts = computed<DetailProduct[]>(() => {
+    const raw = props.sellerProducts;
+
+    if (!raw) {
+        return [];
+    }
+
+    return Array.isArray(raw) ? raw : (raw.data ?? []);
+});
+
+const otherProductCards = computed(() =>
+    otherProducts.value.map((item) =>
+        toProductCardData(item as unknown as HomeProductItem),
+    ),
+);
 
 const isOutOfStock = computed(() => product.value.stock <= 0);
 
@@ -104,6 +127,15 @@ function addToCart(): void {
             <!-- Breadcrumb -->
             <nav class="mb-4 text-xs text-[var(--text-muted)]">
                 <Link href="/products" class="hover:underline">Products</Link>
+                <span v-if="product.seller">
+                    <span class="mx-1">/</span>
+                    <Link
+                        :href="sellerShow.url(product.seller.slug)"
+                        class="hover:underline"
+                    >
+                        {{ product.seller.store_name }}
+                    </Link>
+                </span>
                 <span v-if="product.category">
                     <span class="mx-1">/</span>
                     <Link
@@ -180,11 +212,12 @@ function addToCart(): void {
                                 class="mt-1.5 text-sm text-[var(--text-secondary)]"
                             >
                                 Sold by
-                                <span
-                                    class="font-medium text-[var(--text-primary)]"
+                                <Link
+                                    :href="sellerShow.url(product.seller.slug)"
+                                    class="font-medium text-[var(--brand-primary)] hover:underline"
                                 >
                                     {{ product.seller.store_name }}
-                                </span>
+                                </Link>
                             </p>
                         </div>
                         <span
@@ -215,54 +248,6 @@ function addToCart(): void {
                             {{ product.stock }} available
                         </p>
                     </div>
-
-                    <!-- Key facts -->
-                    <dl
-                        class="mt-5 grid grid-cols-2 gap-3 rounded-sm border border-[var(--border-soft)] p-4 text-sm sm:grid-cols-3"
-                    >
-                        <div>
-                            <dt class="text-[11px] text-[var(--text-muted)]">
-                                Category
-                            </dt>
-                            <dd
-                                class="mt-0.5 font-medium text-[var(--text-primary)]"
-                            >
-                                {{ product.category?.name ?? '—' }}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-[11px] text-[var(--text-muted)]">
-                                Weight
-                            </dt>
-                            <dd
-                                class="mt-0.5 font-medium text-[var(--text-primary)]"
-                            >
-                                {{ weightLabel ?? '—' }}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-[11px] text-[var(--text-muted)]">
-                                Stock
-                            </dt>
-                            <dd
-                                class="mt-0.5 font-medium text-[var(--text-primary)]"
-                            >
-                                {{
-                                    isOutOfStock
-                                        ? 'Sold out'
-                                        : `${product.stock} pcs`
-                                }}
-                            </dd>
-                        </div>
-                    </dl>
-
-                    <!-- Description -->
-                    <p
-                        v-if="product.description"
-                        class="mt-5 text-sm leading-relaxed whitespace-pre-line text-[var(--text-secondary)]"
-                    >
-                        {{ product.description }}
-                    </p>
 
                     <!-- Quantity -->
                     <div class="mt-6">
@@ -349,6 +334,133 @@ function addToCart(): void {
                     </p>
                 </div>
             </div>
+
+            <!-- Store card -->
+            <section
+                v-if="product.seller"
+                class="mt-4 flex flex-col gap-3 rounded-sm border border-[var(--border-default)] bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+                <div class="flex items-center gap-3">
+                    <div
+                        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-navy)] text-lg font-semibold text-white"
+                        aria-hidden="true"
+                    >
+                        {{ product.seller.store_name.charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                        <h2
+                            class="text-sm font-semibold text-[var(--text-primary)]"
+                        >
+                            {{ product.seller.store_name }}
+                        </h2>
+                        <p class="text-xs text-[var(--text-muted)]">
+                            Lihat semua produk toko ini
+                        </p>
+                    </div>
+                </div>
+                <Link
+                    :href="sellerShow.url(product.seller.slug)"
+                    class="inline-flex h-10 items-center justify-center rounded-sm border border-[var(--brand-primary)] px-4 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary-soft)]"
+                >
+                    Kunjungi toko
+                </Link>
+            </section>
+
+            <!-- Specification card -->
+            <section
+                class="mt-4 rounded-sm border border-[var(--border-default)] bg-white"
+            >
+                <h2
+                    class="border-b border-[var(--border-soft)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)]"
+                >
+                    Spesifikasi produk
+                </h2>
+                <dl class="divide-y divide-[var(--border-soft)] text-sm">
+                    <div class="grid grid-cols-3 gap-3 px-4 py-3">
+                        <dt class="text-[var(--text-muted)]">Kategori</dt>
+                        <dd class="col-span-2 text-[var(--text-primary)]">
+                            {{ product.category?.name ?? '—' }}
+                        </dd>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 px-4 py-3">
+                        <dt class="text-[var(--text-muted)]">Berat</dt>
+                        <dd class="col-span-2 text-[var(--text-primary)]">
+                            {{ weightLabel ?? '—' }}
+                        </dd>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 px-4 py-3">
+                        <dt class="text-[var(--text-muted)]">Stok</dt>
+                        <dd class="col-span-2 text-[var(--text-primary)]">
+                            {{
+                                isOutOfStock
+                                    ? 'Sold out'
+                                    : `${product.stock} pcs`
+                            }}
+                        </dd>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 px-4 py-3">
+                        <dt class="text-[var(--text-muted)]">Toko</dt>
+                        <dd class="col-span-2 text-[var(--text-primary)]">
+                            {{ product.seller?.store_name ?? '—' }}
+                        </dd>
+                    </div>
+                </dl>
+
+                <div class="border-t border-[var(--border-soft)]">
+                    <h3
+                        class="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]"
+                    >
+                        Deskripsi produk
+                    </h3>
+                    <p
+                        class="px-4 pb-4 text-sm leading-relaxed whitespace-pre-line text-[var(--text-secondary)]"
+                    >
+                        {{ product.description || '—' }}
+                    </p>
+                </div>
+            </section>
+
+            <!-- Rating card -->
+            <section
+                class="mt-4 rounded-sm border border-[var(--border-default)] bg-white"
+            >
+                <h2
+                    class="border-b border-[var(--border-soft)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)]"
+                >
+                    Rating produk
+                </h2>
+                <p class="px-4 py-6 text-center text-sm text-[var(--text-muted)]">
+                    Belum ada rating untuk produk ini.
+                </p>
+            </section>
+
+            <!-- Other products from this store -->
+            <section
+                v-if="otherProductCards.length > 0"
+                class="mt-4 rounded-sm border border-[var(--border-default)] bg-white"
+            >
+                <div
+                    class="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3"
+                >
+                    <h2 class="text-sm font-semibold text-[var(--text-primary)]">
+                        Produk lain dari toko ini
+                    </h2>
+                    <Link
+                        v-if="product.seller"
+                        :href="sellerShow.url(product.seller.slug)"
+                        class="text-xs font-medium text-[var(--brand-primary)] hover:underline"
+                    >
+                        Lihat semua
+                    </Link>
+                </div>
+                <div class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3 md:grid-cols-6">
+                    <ProductCard
+                        v-for="card in otherProductCards"
+                        :key="card.id"
+                        :product="card"
+                    />
+                </div>
+            </section>
         </div>
     </MarketplaceLayout>
 </template>

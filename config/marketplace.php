@@ -99,6 +99,51 @@ return [
             'group' => 'branding',
             'is_public' => true,
         ],
+        'homepage.banner_speed' => [
+            'value' => 5000,
+            'type' => SettingType::Integer,
+            'group' => 'homepage',
+            'is_public' => true,
+        ],
+        'homepage.right_top_banner_url' => [
+            'value' => '',
+            'type' => SettingType::Image,
+            'group' => 'homepage',
+            'is_public' => true,
+        ],
+        'homepage.right_bottom_banner_url' => [
+            'value' => '',
+            'type' => SettingType::Image,
+            'group' => 'homepage',
+            'is_public' => true,
+        ],
+        'homepage.banner_1_url' => [
+            'value' => '',
+            'type' => SettingType::Image,
+            'group' => 'homepage',
+            'is_public' => true,
+        ],
+        'homepage.banner_2_url' => [
+            'value' => '',
+            'type' => SettingType::Image,
+            'group' => 'homepage',
+            'is_public' => true,
+        ],
+        'homepage.banner_3_url' => [
+            'value' => '',
+            'type' => SettingType::Image,
+            'group' => 'homepage',
+            'is_public' => true,
+        ],
+        ...array_combine(
+            array_map(static fn (int $index): string => "homepage.banner_{$index}_url", range(4, 10)),
+            array_fill(0, 7, [
+                'value' => '',
+                'type' => SettingType::Image,
+                'group' => 'homepage',
+                'is_public' => true,
+            ]),
+        ),
         'branding.primary_color' => [
             'value' => '#ee4d2d',
             'type' => SettingType::Color,

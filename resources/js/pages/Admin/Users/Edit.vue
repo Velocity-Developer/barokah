@@ -148,7 +148,7 @@ async function save(): Promise<void> {
         />
 
         <div
-            class="border-sidebar-border/70 dark:border-sidebar-border max-w-2xl rounded-xl border p-4"
+            class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"
         >
             <p v-if="notice" class="mb-4 text-sm text-amber-600">{{ notice }}</p>
 

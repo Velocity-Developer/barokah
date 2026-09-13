@@ -13,7 +13,7 @@ it('shows active seller with active products', function () {
 
     $this->get(route('sellers.show', $seller->slug))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('Seller/Show')
+            ->component('Store/Show')
             ->where('seller.data.id', $seller->id)
             ->has('products.data', 1));
 });

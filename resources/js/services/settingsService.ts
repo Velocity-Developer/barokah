@@ -25,7 +25,14 @@ export async function fetchPublicSettings(
 
     const values = (await response.json()) as PublicSettings;
 
-    for (const key of ['branding.logo_url', 'branding.favicon_url', 'payment.qr_code_url']) {
+    for (const key of [
+        'branding.logo_url',
+        'branding.favicon_url',
+        'payment.qr_code_url',
+        ...Array.from({ length: 10 }, (_, index) => `homepage.banner_${index + 1}_url`),
+        'homepage.right_top_banner_url',
+        'homepage.right_bottom_banner_url',
+    ]) {
         const value = values[key];
         if (typeof value === 'string' && value !== '' && !value.startsWith('http')) {
             values[key] = `/storage/${value.replace(/^\/+/, '')}`;

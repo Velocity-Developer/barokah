@@ -18,7 +18,7 @@ class SettingController extends Controller
 {
     public function show(SettingsService $settingsService, ?string $group = null): Response
     {
-        $groups = ['general', 'branding', 'currency', 'marketplace', 'checkout', 'payment', 'shipping', 'localization', 'contact', 'seo', 'email'];
+        $groups = ['general', 'branding', 'homepage', 'currency', 'marketplace', 'checkout', 'payment', 'shipping', 'localization', 'contact', 'seo', 'email'];
 
         $active = in_array($group, $groups, true) ? $group : 'general';
 
@@ -38,7 +38,8 @@ class SettingController extends Controller
         $settings->each(function (Setting $setting) use ($settingsService): void {
             $value = $settingsService->get($setting->key, $setting->value);
 
-            if (in_array($setting->key, ['branding.logo_url', 'branding.favicon_url', 'payment.qr_code_url'], true)
+            if ((in_array($setting->key, ['branding.logo_url', 'branding.favicon_url', 'payment.qr_code_url'], true)
+                    || str_starts_with($setting->key, 'homepage.banner_'))
                 && is_string($value)
                 && $value !== '') {
                 $value = str_starts_with($value, 'http')

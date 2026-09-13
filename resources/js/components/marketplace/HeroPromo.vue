@@ -1,14 +1,33 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
-const slides = [0, 1, 2];
+import { useSettingsStore } from '@/stores/settings';
+
+const slides = computed(() =>
+    Array.from({ length: 10 }, (_, index) => index).filter((index) =>
+        bannerUrl(index),
+    ).length > 0
+        ? Array.from({ length: 10 }, (_, index) => index).filter((index) => bannerUrl(index))
+        : [0],
+);
+const { getSettingValue, loadSettings } = useSettingsStore();
+
+const sliderSpeed = computed(() => Math.max(1000, Number(getSettingValue('homepage.banner_speed', 5000))));
+const rightTopBanner = computed(() => getSettingValue<string>('homepage.right_top_banner_url', ''));
+const rightBottomBanner = computed(() => getSettingValue<string>('homepage.right_bottom_banner_url', ''));
+
+void loadSettings();
+
+function bannerUrl(index: number): string {
+    return getSettingValue<string>(`homepage.banner_${index + 1}_url`, '');
+}
 const activeSlide = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const sidePromos = [
-    { title: 'New arrivals', subtitle: 'Fresh picks daily' },
-    { title: 'Top categories', subtitle: 'Shop best sellers' },
-];
+const sidePromos = computed(() => [
+    { title: 'Rigth Top Banner', url: rightTopBanner.value },
+    { title: 'Right Bottom Banner', url: rightBottomBanner.value },
+]);
 
 const reduceMotion = computed(
     () =>
@@ -17,7 +36,7 @@ const reduceMotion = computed(
 );
 
 function goTo(index: number): void {
-    activeSlide.value = (index + slides.length) % slides.length;
+    activeSlide.value = (index + slides.value.length) % slides.value.length;
 }
 
 function startAutoplay(): void {
@@ -26,8 +45,13 @@ function startAutoplay(): void {
     }
     timer = setInterval(() => {
         goTo(activeSlide.value + 1);
-    }, 5000);
+    }, sliderSpeed.value);
 }
+
+watch(sliderSpeed, () => {
+    stopAutoplay();
+    startAutoplay();
+});
 
 function stopAutoplay(): void {
     if (timer !== null) {
@@ -63,6 +87,13 @@ onUnmounted(() => {
                     ]"
                     :aria-hidden="index !== activeSlide"
                 >
+                    <img
+                        v-if="bannerUrl(slide)"
+                        :src="bannerUrl(slide)"
+                        :alt="`Banner ${index + 1}`"
+                        class="absolute inset-0 size-full object-cover"
+                    />
+                    <div v-if="!bannerUrl(slide)" class="relative">
                     <p
                         class="text-lg font-bold md:text-2xl"
                         style="color: var(--brand-primary)"
@@ -73,6 +104,7 @@ onUnmounted(() => {
                         Static banner art. Admin-managed banners are TBC (spec
                         §24 item 27).
                     </p>
+                    </div>
                 </div>
                 <div
                     class="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5"
@@ -98,10 +130,8 @@ onUnmounted(() => {
                     :key="promo.title"
                     class="flex flex-col justify-center rounded-sm bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-card)]"
                 >
-                    <p class="text-sm font-semibold">{{ promo.title }}</p>
-                    <p class="text-xs text-[var(--text-muted)]">
-                        {{ promo.subtitle }}
-                    </p>
+                    <img v-if="promo.url" :src="promo.url" :alt="promo.title" class="size-full object-cover" />
+                    <p v-else class="text-sm font-semibold">{{ promo.title }}</p>
                 </div>
             </div>
         </div>

@@ -248,7 +248,7 @@ const existingImages = computed(() =>
         />
 
         <div
-            class="border-sidebar-border/70 dark:border-sidebar-border max-w-2xl rounded-xl border p-4"
+            class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"
         >
             <form class="space-y-5" @submit.prevent="save">
                 <div class="grid gap-2">

@@ -44,6 +44,18 @@ class UpdateAdminSettingsRequest extends FormRequest
             'branding_logo' => ['sometimes', 'nullable', File::image()->max(2048)],
             'branding_favicon' => ['sometimes', 'nullable', File::image()->max(1024)],
             'payment_qr_code' => ['sometimes', 'nullable', File::image()->max(2048)],
+            'homepage_banner_1' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_2' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_3' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_4' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_5' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_6' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_7' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_8' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_9' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_banner_10' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_right_top_banner' => ['sometimes', 'nullable', File::image()->max(4096)],
+            'homepage_right_bottom_banner' => ['sometimes', 'nullable', File::image()->max(4096)],
         ];
     }
 
@@ -175,6 +187,10 @@ class UpdateAdminSettingsRequest extends FormRequest
      */
     public function rulesForKey(string $key): array
     {
+        if (str_starts_with($key, 'homepage.banner_')) {
+            return ['nullable', 'string', 'max:2000'];
+        }
+
         return match ($key) {
             'general.site_tagline' => ['nullable', 'string', 'max:255'],
             'general.maintenance_mode', 'general.allow_registration' => ['boolean'],
@@ -199,6 +215,7 @@ class UpdateAdminSettingsRequest extends FormRequest
             'payment.sandbox_enabled' => ['boolean'],
             'payment.bank_name', 'payment.bank_account_name', 'payment.bank_account_number' => ['nullable', 'string', 'max:255'],
             'payment.qr_code_url' => ['nullable', 'string', 'max:2000'],
+            str_starts_with($key, 'homepage.banner_') => ['nullable', 'string', 'max:2000'],
             'payment.gateway' => ['required', 'string', 'max:50'],
             'payment.merchant_id', 'payment.secret_key',
             'payment.api_base' => ['nullable', 'string', 'max:2000'],

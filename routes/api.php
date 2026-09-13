@@ -100,7 +100,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::put('admin/orders/{orderNumber}', [AdminOrderController::class, 'update'])->name('admin.orders.update');
 
             Route::get('admin/settings', [AdminSettingController::class, 'index'])->name('admin.settings.index');
-            Route::put('admin/settings', [AdminSettingController::class, 'update'])->name('admin.settings.update');
+            Route::match(['post', 'put'], 'admin/settings', [AdminSettingController::class, 'update'])->name('admin.settings.update');
 
             Route::get('admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
             Route::get('admin/users/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');

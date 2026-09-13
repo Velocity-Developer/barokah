@@ -91,6 +91,8 @@ class SettingsService
     protected function publicValue(string $key, mixed $value): mixed
     {
         if (! in_array($key, ['branding.logo_url', 'branding.favicon_url', 'payment.qr_code_url'], true)
+            && ! str_starts_with($key, 'homepage.banner_')
+            && ! in_array($key, ['homepage.right_top_banner_url', 'homepage.right_bottom_banner_url'], true)
             || ! is_string($value)
             || $value === '') {
             return $value;

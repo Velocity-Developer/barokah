@@ -52,7 +52,16 @@ class SettingController extends Controller
             'branding.logo_url' => $request->file('branding_logo'),
             'branding.favicon_url' => $request->file('branding_favicon'),
             'payment.qr_code_url' => $request->file('payment_qr_code'),
+            'homepage.banner_1_url' => $request->file('homepage_banner_1'),
+            'homepage.banner_2_url' => $request->file('homepage_banner_2'),
+            'homepage.banner_3_url' => $request->file('homepage_banner_3'),
+            'homepage.right_top_banner_url' => $request->file('homepage_right_top_banner'),
+            'homepage.right_bottom_banner_url' => $request->file('homepage_right_bottom_banner'),
         ];
+
+        for ($index = 4; $index <= 10; $index++) {
+            $uploadedBranding["homepage.banner_{$index}_url"] = $request->file("homepage_banner_{$index}");
+        }
 
         DB::transaction(function () use ($request, $settings, $uploadedBranding, &$updated): void {
             foreach ($uploadedBranding as $key => $file) {
@@ -65,7 +74,7 @@ class SettingController extends Controller
                     Storage::disk('public')->delete($oldPath);
                 }
 
-                $updated[] = $settings->set($key, $file->store($key === 'payment.qr_code_url' ? 'payment' : 'branding', 'public'));
+                $updated[] = $settings->set($key, $file->store(str_starts_with($key, 'homepage.') ? 'homepage' : ($key === 'payment.qr_code_url' ? 'payment' : 'branding'), 'public'));
             }
 
             foreach ($request->pairs() as $key => $value) {

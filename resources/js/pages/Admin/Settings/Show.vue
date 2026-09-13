@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -68,9 +68,29 @@ watch(
 const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
 const notice = ref<string | null>(null);
+
+onMounted(() => {
+    const bannerIndexes = props.settings
+        .filter((setting) => setting.key.startsWith('homepage.banner_') && setting.value)
+        .map((setting) => Number(setting.key.match(/banner_(\d+)_url/)?.[1] ?? 1));
+    bannerCount.value = Math.max(1, ...bannerIndexes);
+
+    console.log('[admin-settings] page accessed', {
+        activeGroup: props.activeGroup,
+        settingsCount: props.settings.length,
+        groups: props.groups,
+    });
+});
 const logoFile = ref<File | null>(null);
 const faviconFile = ref<File | null>(null);
 const qrCodeFile = ref<File | null>(null);
+const homepageBannerFiles = ref<Record<string, File | null>>(
+    Object.fromEntries(
+        Array.from({ length: 10 }, (_, index) => [`homepage_banner_${index + 1}`, null]),
+    ),
+);
+const bannerCount = ref(1);
+const closedBannerIndexes = ref<Set<number>>(new Set());
 const shippingRates = ref<ShippingRate[]>([]);
 const newRate = reactive({ from_state: '', from_city: '', to_state: '', to_city: '', rate: '', is_active: true });
 const rateError = ref<string | null>(null);
@@ -190,6 +210,50 @@ function onQrCodeFile(event: Event): void {
     qrCodeFile.value = (event.target as HTMLInputElement).files?.[0] ?? null;
 }
 
+function onHomepageBannerFile(key: string, event: Event): void {
+    const fileKey = key.replace('_url', '').replaceAll('.', '_');
+
+    homepageBannerFiles.value[fileKey] =
+        (event.target as HTMLInputElement).files?.[0] ?? null;
+}
+
+function onHomepageSideBannerFile(key: string, event: Event): void {
+    const field = key === 'homepage.right_top_banner_url'
+        ? 'homepage_right_top_banner'
+        : 'homepage_right_bottom_banner';
+
+    homepageBannerFiles.value[field] =
+        (event.target as HTMLInputElement).files?.[0] ?? null;
+}
+
+function bannerIndex(key: string): number {
+    return Number(key.match(/banner_(\d+)_url/)?.[1] ?? 1);
+}
+
+function removeHomepageBanner(key: string): void {
+    values[key] = null;
+    homepageBannerFiles.value[`homepage_banner_${bannerIndex(key)}`] = null;
+}
+
+function closeHomepageBanner(key: string): void {
+    const index = bannerIndex(key);
+
+    removeHomepageBanner(key);
+    closedBannerIndexes.value = new Set([...closedBannerIndexes.value, index]);
+
+    if (index === bannerCount.value) {
+        bannerCount.value = Math.max(1, index - 1);
+    }
+}
+
+function addHomepageBanner(): void {
+    const nextIndex = bannerCount.value + 1;
+
+    closedBannerIndexes.value.delete(nextIndex);
+    closedBannerIndexes.value = new Set(closedBannerIndexes.value);
+    bannerCount.value = nextIndex;
+}
+
 const groupLabels: Record<string, string> = {
     general: 'General',
     branding: 'Branding',
@@ -214,6 +278,9 @@ const settingLabels: Record<string, string> = {
     'payment.paynet_enabled': 'Payment Gateway (PayNet)',
     'branding.logo_url': 'Website Logo',
     'branding.favicon_url': 'Website Favicon',
+    'homepage.banner_speed': 'Banner Slider Speed (milliseconds)',
+    'homepage.right_top_banner_url': 'Rigth Top Banner',
+    'homepage.right_bottom_banner_url': 'Right Bottom Banner',
     'branding.site_name': 'Website Name',
     'branding.primary_color': 'Primary Color',
     'branding.primary_hover_color': 'Primary Hover Color',
@@ -328,6 +395,12 @@ const visibleSettings = computed(() => {
         .sort((first, second) => paymentOrder.indexOf(first.key) - paymentOrder.indexOf(second.key));
 });
 
+function isHomepageImageSetting(key: string): boolean {
+    return key.startsWith('homepage.banner_') && key.endsWith('_url')
+        || key === 'homepage.right_top_banner_url'
+        || key === 'homepage.right_bottom_banner_url';
+}
+
 function settingLabel(key: string): string {
     if (settingLabels[key]) {
         return settingLabels[key];
@@ -340,7 +413,7 @@ function settingLabel(key: string): string {
         .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-function inputKind(type: string): 'checkbox' | 'color' | 'text' {
+function inputKind(type: string): 'checkbox' | 'color' | 'number' | 'text' {
     if (type === 'boolean') {
         return 'checkbox';
     }
@@ -349,17 +422,36 @@ function inputKind(type: string): 'checkbox' | 'color' | 'text' {
         return 'color';
     }
 
+    if (type === 'integer' || type === 'number') {
+        return 'number';
+    }
+
     return 'text';
 }
 
+function onSettingsSubmit(event: SubmitEvent): void {
+    console.log('[admin-settings] form submit event', event);
+    void save();
+}
+
 async function save(): Promise<void> {
+    console.log('[admin-settings] save clicked', {
+        activeGroup: props.activeGroup,
+        settingsCount: props.settings.length,
+        bannerFiles: Object.fromEntries(
+            Object.entries(homepageBannerFiles.value).map(([key, file]) => [
+                key,
+                file?.name ?? null,
+            ]),
+        ),
+    });
+
     isSaving.value = true;
     errors.value = {};
     notice.value = null;
 
     try {
         const formData = new FormData();
-        formData.append('_method', 'PUT');
         formData.append('settings', JSON.stringify(props.settings.map((setting) => ({
             key: setting.key,
             value: values[setting.key] ?? null,
@@ -367,6 +459,11 @@ async function save(): Promise<void> {
         if (logoFile.value) formData.append('branding_logo', logoFile.value);
         if (faviconFile.value) formData.append('branding_favicon', faviconFile.value);
         if (qrCodeFile.value) formData.append('payment_qr_code', qrCodeFile.value);
+        Object.entries(homepageBannerFiles.value).forEach(([key, file]) => {
+            if (file) {
+                formData.append(key.replaceAll('.', '_'), file);
+            }
+        });
 
         const response = await fetch('/api/v1/admin/settings', {
             method: 'POST',
@@ -381,10 +478,15 @@ async function save(): Promise<void> {
             body: formData,
         });
 
-        const payload = (await response.json()) as {
-            errors?: Record<string, string[]>;
-            message?: string;
-        };
+        const responseText = await response.text();
+        let payload: { errors?: Record<string, string[]>; message?: string } = {};
+
+        try {
+            payload = JSON.parse(responseText || '{}') as typeof payload;
+        } catch {
+            notice.value = `Settings could not be saved (${response.status}).`;
+            return;
+        }
 
         if (!response.ok) {
             const first: Record<string, string> = {};
@@ -411,19 +513,21 @@ async function save(): Promise<void> {
 <template>
     <Head title="Settings" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
-        <Heading
-            variant="small"
-            title="Settings"
-            description="Manage website configuration with clear labels. Secret values remain hidden."
-        />
+    <div class="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6 p-4 md:p-6">
+        <div class="rounded-xl border bg-card p-5 shadow-sm md:p-6">
+            <Heading
+                variant="small"
+                title="Settings"
+                description="Manage website configuration with clear labels. Secret values remain hidden."
+            />
+        </div>
 
-        <nav class="flex flex-wrap gap-2" aria-label="Settings groups">
+        <nav class="flex flex-wrap gap-2 rounded-xl border bg-card p-3 shadow-sm" aria-label="Settings groups">
             <Link
                 v-for="group in groups"
                 :key="group"
                 :href="show(group)"
-                class="rounded-md border px-3 py-1 text-sm"
+                class="rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted"
                 :class="
                     group === activeGroup
                         ? 'border-primary font-medium'
@@ -435,7 +539,7 @@ async function save(): Promise<void> {
         </nav>
 
         <div
-            class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"
+            class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border bg-card p-4 shadow-sm md:p-6"
         >
             <h3 class="mb-4 text-base font-medium capitalize">{{ groupLabel }}</h3>
 
@@ -528,8 +632,25 @@ async function save(): Promise<void> {
                 </div>
             </template>
 
-            <form v-if="settings.length > 0" class="space-y-6" @submit.prevent="save">
-                <div v-for="setting in visibleSettings" :key="setting.key" class="grid gap-2">
+            <form v-if="settings.length > 0" class="space-y-6" @submit.prevent="onSettingsSubmit">
+                <div v-if="activeGroup === 'homepage'" class="rounded border p-4">
+                    <p class="font-medium">Homepage banners</p>
+                    <p class="text-sm text-muted-foreground">Atur banner yang tampil di halaman Home.</p>
+                </div>
+
+                <div
+                    v-for="setting in visibleSettings.filter((setting) => {
+                        if (!isHomepageImageSetting(setting.key)) {
+                            return true;
+                        }
+
+                        const index = bannerIndex(setting.key);
+
+                        return index <= bannerCount && !closedBannerIndexes.has(index);
+                    })"
+                    :key="setting.key"
+                    class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
+                >
                     <Label :for="setting.key">
                         {{ settingLabel(setting.key) }}
                         <span v-if="setting.masked" class="text-muted-foreground">
@@ -559,6 +680,16 @@ async function save(): Promise<void> {
                         :model-value="String(values[setting.key] ?? '#000000')"
                         @update:model-value="values[setting.key] = $event"
                     />
+                    <template v-else-if="activeGroup === 'homepage' && isHomepageImageSetting(setting.key)">
+                        <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Homepage banner preview" class="h-24 w-full rounded border object-cover" />
+                        <Input v-if="setting.key.startsWith('homepage.banner_')" :id="setting.key" :key="`${setting.key}-${closedBannerIndexes.has(bannerIndex(setting.key))}`" type="file" accept="image/png,image/jpeg,image/webp" @change="onHomepageBannerFile(setting.key, $event)" />
+                        <Input v-else :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp" @change="onHomepageSideBannerFile(setting.key, $event)" />
+                        <div class="flex gap-2">
+                            <Button type="button" variant="destructive" size="sm" @click="removeHomepageBanner(setting.key)">Hapus banner</Button>
+                            <Button v-if="bannerIndex(setting.key) > 1" type="button" variant="outline" size="sm" @click="closeHomepageBanner(setting.key)">Close</Button>
+                        </div>
+                        <p class="text-muted-foreground text-xs">PNG, JPG, atau WebP. Max 4MB.</p>
+                    </template>
                     <template v-else-if="activeGroup === 'branding' && setting.key === 'branding.logo_url'">
                         <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Logo preview" class="h-16 max-w-48 rounded border object-contain p-2" />
                         <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="onBrandingFile('logo', $event)" />
@@ -575,6 +706,15 @@ async function save(): Promise<void> {
                         <p class="text-muted-foreground text-xs">PNG, JPG, or WebP. Max 2MB.</p>
                     </template>
                     <Input
+                        v-else-if="inputKind(setting.type) === 'number'"
+                        :id="setting.key"
+                        type="number"
+                        min="1000"
+                        step="100"
+                        :model-value="String(values[setting.key] ?? '')"
+                        @update:model-value="values[setting.key] = Number($event)"
+                    />
+                    <Input
                         v-else
                         :id="setting.key"
                         type="text"
@@ -590,6 +730,12 @@ async function save(): Promise<void> {
                         class="mt-2"
                         :message="errors[`settings.${setting.key}`]"
                     />
+                </div>
+
+                <div v-if="activeGroup === 'homepage'" class="flex justify-center border-t pt-4">
+                    <Button type="button" variant="outline" :disabled="bannerCount >= 10" @click="addHomepageBanner">
+                        Tambah banner
+                    </Button>
                 </div>
 
                 <div class="flex items-center gap-4">

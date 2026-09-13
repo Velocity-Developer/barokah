@@ -22,8 +22,18 @@ class ProductShowController extends Controller
             ->with(['seller', 'category', 'images'])
             ->firstOrFail();
 
+        $sellerProducts = Product::query()
+            ->active()
+            ->where('seller_id', $product->seller_id)
+            ->whereKeyNot($product->getKey())
+            ->with(['seller', 'category', 'images'])
+            ->latest()
+            ->limit(6)
+            ->get();
+
         return Inertia::render('Product/Show', [
             'product' => new ProductResource($product),
+            'sellerProducts' => ProductResource::collection($sellerProducts),
         ]);
     }
 }

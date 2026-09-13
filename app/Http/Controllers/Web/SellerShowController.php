@@ -20,7 +20,7 @@ class SellerShowController extends Controller
             ->with(['products' => fn ($query) => $query->active()->with(['images', 'category'])])
             ->firstOrFail();
 
-        return Inertia::render('Seller/Show', [
+        return Inertia::render('Store/Show', [
             'seller' => new SellerResource($seller),
             'products' => ProductResource::collection($seller->products),
         ]);
