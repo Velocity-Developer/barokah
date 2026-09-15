@@ -78,7 +78,7 @@ const inputEmail = ref(props.email);
 
             <Button
                 type="submit"
-                class="mt-4 w-full"
+                class="mt-4 w-full border-[var(--brand-primary, #ee4d2d)] bg-[var(--brand-primary, #ee4d2d)] text-white hover:border-[var(--brand-primary-hover, #d73211)] hover:bg-[var(--brand-primary-hover, #d73211)]"
                 :disabled="processing"
                 data-test="reset-password-button"
             >

@@ -36,10 +36,13 @@ function applyBrandColors(values: PublicSettings): void {
 
     const primary = values['branding.primary_color'];
     const secondary = values['branding.secondary_color'];
+    const resolvedPrimary =
+        typeof primary === 'string' && primary !== ''
+            ? primary
+            : '#ee4d2d';
 
-    if (typeof primary === 'string' && primary !== '') {
-        document.documentElement.style.setProperty('--brand-primary', primary);
-    }
+    document.documentElement.style.setProperty('--brand-primary', resolvedPrimary);
+    document.documentElement.style.setProperty('--brand-primary-hover', resolvedPrimary);
 
     if (typeof secondary === 'string' && secondary !== '') {
         document.documentElement.style.setProperty('--accent-navy', secondary);
