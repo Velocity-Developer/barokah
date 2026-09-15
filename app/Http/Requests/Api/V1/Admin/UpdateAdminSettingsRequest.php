@@ -187,8 +187,12 @@ class UpdateAdminSettingsRequest extends FormRequest
      */
     public function rulesForKey(string $key): array
     {
-        if (str_starts_with($key, 'homepage.banner_')) {
+        if (preg_match('/^homepage\.banner_\d+_url$/', $key)) {
             return ['nullable', 'string', 'max:2000'];
+        }
+
+        if (preg_match('/^homepage\.(banner_\d+_link|right_(top|bottom)_banner_link)$/', $key)) {
+            return ['nullable', 'string', 'url', 'max:2000'];
         }
 
         return match ($key) {
@@ -215,7 +219,8 @@ class UpdateAdminSettingsRequest extends FormRequest
             'payment.sandbox_enabled' => ['boolean'],
             'payment.bank_name', 'payment.bank_account_name', 'payment.bank_account_number' => ['nullable', 'string', 'max:255'],
             'payment.qr_code_url' => ['nullable', 'string', 'max:2000'],
-            str_starts_with($key, 'homepage.banner_') => ['nullable', 'string', 'max:2000'],
+            'homepage.banner_speed' => ['required', 'integer', 'min:1000', 'max:60000'],
+            'homepage.right_top_banner_url', 'homepage.right_bottom_banner_url' => ['nullable', 'string', 'max:2000'],
             'payment.gateway' => ['required', 'string', 'max:50'],
             'payment.merchant_id', 'payment.secret_key',
             'payment.api_base' => ['nullable', 'string', 'max:2000'],

@@ -279,6 +279,8 @@ const settingLabels: Record<string, string> = {
     'branding.logo_url': 'Website Logo',
     'branding.favicon_url': 'Website Favicon',
     'homepage.banner_speed': 'Banner Slider Speed (milliseconds)',
+    'homepage.right_top_banner_link': 'Right Top Banner Promo Link',
+    'homepage.right_bottom_banner_link': 'Right Bottom Banner Promo Link',
     'homepage.right_top_banner_url': 'Rigth Top Banner',
     'homepage.right_bottom_banner_url': 'Right Bottom Banner',
     'branding.site_name': 'Website Name',
@@ -638,16 +640,80 @@ async function save(): Promise<void> {
                     <p class="text-sm text-muted-foreground">Atur banner yang tampil di halaman Home.</p>
                 </div>
 
+                <template v-if="activeGroup === 'homepage'">
+                    <div class="grid gap-4 rounded-lg border p-4">
+                        <div>
+                            <h4 class="font-medium">Primary banners</h4>
+                            <p class="text-sm text-muted-foreground">Atur banner utama yang tampil di halaman Home.</p>
+                        </div>
+                        <div
+                            v-for="setting in visibleSettings.filter((setting) => /^homepage\.banner_\d+_url$/.test(setting.key))"
+                            v-show="bannerIndex(setting.key) <= bannerCount && !closedBannerIndexes.has(bannerIndex(setting.key))"
+                            :key="setting.key"
+                            class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
+                        >
+                            <Label :for="setting.key">{{ settingLabel(setting.key) }}</Label>
+                            <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Homepage banner preview" class="h-24 w-full rounded border object-cover" />
+                            <Input :id="setting.key" :key="`${setting.key}-${closedBannerIndexes.has(bannerIndex(setting.key))}`" type="file" accept="image/png,image/jpeg,image/webp" @change="onHomepageBannerFile(setting.key, $event)" />
+                            <div class="flex gap-2">
+                                <Button type="button" variant="destructive" size="sm" @click="removeHomepageBanner(setting.key)">Hapus banner</Button>
+                                <Button v-if="bannerIndex(setting.key) > 1" type="button" variant="outline" size="sm" @click="closeHomepageBanner(setting.key)">Close</Button>
+                            </div>
+                            <p class="text-muted-foreground text-xs">PNG, JPG, atau WebP. Max 4MB.</p>
+                            <Input
+                                :id="`${setting.key}-link`"
+                                :model-value="String(values[`homepage.banner_${bannerIndex(setting.key)}_link`] ?? '')"
+                                placeholder="https://example.com/promo"
+                                @update:model-value="values[`homepage.banner_${bannerIndex(setting.key)}_link`] = $event"
+                            />
+                            <InputError class="mt-2" :message="errors[`settings.${setting.key}`]" />
+                        </div>
+                        <div class="flex justify-center border-t pt-4">
+                            <Button type="button" variant="outline" :disabled="bannerCount >= 10" @click="addHomepageBanner">Tambah banner</Button>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-2 rounded-lg border p-4">
+                        <Label for="homepage.banner_speed">{{ settingLabel('homepage.banner_speed') }}</Label>
+                        <Input
+                            id="homepage.banner_speed"
+                            type="number"
+                            min="1000"
+                            step="100"
+                            :model-value="String(values['homepage.banner_speed'] ?? '')"
+                            @update:model-value="values['homepage.banner_speed'] = String($event)"
+                        />
+                        <InputError class="mt-2" :message="errors['settings.homepage.banner_speed']" />
+                    </div>
+
+                    <div class="grid gap-4 rounded-lg border p-4">
+                        <div>
+                            <h4 class="font-medium">Right banners</h4>
+                            <p class="text-sm text-muted-foreground">Atur banner sisi kanan halaman Home.</p>
+                        </div>
+                        <div
+                            v-for="setting in visibleSettings.filter((setting) => setting.key === 'homepage.right_top_banner_url' || setting.key === 'homepage.right_bottom_banner_url')"
+                            :key="setting.key"
+                            class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
+                        >
+                            <Label :for="setting.key">{{ settingLabel(setting.key) }}</Label>
+                            <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Homepage side banner preview" class="h-24 w-full rounded border object-cover" />
+                            <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp" @change="onHomepageSideBannerFile(setting.key, $event)" />
+                            <p class="text-muted-foreground text-xs">PNG, JPG, atau WebP. Max 4MB.</p>
+                            <Input
+                                :id="`${setting.key}-link`"
+                                :model-value="String(values[setting.key.replace('_url', '_link')] ?? '')"
+                                placeholder="https://example.com/promo"
+                                @update:model-value="values[setting.key.replace('_url', '_link')] = $event"
+                            />
+                            <InputError class="mt-2" :message="errors[`settings.${setting.key.replace('_url', '_link')}`]" />
+                        </div>
+                    </div>
+                </template>
+
                 <div
-                    v-for="setting in visibleSettings.filter((setting) => {
-                        if (!isHomepageImageSetting(setting.key)) {
-                            return true;
-                        }
-
-                        const index = bannerIndex(setting.key);
-
-                        return index <= bannerCount && !closedBannerIndexes.has(index);
-                    })"
+                    v-else
+                    v-for="setting in visibleSettings"
                     :key="setting.key"
                     class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
                 >
@@ -730,12 +796,6 @@ async function save(): Promise<void> {
                         class="mt-2"
                         :message="errors[`settings.${setting.key}`]"
                     />
-                </div>
-
-                <div v-if="activeGroup === 'homepage'" class="flex justify-center border-t pt-4">
-                    <Button type="button" variant="outline" :disabled="bannerCount >= 10" @click="addHomepageBanner">
-                        Tambah banner
-                    </Button>
                 </div>
 
                 <div class="flex items-center gap-4">

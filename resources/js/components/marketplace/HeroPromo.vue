@@ -6,27 +6,36 @@ import { useSettingsStore } from '@/stores/settings';
 const slides = computed(() =>
     Array.from({ length: 10 }, (_, index) => index).filter((index) =>
         bannerUrl(index),
-    ).length > 0
-        ? Array.from({ length: 10 }, (_, index) => index).filter((index) => bannerUrl(index))
-        : [0],
+    ),
 );
 const { getSettingValue, loadSettings } = useSettingsStore();
 
 const sliderSpeed = computed(() => Math.max(1000, Number(getSettingValue('homepage.banner_speed', 5000))));
 const rightTopBanner = computed(() => getSettingValue<string>('homepage.right_top_banner_url', ''));
 const rightBottomBanner = computed(() => getSettingValue<string>('homepage.right_bottom_banner_url', ''));
+const rightTopBannerLink = computed(() => getSettingValue<string>('homepage.right_top_banner_link', ''));
+const rightBottomBannerLink = computed(() => getSettingValue<string>('homepage.right_bottom_banner_link', ''));
 
-void loadSettings();
+void loadSettings(true);
 
 function bannerUrl(index: number): string {
     return getSettingValue<string>(`homepage.banner_${index + 1}_url`, '');
 }
+
+function bannerLink(index: number): string {
+    return getSettingValue<string>(`homepage.banner_${index + 1}_link`, '');
+}
 const activeSlide = ref(0);
+const loadedBanners = ref<Set<string>>(new Set());
 let timer: ReturnType<typeof setInterval> | null = null;
 
+function markBannerLoaded(url: string): void {
+    loadedBanners.value = new Set([...loadedBanners.value, url]);
+}
+
 const sidePromos = computed(() => [
-    { title: 'Rigth Top Banner', url: rightTopBanner.value },
-    { title: 'Right Bottom Banner', url: rightBottomBanner.value },
+    { title: 'Rigth Top Banner', url: rightTopBanner.value, link: rightTopBannerLink.value },
+    { title: 'Right Bottom Banner', url: rightBottomBanner.value, link: rightBottomBannerLink.value },
 ]);
 
 const reduceMotion = computed(
@@ -36,6 +45,10 @@ const reduceMotion = computed(
 );
 
 function goTo(index: number): void {
+    if (slides.value.length === 0) {
+        return;
+    }
+
     activeSlide.value = (index + slides.value.length) % slides.value.length;
 }
 
@@ -74,11 +87,14 @@ onUnmounted(() => {
         <div class="grid gap-2 md:grid-cols-3">
             <div
                 class="relative overflow-hidden rounded-sm bg-[var(--brand-primary-soft)] md:col-span-2"
-                style="min-height: 240px"
+                style="min-height: 350px"
             >
-                <div
+                <a
                     v-for="(slide, index) in slides"
                     :key="slide"
+                    :href="bannerLink(slide) || undefined"
+                    :target="bannerLink(slide) ? '_blank' : undefined"
+                    :rel="bannerLink(slide) ? 'noopener noreferrer' : undefined"
                     :class="[
                         'absolute inset-0 flex flex-col items-start justify-center gap-2 p-6 transition-opacity duration-500 md:p-10',
                         index === activeSlide
@@ -87,25 +103,25 @@ onUnmounted(() => {
                     ]"
                     :aria-hidden="index !== activeSlide"
                 >
+                    <div
+                        v-if="bannerUrl(slide) && !loadedBanners.has(bannerUrl(slide))"
+                        class="absolute inset-0 animate-pulse bg-muted"
+                        aria-label="Loading banner"
+                    />
                     <img
                         v-if="bannerUrl(slide)"
                         :src="bannerUrl(slide)"
                         :alt="`Banner ${index + 1}`"
                         class="absolute inset-0 size-full object-cover"
+                        :class="loadedBanners.has(bannerUrl(slide)) ? 'opacity-100' : 'opacity-0'"
+                        @load="markBannerLoaded(bannerUrl(slide))"
                     />
-                    <div v-if="!bannerUrl(slide)" class="relative">
-                    <p
-                        class="text-lg font-bold md:text-2xl"
-                        style="color: var(--brand-primary)"
-                    >
-                        Barokah Marketplace Promo {{ index + 1 }}
-                    </p>
-                    <p class="text-sm text-[var(--text-secondary)]">
-                        Static banner art. Admin-managed banners are TBC (spec
-                        §24 item 27).
-                    </p>
-                    </div>
-                </div>
+                    <div
+                        v-if="!bannerUrl(slide)"
+                        class="absolute inset-0 animate-pulse bg-muted"
+                        aria-label="Loading banner"
+                    />
+                </a>
                 <div
                     class="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5"
                 >
@@ -124,15 +140,29 @@ onUnmounted(() => {
                     />
                 </div>
             </div>
-            <div class="hidden grid-rows-2 gap-2 md:grid">
-                <div
+            <div class="hidden h-[350px] grid-rows-2 gap-2 md:grid">
+                <a
                     v-for="promo in sidePromos"
                     :key="promo.title"
-                    class="flex flex-col justify-center rounded-sm bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-card)]"
+                    :href="promo.link || undefined"
+                    :target="promo.link ? '_blank' : undefined"
+                    :rel="promo.link ? 'noopener noreferrer' : undefined"
+                    class="relative flex min-h-0 flex-col justify-center overflow-hidden rounded-sm bg-[var(--bg-surface)] shadow-[var(--shadow-card)]"
                 >
-                    <img v-if="promo.url" :src="promo.url" :alt="promo.title" class="size-full object-cover" />
-                    <p v-else class="text-sm font-semibold">{{ promo.title }}</p>
-                </div>
+                    <div
+                        class="absolute inset-0 animate-pulse bg-muted"
+                        :class="promo.url && loadedBanners.has(promo.url) ? 'hidden' : 'block'"
+                        aria-label="Loading banner"
+                    />
+                    <img
+                        v-if="promo.url"
+                        :src="promo.url"
+                        :alt="promo.title"
+                        class="relative h-full w-full object-cover"
+                        :class="loadedBanners.has(promo.url) ? 'opacity-100' : 'opacity-0'"
+                        @load="markBannerLoaded(promo.url)"
+                    />
+                </a>
             </div>
         </div>
     </section>

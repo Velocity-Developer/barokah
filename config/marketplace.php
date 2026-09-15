@@ -117,6 +117,30 @@ return [
             'group' => 'homepage',
             'is_public' => true,
         ],
+        ...array_combine(
+            array_map(
+                static fn (int $index): string => "homepage.banner_{$index}_link",
+                range(1, 10),
+            ),
+            array_fill(0, 10, [
+                'value' => '',
+                'type' => SettingType::String,
+                'group' => 'homepage',
+                'is_public' => true,
+            ]),
+        ),
+        'homepage.right_top_banner_link' => [
+            'value' => '',
+            'type' => SettingType::String,
+            'group' => 'homepage',
+            'is_public' => true,
+        ],
+        'homepage.right_bottom_banner_link' => [
+            'value' => '',
+            'type' => SettingType::String,
+            'group' => 'homepage',
+            'is_public' => true,
+        ],
         'homepage.banner_1_url' => [
             'value' => '',
             'type' => SettingType::Image,

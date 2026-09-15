@@ -38,8 +38,14 @@ class SettingController extends Controller
         $settings->each(function (Setting $setting) use ($settingsService): void {
             $value = $settingsService->get($setting->key, $setting->value);
 
-            if ((in_array($setting->key, ['branding.logo_url', 'branding.favicon_url', 'payment.qr_code_url'], true)
-                    || str_starts_with($setting->key, 'homepage.banner_'))
+            if ((in_array($setting->key, [
+                'branding.logo_url',
+                'branding.favicon_url',
+                'payment.qr_code_url',
+                'homepage.right_top_banner_url',
+                'homepage.right_bottom_banner_url',
+            ], true)
+                    || preg_match('/^homepage\.banner_\d+_url$/', $setting->key))
                 && is_string($value)
                 && $value !== '') {
                 $value = str_starts_with($value, 'http')

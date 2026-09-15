@@ -78,10 +78,25 @@ class SettingController extends Controller
             }
 
             foreach ($request->pairs() as $key => $value) {
-                if (array_key_exists($key, $uploadedBranding)) {
+                if (array_key_exists($key, $uploadedBranding) && $value !== null) {
                     continue;
                 }
                 if ($request->isUnchangedPrivate($key, $value)) {
+                    continue;
+                }
+
+                if (
+                    $value === null
+                    && preg_match('/^homepage\.(banner_\d+_url|right_(top|bottom)_banner_url)$/', $key)
+                ) {
+                    $oldPath = Setting::query()->where('key', $key)->value('value');
+
+                    if (is_string($oldPath) && $oldPath !== '') {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+
+                    Setting::query()->where('key', $key)->delete();
+
                     continue;
                 }
 
