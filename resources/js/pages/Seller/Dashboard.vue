@@ -52,7 +52,7 @@ defineOptions({
     },
 });
 
-const { formatAmount, loadSettings } = useSettingsStore();
+const { formatAmount } = useSettingsStore();
 const orders = ref<SellerOrder[]>([]);
 const isLoadingOrders = ref(true);
 const ordersError = ref<string | null>(null);
@@ -68,8 +68,6 @@ const statsCards = computed(() => [
 
 onMounted(async () => {
     try {
-        await loadSettings();
-
         const response = await fetch('/api/v1/seller/orders', {
             headers: { Accept: 'application/json' },
         });

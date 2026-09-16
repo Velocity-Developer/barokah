@@ -8,9 +8,7 @@ import MobileBottomNav from '@/components/marketplace/MobileBottomNav.vue';
 import UtilityBar from '@/components/marketplace/UtilityBar.vue';
 import { useSettingsStore } from '@/stores/settings';
 
-const { getSettingValue, loadSettings } = useSettingsStore();
-
-void loadSettings();
+const { getSettingValue } = useSettingsStore();
 
 const slots = defineSlots<{
     default?: () => unknown;

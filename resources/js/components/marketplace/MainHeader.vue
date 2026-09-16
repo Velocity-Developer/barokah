@@ -16,12 +16,10 @@ const emit = defineEmits<{
     search: [value: string];
 }>();
 
-const { getSettingValue, loadSettings } = useSettingsStore();
+const { getSettingValue } = useSettingsStore();
 const { count: cartCount } = useCartStore();
 const query = ref(props.initialSearch);
 const keywords = computed(() => ['Keripik', 'Hijab', 'Kerudung']);
-
-void loadSettings();
 
 function siteName(): string {
     return getSettingValue<string>('branding.site_name', 'Barokah');

@@ -5,9 +5,7 @@ import { index as productsIndex } from '@/routes/products';
 import { dashboard as sellerDashboard } from '@/routes/seller';
 import { useSettingsStore } from '@/stores/settings';
 
-const { getSettingValue, loadSettings } = useSettingsStore();
-
-void loadSettings();
+const { getSettingValue } = useSettingsStore();
 
 const contactEmail = computed(() =>
     getSettingValue<string>('contact.email', ''),

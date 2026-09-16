@@ -74,12 +74,6 @@ onMounted(() => {
         .filter((setting) => setting.key.startsWith('homepage.banner_') && setting.value)
         .map((setting) => Number(setting.key.match(/banner_(\d+)_url/)?.[1] ?? 1));
     bannerCount.value = Math.max(1, ...bannerIndexes);
-
-    console.log('[admin-settings] page accessed', {
-        activeGroup: props.activeGroup,
-        settingsCount: props.settings.length,
-        groups: props.groups,
-    });
 });
 const logoFile = ref<File | null>(null);
 const faviconFile = ref<File | null>(null);
@@ -432,22 +426,11 @@ function inputKind(type: string): 'checkbox' | 'color' | 'number' | 'text' {
 }
 
 function onSettingsSubmit(event: SubmitEvent): void {
-    console.log('[admin-settings] form submit event', event);
+    event.preventDefault();
     void save();
 }
 
 async function save(): Promise<void> {
-    console.log('[admin-settings] save clicked', {
-        activeGroup: props.activeGroup,
-        settingsCount: props.settings.length,
-        bannerFiles: Object.fromEntries(
-            Object.entries(homepageBannerFiles.value).map(([key, file]) => [
-                key,
-                file?.name ?? null,
-            ]),
-        ),
-    });
-
     isSaving.value = true;
     errors.value = {};
     notice.value = null;

@@ -39,7 +39,7 @@ const props = defineProps<{
     sellerProducts?: DetailProduct[] | { data: DetailProduct[] };
 }>();
 
-const { formatAmount, loadSettings } = useSettingsStore();
+const { formatAmount } = useSettingsStore();
 const { startBuy } = useCheckoutStore();
 const { add } = useCartStore();
 
@@ -58,8 +58,6 @@ const product = computed<DetailProduct>(() => {
 
 const activeImage = ref(product.value.primary_image);
 const quantity = ref(1);
-
-void loadSettings();
 
 function unwrapImages(images: DetailProduct['images']): DetailImage[] {
     return Array.isArray(images) ? images : (images?.data ?? []);

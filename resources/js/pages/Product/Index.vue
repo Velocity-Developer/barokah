@@ -41,12 +41,10 @@ const props = defineProps<{
     filters: { category: string; search: string; sort: string };
 }>();
 
-const { formatAmount, loadSettings } = useSettingsStore();
+const { formatAmount } = useSettingsStore();
 const search = ref(props.filters.search);
 const sort = ref(props.filters.sort);
 const selectedCategory = ref(props.filters.category);
-
-void loadSettings();
 
 const sortOptions = [
     { value: 'latest', label: 'Latest' },

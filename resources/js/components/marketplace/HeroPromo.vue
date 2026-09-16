@@ -8,15 +8,13 @@ const slides = computed(() =>
         bannerUrl(index),
     ),
 );
-const { getSettingValue, loadSettings } = useSettingsStore();
+const { getSettingValue } = useSettingsStore();
 
 const sliderSpeed = computed(() => Math.max(1000, Number(getSettingValue('homepage.banner_speed', 5000))));
 const rightTopBanner = computed(() => getSettingValue<string>('homepage.right_top_banner_url', ''));
 const rightBottomBanner = computed(() => getSettingValue<string>('homepage.right_bottom_banner_url', ''));
 const rightTopBannerLink = computed(() => getSettingValue<string>('homepage.right_top_banner_link', ''));
 const rightBottomBannerLink = computed(() => getSettingValue<string>('homepage.right_bottom_banner_link', ''));
-
-void loadSettings(true);
 
 function bannerUrl(index: number): string {
     return getSettingValue<string>(`homepage.banner_${index + 1}_url`, '');

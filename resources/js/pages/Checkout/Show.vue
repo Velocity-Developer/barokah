@@ -37,7 +37,7 @@ const props = defineProps<{
     initialQuantity?: number;
 }>();
 
-const { formatAmount, getSettingValue, loadSettings } = useSettingsStore();
+const { formatAmount, getSettingValue } = useSettingsStore();
 const { state, setStep, setOrderNumber } = useCheckoutStore();
 const { state: cartState, clear: clearCart } = useCartStore();
 
@@ -48,8 +48,6 @@ const product = computed<WizardProduct | null>(() => {
 
     return 'data' in props.product ? props.product.data : props.product;
 });
-
-void loadSettings();
 
 if (!props.cartCheckout && props.product) {
     state.productId = product.value.id;

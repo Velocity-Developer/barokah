@@ -1,6 +1,7 @@
 export type PublicSettings = Record<string, unknown>;
 
 let cache: PublicSettings | null = null;
+let inflight: Promise<PublicSettings> | null = null;
 
 export async function fetchPublicSettings(
     force = false,
@@ -9,39 +10,49 @@ export async function fetchPublicSettings(
         return cache;
     }
 
-    // Avoid an "ERR_INVALID_URL" crash during server-side rendering, where no
-    // browser window/origin exists to resolve the relative API path against.
+    if (inflight !== null && !force) {
+        return inflight;
+    }
+
     if (typeof window === 'undefined' || typeof document === 'undefined') {
         return {};
     }
 
-    const response = await fetch('/api/v1/settings/public', {
-        headers: { Accept: 'application/json' },
-    });
+    inflight = (async () => {
+        const response = await fetch('/api/v1/settings/public', {
+            headers: { Accept: 'application/json' },
+        });
 
-    if (!response.ok) {
-        throw new Error('Failed to load public settings.');
-    }
-
-    const values = (await response.json()) as PublicSettings;
-
-    for (const key of [
-        'branding.logo_url',
-        'branding.favicon_url',
-        'payment.qr_code_url',
-        ...Array.from({ length: 10 }, (_, index) => `homepage.banner_${index + 1}_url`),
-        'homepage.right_top_banner_url',
-        'homepage.right_bottom_banner_url',
-    ]) {
-        const value = values[key];
-        if (typeof value === 'string' && value !== '' && !value.startsWith('http')) {
-            values[key] = `/storage/${value.replace(/^\/+/, '')}`;
+        if (!response.ok) {
+            throw new Error('Failed to load public settings.');
         }
+
+        const values = (await response.json()) as PublicSettings;
+
+        for (const key of [
+            'branding.logo_url',
+            'branding.favicon_url',
+            'payment.qr_code_url',
+            ...Array.from({ length: 10 }, (_, index) => `homepage.banner_${index + 1}_url`),
+            'homepage.right_top_banner_url',
+            'homepage.right_bottom_banner_url',
+        ]) {
+            const value = values[key];
+            if (typeof value === 'string' && value !== '' && !value.startsWith('http')) {
+                values[key] = `/storage/${value.replace(/^\/+/, '')}`;
+            }
+        }
+
+        cache = values;
+
+        return cache;
+    })();
+
+    try {
+        return await inflight;
+    } finally {
+        inflight = null;
     }
-
-    cache = values;
-
-    return cache;
 }
 
 export function getSetting<T>(key: string, fallback: T): T {

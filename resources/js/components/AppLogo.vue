@@ -4,8 +4,7 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { useSettingsStore } from '@/stores/settings';
 
 const name = usePage().props.name;
-const { getSettingValue, loadSettings } = useSettingsStore();
-void loadSettings();
+const { getSettingValue } = useSettingsStore();
 
 function logoUrl(): string {
     return getSettingValue<string>('branding.logo_url', '');

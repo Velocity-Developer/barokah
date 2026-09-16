@@ -6,7 +6,6 @@ import SellerSection from '@/components/marketplace/SellerSection.vue';
 import QuickServices from '@/components/marketplace/QuickServices.vue';
 import RecommendationSection from '@/components/marketplace/RecommendationSection.vue';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
-import { useSettingsStore } from '@/stores/settings';
 import type {
     HomeCategoryItem,
     HomeProductItem,
@@ -20,10 +19,6 @@ const props = defineProps<{
     bestSellerProducts: HomeProductItem[] | { data: HomeProductItem[] };
     sellers: HomeSellerItem[] | { data: HomeSellerItem[] };
 }>();
-
-const { loadSettings } = useSettingsStore();
-
-void loadSettings();
 
 function unwrap<T>(value: T[] | { data: T[] }): T[] {
     return Array.isArray(value) ? value : (value?.data ?? []);

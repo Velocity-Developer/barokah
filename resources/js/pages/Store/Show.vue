@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
-import { useSettingsStore } from '@/stores/settings';
 import {
     toProductCardData,
     type HomeProductItem,
@@ -14,9 +13,6 @@ const props = defineProps<{
     seller: HomeSellerItem | { data: HomeSellerItem };
     products: HomeProductItem[] | { data: HomeProductItem[] };
 }>();
-
-const { loadSettings } = useSettingsStore();
-void loadSettings();
 
 const seller = computed<HomeSellerItem>(() =>
     'data' in props.seller ? props.seller.data : props.seller,

@@ -48,9 +48,7 @@ type ConfirmationOrder = {
 
 const props = defineProps<{ order: ConfirmationOrder }>();
 
-const { formatAmount, getSettingValue, loadSettings } = useSettingsStore();
-
-void loadSettings();
+const { formatAmount, getSettingValue } = useSettingsStore();
 
 const queryMethod =
     typeof window === 'undefined'
