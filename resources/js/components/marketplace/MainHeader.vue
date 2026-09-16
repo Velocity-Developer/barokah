@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
-import { Search, ShoppingCart } from '@lucide/vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { Search, ShoppingCart, UserRound, ChevronDown, LogOut, Settings2, Home as HomeIcon } from '@lucide/vue';
 import { useCartStore } from '@/stores/cart';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
+import { store as loginStore } from '@/routes/login';
+import { show as profileShow } from '@/routes/profile';
+import { home } from '@/routes';
 
 const props = withDefaults(
     defineProps<{
@@ -20,6 +23,35 @@ const { getSettingValue } = useSettingsStore();
 const { count: cartCount } = useCartStore();
 const query = ref(props.initialSearch);
 const keywords = computed(() => ['Keripik', 'Hijab', 'Kerudung']);
+const page = usePage();
+const authUser = computed(() => (page.props.auth?.user as Record<string, unknown> | null) ?? null);
+const userMenuOpen = ref(false);
+const userMenuRef = ref<HTMLDivElement | null>(null);
+
+function handleClickOutside(event: Event): void {
+    if (userMenuRef.value && userMenuRef.value.contains(event.target as Node)) {
+        return;
+    }
+    userMenuOpen.value = false;
+}
+
+onMounted(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', handleClickOutside);
+});
+
+function userInitials(): string {
+    const name = String(authUser.value?.name ?? '');
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word.charAt(0).toUpperCase())
+        .join('') || 'U';
+}
 
 function siteName(): string {
     return getSettingValue<string>('branding.site_name', 'Barokah');
@@ -127,6 +159,85 @@ function searchKeyword(keyword: string): void {
                     {{ cartCount }}
                 </span>
             </Link>
+
+            <div ref="userMenuRef" class="relative shrink-0">
+                <template v-if="authUser">
+                    <button
+                        type="button"
+                        class="flex h-11 items-center gap-1.5 rounded-sm px-2.5 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
+                        aria-haspopup="menu"
+                        :aria-expanded="userMenuOpen"
+                        @click="userMenuOpen = !userMenuOpen"
+                    >
+                        <span
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[13px] font-bold"
+                            style="color: var(--brand-primary)"
+                            aria-hidden="true"
+                        >
+                            {{ userInitials() }}
+                        </span>
+                        <span
+                            class="hidden max-w-[110px] truncate text-sm font-medium text-white sm:block"
+                        >
+                            {{ authUser.name }}
+                        </span>
+                        <ChevronDown
+                            class="hidden h-4 w-4 text-white/80 sm:block"
+                            :class="{ 'rotate-180': userMenuOpen }"
+                            aria-hidden="true"
+                        />
+                    </button>
+
+                    <div
+                        v-if="userMenuOpen"
+                        role="menu"
+                        class="absolute right-0 z-50 mt-2 w-56 origin-top-right overflow-hidden rounded-lg border border-gray-100 bg-white p-1 text-sm shadow-lg ring-1 ring-black/5"
+                    >
+                        <div class="border-b border-gray-100 px-3 py-2.5">
+                            <p class="truncate font-semibold text-gray-900">
+                                {{ authUser.name }}
+                            </p>
+                            <p class="truncate text-xs text-gray-500">
+                                {{ authUser.email }}
+                            </p>
+                        </div>
+                        <Link
+                            :href="profileShow()"
+                            role="menuitem"
+                            class="mt-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
+                            @click="userMenuOpen = false"
+                        >
+                            <UserRound class="h-4 w-4 shrink-0 text-gray-400" />
+                            <span>My Profile</span>
+                        </Link>
+                        <Link
+                            :href="home()"
+                            role="menuitem"
+                            class="flex items-center gap-2.5 rounded-md px-3 py-2 text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
+                            @click="userMenuOpen = false"
+                        >
+                            <HomeIcon class="h-4 w-4 shrink-0 text-gray-400" />
+                            <span>Marketplace</span>
+                        </Link>
+                        <div
+                            class="my-1 h-px bg-gray-100"
+                            role="separator"
+                            aria-hidden="true"
+                        ></div>
+                        <Link
+                            :href="loginStore()"
+                            method="post"
+                            as="button"
+                            role="menuitem"
+                            class="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-red-600 transition hover:bg-red-50"
+                            @click="userMenuOpen = false"
+                        >
+                            <LogOut class="h-4 w-4 shrink-0" />
+                            <span>Log out</span>
+                        </Link>
+                    </div>
+                </template>
+            </div>
         </div>
     </div>
 </template>

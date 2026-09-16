@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\CheckoutController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\ProductIndexController;
 use App\Http\Controllers\Web\ProductShowController;
+use App\Http\Controllers\Web\ProfileController as WebProfileController;
 use App\Http\Controllers\Web\SellerShowController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,11 @@ Route::get('checkout/confirmation/{orderNumber}', [CheckoutController::class, 'c
 Route::get('checkout/order/{orderNumber}', [CheckoutController::class, 'confirmation'])->name('checkout.resume');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('profile', WebProfileController::class)->name('profile.show');
+    Route::patch('profile', [WebProfileController::class, 'update'])->name('my.profile.update');
+    Route::put('profile/password', [WebProfileController::class, 'updatePassword'])
+        ->middleware('throttle:6,1')
+        ->name('my.profile.password.update');
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::redirect('seller', 'seller/dashboard')->name('seller.index');
     Route::get('seller/dashboard', SellerDashboardController::class)
