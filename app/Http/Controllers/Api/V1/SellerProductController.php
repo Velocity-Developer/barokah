@@ -63,7 +63,7 @@ class SellerProductController extends Controller
 
             $this->storeImages($product, $request->file('images', []));
 
-            return $product->load(['seller', 'category', 'images']);
+            return $product->load(['seller', 'category', 'images', 'flashSales']);
         });
 
         return (new ProductResource($product))->response()->setStatusCode(201);

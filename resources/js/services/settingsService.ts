@@ -38,8 +38,15 @@ export async function fetchPublicSettings(
             'homepage.right_bottom_banner_url',
         ]) {
             const value = values[key];
-            if (typeof value === 'string' && value !== '' && !value.startsWith('http')) {
-                values[key] = `/storage/${value.replace(/^\/+/, '')}`;
+            if (typeof value === 'string' && value !== '') {
+                try {
+                    const url = new URL(value, window.location.origin);
+                    values[key] = url.pathname.startsWith('/storage/')
+                        ? `${url.pathname}${url.search}`
+                        : value;
+                } catch {
+                    values[key] = `/storage/${value.replace(/^\/+/, '')}`;
+                }
             }
         }
 

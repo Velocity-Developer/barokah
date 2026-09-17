@@ -21,6 +21,9 @@ type ProductListItem = {
     category: { id: number; name: string; slug: string } | null;
     images: ProductListImage[];
     primary_image: string | null;
+    normal_price?: string | number;
+    effective_price?: string | number;
+    flash_sale_active?: boolean;
 };
 
 type ProductCategory = {
@@ -176,7 +179,13 @@ function resetFilters(): void {
                         :href="`/products/${product.slug}`"
                         class="group overflow-hidden rounded-sm border border-[var(--border-soft)] bg-white transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-hover)]"
                     >
-                        <div class="aspect-square bg-white">
+                        <div class="relative aspect-square overflow-hidden bg-white">
+                            <span
+                                v-if="product.flash_sale_active"
+                                class="absolute top-2 left-2 z-10 rounded-sm bg-[var(--accent-red)] px-1.5 py-0.5 text-[10px] font-bold text-white"
+                            >
+                                FLASH SALE
+                            </span>
                             <img
                                 v-if="product.primary_image"
                                 :src="product.primary_image"
@@ -198,9 +207,15 @@ function resetFilters(): void {
                                 {{ product.name }}
                             </p>
                             <p
-                                class="mt-1 text-base font-semibold text-[var(--brand-primary)]"
+                                v-if="product.flash_sale_active"
+                                class="mt-1 text-xs text-muted-foreground line-through"
                             >
-                                {{ formatAmount(Number(product.price)) }}
+                                {{ formatAmount(Number(product.normal_price ?? product.price)) }}
+                            </p>
+                            <p
+                                class="text-base font-semibold text-[var(--brand-primary)]"
+                            >
+                                {{ formatAmount(Number(product.effective_price ?? product.price)) }}
                             </p>
                             <p class="text-xs text-muted-foreground">
                                 {{ product.stock }} in stock

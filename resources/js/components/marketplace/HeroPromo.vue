@@ -3,18 +3,36 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { useSettingsStore } from '@/stores/settings';
 
-const slides = computed(() =>
-    Array.from({ length: 10 }, (_, index) => index).filter((index) =>
+const slides = computed(() => {
+    settings.value;
+    return Array.from({ length: 10 }, (_, index) => index).filter((index) =>
         bannerUrl(index),
-    ),
-);
-const { getSettingValue } = useSettingsStore();
+    );
+});
+const { getSettingValue, loadSettings, settings } = useSettingsStore();
 
-const sliderSpeed = computed(() => Math.max(1000, Number(getSettingValue('homepage.banner_speed', 5000))));
-const rightTopBanner = computed(() => getSettingValue<string>('homepage.right_top_banner_url', ''));
-const rightBottomBanner = computed(() => getSettingValue<string>('homepage.right_bottom_banner_url', ''));
-const rightTopBannerLink = computed(() => getSettingValue<string>('homepage.right_top_banner_link', ''));
-const rightBottomBannerLink = computed(() => getSettingValue<string>('homepage.right_bottom_banner_link', ''));
+void loadSettings().catch(() => undefined);
+
+const sliderSpeed = computed(() => {
+    settings.value;
+    return Math.max(1000, Number(getSettingValue('homepage.banner_speed', 5000)));
+});
+const rightTopBanner = computed(() => {
+    settings.value;
+    return getSettingValue<string>('homepage.right_top_banner_url', '');
+});
+const rightBottomBanner = computed(() => {
+    settings.value;
+    return getSettingValue<string>('homepage.right_bottom_banner_url', '');
+});
+const rightTopBannerLink = computed(() => {
+    settings.value;
+    return getSettingValue<string>('homepage.right_top_banner_link', '');
+});
+const rightBottomBannerLink = computed(() => {
+    settings.value;
+    return getSettingValue<string>('homepage.right_bottom_banner_link', '');
+});
 
 function bannerUrl(index: number): string {
     return getSettingValue<string>(`homepage.banner_${index + 1}_url`, '');
@@ -31,10 +49,13 @@ function markBannerLoaded(url: string): void {
     loadedBanners.value = new Set([...loadedBanners.value, url]);
 }
 
-const sidePromos = computed(() => [
-    { title: 'Rigth Top Banner', url: rightTopBanner.value, link: rightTopBannerLink.value },
-    { title: 'Right Bottom Banner', url: rightBottomBanner.value, link: rightBottomBannerLink.value },
-]);
+const sidePromos = computed(() => {
+    settings.value;
+    return [
+        { title: 'Right Top Banner', url: rightTopBanner.value, link: rightTopBannerLink.value },
+        { title: 'Right Bottom Banner', url: rightBottomBanner.value, link: rightBottomBannerLink.value },
+    ];
+});
 
 const reduceMotion = computed(
     () =>

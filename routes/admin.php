@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FlashSaleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ProductController;
@@ -24,6 +25,10 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('sellers', [SellerController::class, 'index'])->name('sellers.index');
     Route::get('sellers/{seller}/edit', [SellerController::class, 'edit'])->name('sellers.edit');
     Route::get('sellers/{seller}', [SellerController::class, 'show'])->name('sellers.show');
+
+    Route::get('flash-sales', [FlashSaleController::class, 'index'])->name('flash-sales.index');
+    Route::get('flash-sales/create', [FlashSaleController::class, 'create'])->name('flash-sales.create');
+    Route::get('flash-sales/{flashSale:id}/edit', [FlashSaleController::class, 'edit'])->name('flash-sales.edit');
 
     Route::get('products', [ProductController::class, 'index'])->name('products.index');
     Route::get('products/{product:id}/edit', [ProductController::class, 'edit'])->name('products.edit');

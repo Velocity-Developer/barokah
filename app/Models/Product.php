@@ -101,6 +101,23 @@ class Product extends Model
     }
 
     /**
+     * @return HasMany<FlashSale, $this>
+     */
+    public function flashSales(): HasMany
+    {
+        return $this->hasMany(FlashSale::class);
+    }
+
+    public function activeFlashSale(): ?FlashSale
+    {
+        if ($this->relationLoaded('flashSales')) {
+            return $this->flashSales->first(fn (FlashSale $sale): bool => $sale->isActive());
+        }
+
+        return $this->flashSales()->active()->first();
+    }
+
+    /**
      * Use slug for public route model binding.
      */
     public function getRouteKeyName(): string

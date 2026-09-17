@@ -64,9 +64,25 @@ class CheckoutController extends Controller
                     abort(409, 'Insufficient stock for '.$product->name.'.');
                 }
 
-                $lineTotal = (float) $product->price * $line['quantity'];
+                $flashSale = $product->flashSales()
+                    ->active()
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($flashSale !== null && $flashSale->remainingQuantity() < $line['quantity']) {
+                    abort(409, 'Insufficient flash sale quota for '.$product->name.'.');
+                }
+
+                $unitPrice = (float) ($flashSale?->price ?? $product->price);
+                $lineTotal = $unitPrice * $line['quantity'];
                 $subtotal += $lineTotal;
-                $prepared[] = ['product' => $product, 'quantity' => $line['quantity'], 'line_total' => $lineTotal];
+                $prepared[] = [
+                    'product' => $product,
+                    'flash_sale' => $flashSale,
+                    'quantity' => $line['quantity'],
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                ];
             }
 
             /** @var Order $order */
@@ -133,12 +149,15 @@ class CheckoutController extends Controller
                     'seller_id' => $product->seller_id,
                     'product_name_snapshot' => $product->name,
                     'product_slug_snapshot' => $product->slug,
-                    'price_snapshot' => $product->price,
+                    'price_snapshot' => $row['unit_price'],
                     'quantity' => $row['quantity'],
                     'subtotal' => $row['line_total'],
                 ]);
 
                 $product->decrement('stock', $row['quantity']);
+                if ($row['flash_sale'] !== null) {
+                    $row['flash_sale']->increment('quantity_sold', $row['quantity']);
+                }
             }
 
             foreach ($quotes as $sellerQuote) {

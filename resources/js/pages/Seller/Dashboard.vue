@@ -18,6 +18,19 @@ type SellerDashboardStats = {
     revenue: string | number;
 };
 
+type SellerFlashSale = {
+    id: number;
+    product_name: string;
+    product_slug: string;
+    price: string | number;
+    quantity: number;
+    quantity_sold: number;
+    remaining_quantity: number;
+    starts_at: string;
+    ends_at: string;
+    status: string;
+};
+
 type SellerOrderItem = {
     id: number;
     product_name: string;
@@ -39,6 +52,7 @@ type SellerOrder = {
 const props = defineProps<{
     seller: SellerDashboardSeller | null;
     stats: SellerDashboardStats;
+    flashSales: SellerFlashSale[];
 }>();
 
 defineOptions({
@@ -165,6 +179,32 @@ onMounted(async () => {
                             <span>{{ formatAmount(Number(item.subtotal)) }}</span>
                         </li>
                     </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4">
+            <h3 class="mb-1 text-base font-medium">Flash sale toko</h3>
+            <p v-if="flashSales.length === 0" class="text-muted-foreground text-sm">
+                Belum ada flash sale di toko ini.
+            </p>
+            <ul v-else class="divide-y">
+                <li v-for="sale in flashSales" :key="sale.id" class="py-3 first:pt-0 last:pb-0">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="font-medium">{{ sale.product_name }}</p>
+                            <p class="text-muted-foreground text-sm">
+                                {{ formatAmount(Number(sale.price)) }} · {{ sale.quantity_sold }} terjual dari {{ sale.quantity }} kuota
+                            </p>
+                        </div>
+                        <span class="rounded-full bg-muted px-2 py-1 text-xs font-medium">{{ sale.status }}</span>
+                    </div>
+                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                        <div class="h-full bg-primary" :style="{ width: `${Math.min(100, (sale.quantity_sold / sale.quantity) * 100)}%` }" />
+                    </div>
+                    <p class="text-muted-foreground mt-1 text-xs">
+                        {{ new Date(sale.starts_at).toLocaleDateString() }} - {{ new Date(sale.ends_at).toLocaleDateString() }} · {{ sale.remaining_quantity }} tersisa
+                    </p>
                 </li>
             </ul>
         </div>

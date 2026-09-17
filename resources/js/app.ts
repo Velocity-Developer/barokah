@@ -18,6 +18,7 @@ void createInertiaApp({
                 return null;
             case name === 'Home' ||
                 name.startsWith('Product/') ||
+                name.startsWith('FlashSale/') ||
                 name.startsWith('Cart/') ||
                 name.startsWith('Checkout/') ||
                 name.startsWith('Store/') ||

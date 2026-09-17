@@ -25,6 +25,10 @@ type DetailProduct = {
     slug: string;
     description: string | null;
     price: string | number;
+    normal_price?: string | number;
+    effective_price?: string | number;
+    flash_sale_active?: boolean;
+    flash_sale?: { ends_at?: string; remaining_quantity?: number } | null;
     stock: number;
     weight_grams?: number;
     status: string;
@@ -110,7 +114,7 @@ function addToCart(): void {
         productId: product.value.id,
         slug: product.value.slug,
         name: product.value.name,
-        price: Number(product.value.price),
+        price: Number(product.value.effective_price ?? product.value.price),
         image: product.value.primary_image,
         stock: product.value.stock,
     }, quantity.value);
@@ -234,10 +238,28 @@ function addToCart(): void {
                     <div
                         class="mt-5 rounded-sm bg-[var(--brand-primary-soft)] p-4"
                     >
+                        <span
+                            v-if="product.flash_sale_active"
+                            class="inline-block rounded-sm bg-[var(--accent-red)] px-2 py-1 text-xs font-bold text-white"
+                        >
+                            FLASH SALE
+                        </span>
+                        <p
+                            v-if="product.flash_sale_active"
+                            class="mt-2 text-sm text-[var(--text-muted)] line-through"
+                        >
+                            {{ formatAmount(Number(product.normal_price ?? product.price)) }}
+                        </p>
                         <p
                             class="text-3xl font-semibold tracking-tight text-[var(--brand-primary)]"
                         >
-                            {{ formatAmount(Number(product.price)) }}
+                            {{ formatAmount(Number(product.effective_price ?? product.price)) }}
+                        </p>
+                        <p
+                            v-if="product.flash_sale_active && product.flash_sale?.remaining_quantity !== undefined"
+                            class="mt-1 text-xs font-medium text-[var(--accent-red)]"
+                        >
+                            {{ product.flash_sale.remaining_quantity }} promo quota remaining
                         </p>
                         <p
                             v-if="!isOutOfStock"

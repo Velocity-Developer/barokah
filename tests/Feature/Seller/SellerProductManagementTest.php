@@ -65,3 +65,32 @@ test('seller cannot update another sellers product', function () {
         'name' => 'Hijacked product',
     ])->assertForbidden();
 });
+
+test('seller creates fixed flash sale for own product', function () {
+    $seller = sellerProductOwner();
+    $product = Product::factory()->create(['seller_id' => $seller->seller->id, 'price' => 100, 'stock' => 10]);
+
+    $this->actingAs($seller)->postJson("/api/v1/seller/products/{$product->id}/flash-sale", [
+        'discount_type' => 'fixed',
+        'discount_value' => 75,
+        'quantity' => 5,
+        'starts_at' => now()->subMinute()->toISOString(),
+        'ends_at' => now()->addDay()->toISOString(),
+    ])->assertOk()->assertJsonPath('data.price', '75.00');
+
+    expect($product->refresh()->activeFlashSale()->price)->toBe('75.00');
+});
+
+test('seller cannot create flash sale for another sellers product', function () {
+    $seller = sellerProductOwner();
+    $other = sellerProductOwner();
+    $product = Product::factory()->create(['seller_id' => $other->seller->id]);
+
+    $this->actingAs($seller)->postJson("/api/v1/seller/products/{$product->id}/flash-sale", [
+        'discount_type' => 'percentage',
+        'discount_value' => 10,
+        'quantity' => 1,
+        'starts_at' => now()->toISOString(),
+        'ends_at' => now()->addDay()->toISOString(),
+    ])->assertForbidden();
+});

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\FlashSaleController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
 use App\Http\Controllers\Api\V1\PaymentController;
@@ -89,12 +90,18 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('seller/products/{product:id}', [SellerProductController::class, 'show'])->name('seller.products.show');
             Route::put('seller/products/{product:id}', [SellerProductController::class, 'update'])->name('seller.products.update');
             Route::delete('seller/products/{product:id}', [SellerProductController::class, 'destroy'])->name('seller.products.destroy');
+            Route::post('seller/products/{product:id}/flash-sale', [FlashSaleController::class, 'store'])->name('seller.products.flash-sale.store');
+            Route::put('seller/products/{product:id}/flash-sale', [FlashSaleController::class, 'update'])->name('seller.products.flash-sale.update');
+            Route::delete('seller/products/{product:id}/flash-sale', [FlashSaleController::class, 'destroy'])->name('seller.products.flash-sale.destroy');
         });
 
         // The Inertia SPA calls these routes with same-origin fetch using
         // session auth (Fortify web guard); the outer `web` group already
         // starts the session, so only the admin gate is needed here.
         Route::middleware('can:admin')->group(function (): void {
+            Route::post('admin/products/{product:id}/flash-sale', [FlashSaleController::class, 'adminStore'])->name('admin.products.flash-sale.store');
+            Route::put('admin/flash-sales/{flashSale}', [FlashSaleController::class, 'adminUpdate'])->name('admin.flash-sales.update');
+            Route::delete('admin/flash-sales/{flashSale}', [FlashSaleController::class, 'adminDestroy'])->name('admin.flash-sales.destroy');
             Route::get('admin/orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
             Route::get('admin/orders/{orderNumber}', [AdminOrderController::class, 'show'])->name('admin.orders.show');
             Route::put('admin/orders/{orderNumber}', [AdminOrderController::class, 'update'])->name('admin.orders.update');

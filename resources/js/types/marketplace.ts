@@ -13,6 +13,11 @@ export type ProductCardData = {
     image: string | null;
     price: number;
     originalPrice?: number;
+    flashSaleActive?: boolean;
+    flashSaleEndsAt?: string;
+    flashSaleRemaining?: number;
+    flashSaleQuantity?: number;
+    flashSaleSold?: number;
     discountPercent?: number;
     rating?: number;
     soldCount?: number;
@@ -36,6 +41,10 @@ export type HomeProductItem = {
     name: string;
     slug: string;
     price: string | number;
+    normal_price?: string | number;
+    effective_price?: string | number;
+    flash_sale_active?: boolean;
+    flash_sale?: { ends_at?: string; remaining_quantity?: number } | null;
     stock: number;
     status: string;
     category: { id: number; name: string; slug: string } | null;
@@ -75,7 +84,13 @@ export function toProductCardData(product: HomeProductItem): ProductCardData {
         slug: product.slug,
         name: product.name,
         image: product.primary_image,
-        price: Number(product.price),
+        price: Number(product.effective_price ?? product.price),
+        originalPrice: product.flash_sale_active ? Number(product.normal_price ?? product.price) : undefined,
+        flashSaleActive: product.flash_sale_active,
+        flashSaleEndsAt: product.flash_sale?.ends_at,
+        flashSaleRemaining: product.flash_sale?.remaining_quantity,
+        flashSaleQuantity: product.flash_sale?.quantity,
+        flashSaleSold: product.flash_sale?.quantity_sold,
         stockLabel: product.stock <= 0 ? 'Out of stock' : `${product.stock} in stock`,
     };
 }

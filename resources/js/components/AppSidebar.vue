@@ -33,9 +33,11 @@ import { index as adminCategoriesIndex } from '@/routes/admin/categories';
 import { index as adminOrdersIndex } from '@/routes/admin/orders';
 import { index as adminPaymentsIndex } from '@/routes/admin/payments';
 import { index as adminProductsIndex } from '@/routes/admin/products';
+import { index as sellerFlashSalesIndex } from '@/routes/seller/flash-sales';
 import { index as adminSellersIndex } from '@/routes/admin/sellers';
 import { show as adminSettingsShow } from '@/routes/admin/settings';
 import { index as adminUsersIndex } from '@/routes/admin/users';
+import { index as adminFlashSalesIndex } from '@/routes/admin/flash-sales';
 import { index as productsIndex } from '@/routes/products';
 import {
     dashboard as sellerDashboard,
@@ -91,6 +93,11 @@ const sellerNavItems: NavItem[] = [
         icon: Package,
     },
     {
+        title: 'Flash sales',
+        href: sellerFlashSalesIndex(),
+        icon: Tags,
+    },
+    {
         title: 'Customer orders',
         href: sellerOrdersIndex(),
         icon: ShoppingBag,
@@ -122,6 +129,11 @@ const adminNavItems: NavItem[] = [
         title: 'Products',
         href: adminProductsIndex(),
         icon: Package,
+    },
+    {
+        title: 'Flash sales',
+        href: adminFlashSalesIndex(),
+        icon: Tags,
     },
     {
         title: 'Categories',

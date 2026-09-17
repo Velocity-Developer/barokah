@@ -11,7 +11,13 @@ defineProps<{ product: ProductCardData }>();
         :href="`/products/${product.slug}`"
         class="group flex flex-col overflow-hidden rounded-sm border border-[var(--border-default)] bg-[var(--bg-surface)] transition duration-150 hover:-translate-y-0.5 hover:border-[var(--brand-primary)] hover:shadow-[var(--shadow-hover)]"
     >
-        <div class="relative aspect-square bg-white overflow-hidden">
+        <div class="relative aspect-square overflow-hidden bg-white">
+            <span
+                v-if="product.flashSaleActive"
+                class="absolute top-2 left-2 z-10 rounded-sm bg-[var(--accent-red)] px-1.5 py-0.5 text-[10px] font-bold text-white"
+            >
+                FLASH SALE
+            </span>
             <img
                 v-if="product.image"
                 :src="product.image"

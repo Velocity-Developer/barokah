@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Seller\FlashSaleController as SellerFlashSaleController;
 use App\Http\Controllers\SellerDashboardController;
 use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\SellerProductController;
 use App\Http\Controllers\SellerSettingsController;
 use App\Http\Controllers\Web\CartController;
 use App\Http\Controllers\Web\CheckoutController;
+use App\Http\Controllers\Web\FlashSaleController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\ProductIndexController;
 use App\Http\Controllers\Web\ProductShowController;
@@ -16,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 
 Route::get('products', ProductIndexController::class)->name('products.index');
+Route::get('flash-sale', FlashSaleController::class)->name('flash-sale.index');
 Route::get('products/{slug}', ProductShowController::class)->name('products.show');
 Route::get('sellers/{slug}', SellerShowController::class)->name('sellers.show');
 Route::get('cart', CartController::class)->name('cart.show');
@@ -49,6 +52,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('seller/orders/{orderNumber}', [SellerOrderController::class, 'show'])
         ->middleware('can:seller')
         ->name('seller.orders.show');
+    Route::get('seller/flash-sales', [SellerFlashSaleController::class, 'index'])
+        ->middleware('can:seller')
+        ->name('seller.flash-sales.index');
+    Route::get('seller/flash-sales/create', [SellerFlashSaleController::class, 'create'])
+        ->middleware('can:seller')
+        ->name('seller.flash-sales.create');
+    Route::get('seller/flash-sales/{flashSale}/edit', [SellerFlashSaleController::class, 'edit'])
+        ->middleware('can:seller')
+        ->name('seller.flash-sales.edit');
     Route::get('seller/products', [SellerProductController::class, 'index'])
         ->middleware('can:seller')
         ->name('seller.products.index');
