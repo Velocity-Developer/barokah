@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Seller\CouponController as SellerCouponController;
 use App\Http\Controllers\Seller\FlashSaleController as SellerFlashSaleController;
 use App\Http\Controllers\SellerDashboardController;
 use App\Http\Controllers\SellerOrderController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\SellerProductController;
 use App\Http\Controllers\SellerSettingsController;
 use App\Http\Controllers\Web\CartController;
 use App\Http\Controllers\Web\CheckoutController;
+use App\Http\Controllers\Web\CouponController;
 use App\Http\Controllers\Web\FlashSaleController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\ProductIndexController;
@@ -19,6 +21,7 @@ Route::get('/', HomeController::class)->name('home');
 
 Route::get('products', ProductIndexController::class)->name('products.index');
 Route::get('flash-sale', FlashSaleController::class)->name('flash-sale.index');
+Route::get('coupons', CouponController::class)->name('coupons.index');
 Route::get('products/{slug}', ProductShowController::class)->name('products.show');
 Route::get('sellers/{slug}', SellerShowController::class)->name('sellers.show');
 Route::get('cart', CartController::class)->name('cart.show');
@@ -61,6 +64,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('seller/flash-sales/{flashSale}/edit', [SellerFlashSaleController::class, 'edit'])
         ->middleware('can:seller')
         ->name('seller.flash-sales.edit');
+    Route::get('seller/coupons', [SellerCouponController::class, 'index'])->middleware('can:seller')->name('seller.coupons.index');
+    Route::get('seller/coupons/create', [SellerCouponController::class, 'create'])->middleware('can:seller')->name('seller.coupons.create');
+    Route::get('seller/coupons/{coupon}/edit', [SellerCouponController::class, 'edit'])->middleware('can:seller')->name('seller.coupons.edit');
     Route::get('seller/products', [SellerProductController::class, 'index'])
         ->middleware('can:seller')
         ->name('seller.products.index');

@@ -34,6 +34,7 @@ use Illuminate\Support\Carbon;
     'price_snapshot',
     'quantity',
     'subtotal',
+    'discount_amount',
 ])]
 class OrderItem extends Model
 {
@@ -50,6 +51,7 @@ class OrderItem extends Model
         return [
             'price_snapshot' => 'decimal:2',
             'subtotal' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
         ];
     }
 

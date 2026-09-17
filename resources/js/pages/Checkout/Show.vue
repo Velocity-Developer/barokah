@@ -126,6 +126,12 @@ watch(() => buyer.shipping_state, (nextState, prevState) => {
 const quantity = ref(props.initialQuantity ?? state.quantity ?? 1);
 const shippingMethod = ref(state.shippingMethod || 'fixed');
 const shippingFee = ref<number | null>(null);
+const couponCode = ref(state.couponCode || '');
+const couponError = ref<string | null>(null);
+const couponNotice = ref<string | null>(null);
+const couponDiscount = ref(0);
+const couponShippingDiscount = ref(0);
+const isApplyingCoupon = ref(false);
 const isLoadingShipping = ref(false);
 const shippingError = ref<string | null>(null);
 const cartItems = computed<CartCheckoutItem[]>(() =>
@@ -136,6 +142,33 @@ const cartItems = computed<CartCheckoutItem[]>(() =>
         quantity: item.quantity,
     })),
 );
+
+async function applyCoupon(): Promise<void> {
+    if (!couponCode.value.trim()) return;
+    isApplyingCoupon.value = true;
+    couponError.value = null;
+    couponNotice.value = null;
+    state.couponCode = couponCode.value.trim();
+    try {
+        const response = await fetch('/api/v1/coupons/validate', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ coupon_code: couponCode.value, items: props.cartCheckout ? cartItems.value.map((item) => ({ product_id: item.productId, quantity: item.quantity })) : [{ product_id: product.value?.id, quantity: quantity.value }], shipping_fee: shippingFee.value ?? 0 }),
+        });
+        const payload = await response.json() as { discount?: number; message?: string; errors?: Record<string, string[]> };
+        if (!response.ok) throw new Error(payload.errors?.coupon_code?.[0] ?? payload.message ?? 'Coupon tidak valid.');
+        couponDiscount.value = Number(payload.discount ?? 0);
+        couponShippingDiscount.value = Number(payload.shipping_discount ?? 0);
+        if (couponDiscount.value === 0 && couponShippingDiscount.value === 0) {
+            couponNotice.value = 'Coupon valid, tetapi tidak memberi potongan pada pesanan ini.';
+        }
+    } catch (error) {
+        couponDiscount.value = 0;
+        couponShippingDiscount.value = 0;
+        couponError.value = error instanceof Error ? error.message : 'Coupon tidak valid.';
+    } finally {
+        isApplyingCoupon.value = false;
+    }
+}
 
 const checkoutSubtotal = computed(() =>
     props.cartCheckout
@@ -267,7 +300,7 @@ const steps = [
 ];
 
 const subtotal = computed(() => checkoutSubtotal.value);
-const orderTotal = computed(() => subtotal.value + (shippingFee.value ?? 0));
+const orderTotal = computed(() => Math.max(0, subtotal.value - couponDiscount.value + Math.max(0, (shippingFee.value ?? 0) - couponShippingDiscount.value)));
 const itemCount = computed(() =>
     props.cartCheckout
         ? cartItems.value.reduce((total, item) => total + item.quantity, 0)
@@ -560,6 +593,7 @@ async function placeOrder(): Promise<void> {
                 shipping_city: buyer.shipping_city === '' ? undefined : buyer.shipping_city,
                 shipping_post_code: buyer.shipping_post_code,
                 shipping_method: shippingMethod.value,
+                coupon_code: couponCode.value.trim() || undefined,
             }),
         });
 
@@ -1134,18 +1168,14 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                         </div>
 
                         <dl class="mt-5 space-y-2 rounded-sm border border-[var(--border-soft)] bg-[var(--bg-muted)] p-4 text-sm">
-                            <div class="flex justify-between">
-                                <dt class="text-[var(--text-muted)]">Subtotal</dt>
-                                <dd class="font-medium">{{ formatAmount(subtotal) }}</dd>
+                            <div class="flex items-center gap-2">
+                                <input v-model="couponCode" type="text" placeholder="Coupon code" class="h-9 min-w-0 flex-1 rounded-md border px-3" />
+                                <button type="button" class="rounded-md bg-primary px-3 py-2 text-primary-foreground disabled:opacity-50" :disabled="isApplyingCoupon || !couponCode.trim()" @click="applyCoupon">
+                                    {{ isApplyingCoupon ? 'Checking…' : 'Apply' }}
+                                </button>
                             </div>
-                            <div class="flex justify-between">
-                                <dt class="text-[var(--text-muted)]">Shipping</dt>
-                                <dd class="font-medium">{{ shippingFee === null ? 'Calculated at previous step' : formatAmount(shippingFee) }}</dd>
-                            </div>
-                            <div class="flex justify-between border-t border-[var(--border-soft)] pt-2 text-base font-semibold">
-                                <dt>Total due</dt>
-                                <dd class="text-[var(--brand-primary)]">{{ formatAmount(orderTotal) }}</dd>
-                            </div>
+                            <p v-if="couponError" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700">{{ couponError }}</p>
+                            <p v-else-if="couponNotice" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">{{ couponNotice }}</p>
                         </dl>
 
                         <div v-if="submitError" class="mt-4 rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -1209,6 +1239,10 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                             <div class="flex justify-between">
                                 <dt class="text-[var(--text-muted)]">Subtotal</dt>
                                 <dd class="font-medium">{{ formatAmount(subtotal) }}</dd>
+                            </div>
+                            <div v-if="couponDiscount > 0" class="flex justify-between text-emerald-700">
+                                <dt>Coupon discount</dt>
+                                <dd class="font-medium">-{{ formatAmount(couponDiscount) }}</dd>
                             </div>
                             <div class="flex justify-between">
                                 <dt class="text-[var(--text-muted)]">Shipping</dt>
@@ -1344,6 +1378,14 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                         <div class="flex justify-between">
                             <dt class="text-[var(--text-muted)]">Subtotal</dt>
                             <dd class="font-medium">{{ formatAmount(subtotal) }}</dd>
+                        </div>
+                        <div v-if="couponDiscount > 0" class="flex justify-between text-emerald-700">
+                            <dt>Coupon discount</dt>
+                            <dd class="font-medium">-{{ formatAmount(couponDiscount) }}</dd>
+                        </div>
+                        <div v-if="couponShippingDiscount > 0" class="flex justify-between text-emerald-700">
+                            <dt>Shipping discount</dt>
+                            <dd class="font-medium">-{{ formatAmount(couponShippingDiscount) }}</dd>
                         </div>
                         <div class="flex justify-between">
                             <dt class="text-[var(--text-muted)]">Shipping</dt>

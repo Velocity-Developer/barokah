@@ -32,6 +32,7 @@ const siteName = computed(() =>
                 <p class="text-sm font-semibold">Shop</p>
                 <ul class="mt-2 space-y-1.5 text-xs text-[var(--text-secondary)]">
                     <li><Link :href="productsIndex()" class="hover:underline">All products</Link></li>
+                    <li><Link href="/coupons" class="hover:underline">Coupons</Link></li>
                     <li><Link :href="productsIndex({ query: { category: 'keripik' } })" class="hover:underline">Keripik</Link></li>
                     <li><Link :href="productsIndex({ query: { category: 'hijab' } })" class="hover:underline">Hijab</Link></li>
                     <li><Link :href="productsIndex({ query: { category: 'kerudung' } })" class="hover:underline">Kerudung</Link></li>

@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('orders', function (Blueprint $table) {
+            $table->decimal('discount_amount', 12, 2)->default(0)->after('subtotal');
+            $table->string('coupon_code')->nullable()->after('discount_amount');
+            $table->json('coupon_snapshot')->nullable()->after('coupon_code');
+        });
+
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->decimal('discount_amount', 12, 2)->default(0)->after('subtotal');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('order_items', fn (Blueprint $table) => $table->dropColumn('discount_amount'));
+        Schema::table('orders', fn (Blueprint $table) => $table->dropColumn(['discount_amount', 'coupon_code', 'coupon_snapshot']));
+    }
+};

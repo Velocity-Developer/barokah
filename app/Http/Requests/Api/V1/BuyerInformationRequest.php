@@ -53,6 +53,7 @@ class BuyerInformationRequest extends FormRequest
             'shipping_post_code' => ['required', 'string', 'max:20'],
             // Fixed Rate is the default; external resolves via ShippingService (spec §16).
             'shipping_method' => ['nullable', 'string', Rule::in(['fixed', 'external'])],
+            'coupon_code' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

@@ -60,6 +60,9 @@ use Illuminate\Support\Carbon;
     'shipping_post_code',
     'currency_code',
     'subtotal',
+    'discount_amount',
+    'coupon_code',
+    'coupon_snapshot',
     'shipping_fee',
     'total',
     'status',
@@ -80,6 +83,8 @@ class Order extends Model
     {
         return [
             'subtotal' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'coupon_snapshot' => 'array',
             'shipping_fee' => 'decimal:2',
             'total' => 'decimal:2',
             'status' => OrderStatus::class,

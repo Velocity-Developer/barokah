@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\CouponController;
+use App\Http\Controllers\Api\V1\CouponCrudController;
 use App\Http\Controllers\Api\V1\FlashSaleController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
@@ -33,6 +35,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
     // Guest direct Buy checkout (spec §11.4/§14.4); guest allowed so the
     // route sits outside the auth group, throttled per spec §20.
+    Route::post('coupons/validate', [CouponController::class, 'preview'])
+        ->middleware('throttle:30,1')
+        ->name('coupons.validate');
+
     Route::post('orders', [CheckoutController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('orders.store');
@@ -78,6 +84,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('orders/{orderNumber}', [OrderController::class, 'show'])->name('orders.show');
 
         Route::middleware('can:seller')->group(function (): void {
+            Route::post('seller/coupons', [CouponCrudController::class, 'store'])->name('seller.coupons.store');
+            Route::put('seller/coupons/{coupon}', [CouponCrudController::class, 'update'])->name('seller.coupons.update');
+            Route::delete('seller/coupons/{coupon}', [CouponCrudController::class, 'destroy'])->name('seller.coupons.destroy');
             Route::get('seller/settings', [SellerSettingsController::class, 'show'])->name('seller.settings.show');
             Route::put('seller/settings', [SellerSettingsController::class, 'update'])->name('seller.settings.update');
             Route::get('seller/orders', [SellerOrderController::class, 'index'])->name('seller.orders.index');
@@ -99,6 +108,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         // session auth (Fortify web guard); the outer `web` group already
         // starts the session, so only the admin gate is needed here.
         Route::middleware('can:admin')->group(function (): void {
+            Route::post('admin/coupons', [CouponCrudController::class, 'store'])->name('admin.coupons.store');
+            Route::put('admin/coupons/{coupon}', [CouponCrudController::class, 'update'])->name('admin.coupons.update');
+            Route::delete('admin/coupons/{coupon}', [CouponCrudController::class, 'destroy'])->name('admin.coupons.destroy');
             Route::post('admin/products/{product:id}/flash-sale', [FlashSaleController::class, 'adminStore'])->name('admin.products.flash-sale.store');
             Route::put('admin/flash-sales/{flashSale}', [FlashSaleController::class, 'adminUpdate'])->name('admin.flash-sales.update');
             Route::delete('admin/flash-sales/{flashSale}', [FlashSaleController::class, 'adminDestroy'])->name('admin.flash-sales.destroy');

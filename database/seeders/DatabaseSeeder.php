@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             ProductImageSeeder::class,
             FlashSaleSeeder::class,
+            CouponSeeder::class,
             OrderSeeder::class,
             PaymentSeeder::class,
         ]);

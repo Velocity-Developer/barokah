@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V1\BuyerInformationRequest;
 use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\CouponService;
 use App\Services\SettingsService;
 use App\Services\Shipping\ShippingService;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +30,7 @@ use Illuminate\Support\Str;
  */
 class CheckoutController extends Controller
 {
-    public function __construct(protected SettingsService $settings, protected ShippingService $shipping) {}
+    public function __construct(protected SettingsService $settings, protected ShippingService $shipping, protected CouponService $coupons) {}
 
     /**
      * Create a pending_payment order from a direct Buy payload.
@@ -78,10 +79,12 @@ class CheckoutController extends Controller
                 $subtotal += $lineTotal;
                 $prepared[] = [
                     'product' => $product,
-                    'flash_sale' => $flashSale,
+                    'flash_sale_model' => $flashSale,
                     'quantity' => $line['quantity'],
                     'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
+                    'category_id' => $product->category_id,
+                    'flash_sale' => $flashSale !== null,
                 ];
             }
 
@@ -106,7 +109,7 @@ class CheckoutController extends Controller
                 )]
             );
             $quote = [
-                'method' => $shippingMethod,
+                'method' => $shippingMethod ?: 'fixed',
                 'provider' => $quotes->pluck('quote.provider')->filter()->first(),
                 'fee' => round((float) $quotes->sum('quote.fee'), 2),
                 'breakdown' => $quotes->values()->map(fn (array $item, int $index): array => [
@@ -116,6 +119,17 @@ class CheckoutController extends Controller
                     'provider' => $item['quote']['provider'],
                 ])->all(),
             ];
+            $couponResult = ($validated['coupon_code'] ?? null) !== null
+                ? $this->coupons->calculate($validated['coupon_code'], array_map(fn (array $row): array => [
+                    'product_id' => $row['product']->id,
+                    'seller_id' => $row['product']->seller_id,
+                    'category_id' => $row['category_id'],
+                    'line_total' => $row['line_total'],
+                    'flash_sale' => $row['flash_sale'],
+                ], $prepared), (float) $quote['fee'], $request->user()?->id)
+                : null;
+            $discount = (float) ($couponResult['discount'] ?? 0);
+            $shippingFee = max(0, (float) $quote['fee'] - (float) ($couponResult['shipping_discount'] ?? 0));
 
             $order = Order::query()->create([
                 'order_number' => $this->uniqueOrderNumber(),
@@ -133,8 +147,11 @@ class CheckoutController extends Controller
                 'shipping_post_code' => $validated['shipping_post_code'],
                 'currency_code' => $currencyCode,
                 'subtotal' => $subtotal,
-                'shipping_fee' => $quote['fee'],
-                'total' => $subtotal + $quote['fee'],
+                'discount_amount' => $discount,
+                'coupon_code' => $couponResult['coupon']->code ?? null,
+                'coupon_snapshot' => $couponResult['snapshot'] ?? null,
+                'shipping_fee' => $shippingFee,
+                'total' => max(0, $subtotal - $discount + $shippingFee),
                 'status' => OrderStatus::PendingPayment,
                 'shipping_method' => $quote['method'],
                 'expired_at' => now()->addMinutes($expirationMinutes),
@@ -152,12 +169,23 @@ class CheckoutController extends Controller
                     'price_snapshot' => $row['unit_price'],
                     'quantity' => $row['quantity'],
                     'subtotal' => $row['line_total'],
+                    'discount_amount' => $couponResult === null ? 0 : round($row['line_total'] / $subtotal * $discount, 2),
                 ]);
 
                 $product->decrement('stock', $row['quantity']);
-                if ($row['flash_sale'] !== null) {
-                    $row['flash_sale']->increment('quantity_sold', $row['quantity']);
+                if ($row['flash_sale_model'] !== null) {
+                    $row['flash_sale_model']->increment('quantity_sold', $row['quantity']);
                 }
+            }
+
+            if ($couponResult !== null) {
+                $coupon = $couponResult['coupon'];
+                $coupon->increment('usage_count');
+                $coupon->usages()->create([
+                    'order_id' => $order->id,
+                    'user_id' => $request->user()?->id,
+                    'discount_amount' => $discount,
+                ]);
             }
 
             foreach ($quotes as $sellerQuote) {

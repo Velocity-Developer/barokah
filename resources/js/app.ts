@@ -21,6 +21,7 @@ void createInertiaApp({
                 name.startsWith('FlashSale/') ||
                 name.startsWith('Cart/') ||
                 name.startsWith('Checkout/') ||
+                name.startsWith('Coupon/') ||
                 name.startsWith('Store/') ||
                 name.startsWith('Profile/'):
                 return null;

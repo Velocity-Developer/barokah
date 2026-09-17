@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FlashSaleController;
 use App\Http\Controllers\Admin\OrderController;
@@ -29,6 +30,9 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('flash-sales', [FlashSaleController::class, 'index'])->name('flash-sales.index');
     Route::get('flash-sales/create', [FlashSaleController::class, 'create'])->name('flash-sales.create');
     Route::get('flash-sales/{flashSale:id}/edit', [FlashSaleController::class, 'edit'])->name('flash-sales.edit');
+    Route::get('coupons', [CouponController::class, 'index'])->name('coupons.index');
+    Route::get('coupons/create', [CouponController::class, 'create'])->name('coupons.create');
+    Route::get('coupons/{coupon}/edit', [CouponController::class, 'edit'])->name('coupons.edit');
 
     Route::get('products', [ProductController::class, 'index'])->name('products.index');
     Route::get('products/{product:id}/edit', [ProductController::class, 'edit'])->name('products.edit');

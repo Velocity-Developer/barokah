@@ -23,6 +23,7 @@ type CheckoutState = {
     buyer: BuyerInformation;
     shippingMethod: string;
     paymentMethod: string;
+    couponCode: string;
     step: CheckoutStep;
 };
 
@@ -45,6 +46,7 @@ const state = reactive<CheckoutState>({
     },
     shippingMethod: 'fixed',
     paymentMethod: 'fpx',
+    couponCode: '',
     step: 1,
 });
 
@@ -86,6 +88,7 @@ export function useCheckoutStore() {
         };
         state.shippingMethod = 'fixed';
         state.paymentMethod = 'fpx';
+        state.couponCode = '';
         state.step = 1;
         orderNumber.value = null;
     }
