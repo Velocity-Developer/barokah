@@ -19,7 +19,9 @@ class ProductShowController extends Controller
         $product = Product::query()
             ->active()
             ->where('slug', $slug)
-            ->with(['seller', 'category', 'images'])
+            ->with(['seller', 'category', 'images', 'latestReviews.user'])
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
             ->firstOrFail();
 
         $sellerProducts = Product::query()
@@ -27,6 +29,8 @@ class ProductShowController extends Controller
             ->where('seller_id', $product->seller_id)
             ->whereKeyNot($product->getKey())
             ->with(['seller', 'category', 'images'])
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
             ->latest()
             ->limit(6)
             ->get();

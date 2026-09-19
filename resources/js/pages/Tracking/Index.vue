@@ -12,10 +12,12 @@ type Tracking = {
     delivered_at: string | null;
     tracking_url: string | null;
     delivery_photo_url: string | null;
+    items: { id: number; product_name: string; product_slug: string; reviewed: boolean }[];
 };
 
 type Order = {
     order_number: string;
+    can_review: boolean;
     status: string | null;
     tracking_status: string | null;
     courier: string | null;
@@ -56,7 +58,7 @@ function timeline(tracking: Tracking | undefined): { label: string; time: string
 <template>
     <Head title="Track Order" />
     <MarketplaceLayout>
-        <main class="w-full px-4 py-8 sm:px-6 lg:px-8">
+        <div class="w-full py-8">
             <section class="rounded-xl border border-[var(--border-soft)] bg-white p-6 shadow-sm sm:p-8">
                 <h1 class="text-2xl font-bold text-[var(--brand-primary)]">Track Your Order</h1>
                 <p class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
@@ -83,29 +85,51 @@ function timeline(tracking: Tracking | undefined): { label: string; time: string
                         <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{{ statusLabel(order.tracking_status || order.status) }}</span>
                     </div>
 
-                    <div class="rounded-lg border border-[var(--border-soft)] p-4">
+                    <div v-for="tracking in order.seller_trackings" :key="tracking.waybill_number ?? tracking.delivered_at ?? tracking.received_at" class="rounded-lg border border-[var(--border-soft)] p-4">
                         <p class="font-semibold">Order progress</p>
-                        <ol v-if="timeline(order.seller_trackings[0]).length" class="mt-4 space-y-4 border-l-2 border-[var(--border-soft)] pl-5 text-sm">
-                            <li v-for="step in timeline(order.seller_trackings[0])" :key="step.label + step.time" class="relative">
+                        <ol v-if="timeline(tracking).length" class="mt-4 space-y-4 border-l-2 border-[var(--border-soft)] pl-5 text-sm">
+                            <li v-for="step in timeline(tracking)" :key="step.label + step.time" class="relative">
                                 <span class="absolute -left-[25px] top-0.5 h-3 w-3 rounded-full border-2 border-white bg-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)]" />
                                 <p class="font-medium">{{ step.label }}</p>
                                 <p class="mt-1 text-xs text-[var(--text-muted)]">{{ step.time }}</p>
-                                <div v-if="step.label === 'Order picked up by courier' && order.seller_trackings[0]" class="mt-2 text-xs text-[var(--text-secondary)]">
-                                    <p v-if="order.seller_trackings[0].courier">Courier: {{ order.seller_trackings[0].courier }}</p>
-                                    <p v-if="order.seller_trackings[0].waybill_number">Tracking number: {{ order.seller_trackings[0].waybill_number }}</p>
-                                    <a v-if="order.seller_trackings[0].tracking_url" :href="order.seller_trackings[0].tracking_url" target="_blank" rel="noopener" class="mt-1 inline-flex font-semibold text-[var(--brand-primary)] hover:underline">Open courier tracking</a>
+                                <div v-if="step.label === 'Order picked up by courier'" class="mt-2 text-xs text-[var(--text-secondary)]">
+                                    <p v-if="tracking.courier">Courier: {{ tracking.courier }}</p>
+                                    <p v-if="tracking.waybill_number">Tracking number: {{ tracking.waybill_number }}</p>
+                                    <a v-if="tracking.tracking_url" :href="tracking.tracking_url" target="_blank" rel="noopener" class="mt-1 inline-flex font-semibold text-[var(--brand-primary)] hover:underline">Open courier tracking</a>
                                 </div>
-                                <div v-if="step.label === 'Order delivered' && order.seller_trackings[0]?.delivery_photo_url" class="mt-3">
-                                    <img :src="order.seller_trackings[0].delivery_photo_url" alt="Delivery proof" class="mt-2 max-h-72 rounded-lg border object-contain" />
+                                <div v-if="step.label === 'Order delivered' && tracking.delivery_photo_url" class="mt-3">
+                                    <img :src="tracking.delivery_photo_url" alt="Delivery proof" class="max-h-72 rounded-lg border object-contain" />
                                 </div>
                             </li>
                         </ol>
+                    </div>
+
+                    <div
+                        v-if="order.can_review && order.seller_trackings.some((tracking) => tracking.delivered_at && tracking.items.length)"
+                        class="rounded-xl border border-[var(--border-soft)] bg-[var(--bg-muted)] p-4"
+                    >
+                        <p class="text-base font-semibold">Rate your products</p>
+                        <p class="mt-1 text-sm text-[var(--text-secondary)]">Your delivered products are ready for review.</p>
+                        <div
+                            v-for="tracking in order.seller_trackings.filter((item) => item.delivered_at && item.items.length)"
+                            :key="tracking.waybill_number ?? tracking.delivered_at"
+                            class="mt-3 space-y-2"
+                        >
+                            <div v-for="item in tracking.items" :key="item.id" class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[var(--border-soft)] bg-white p-3 text-sm">
+                                <span>{{ item.product_name }}</span>
+                                <Link v-if="!item.reviewed" :href="`/rating/order-items/${item.id}`" class="rounded-md bg-[var(--brand-primary)] px-3 py-2 text-xs font-semibold text-white">Rate product</Link>
+                                <span v-else class="text-right text-sm text-green-700">
+                                    <span class="block font-medium">Rated: {{ item.rating }}/5</span>
+                                    <span v-if="item.review" class="mt-1 block max-w-sm text-xs text-[var(--text-secondary)]">{{ item.review }}</span>
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
             </section>
 
             <Link href="/" class="mt-5 inline-flex text-sm font-semibold text-[var(--brand-primary)] hover:underline">Back to marketplace</Link>
-        </main>
+        </div>
     </MarketplaceLayout>
 </template>

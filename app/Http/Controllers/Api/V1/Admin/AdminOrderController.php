@@ -40,7 +40,7 @@ class AdminOrderController extends Controller
     {
         $order = Order::query()
             ->where('order_number', $orderNumber)
-            ->with(['items', 'sellerTrackings'])
+            ->with(['items', 'payment', 'sellerTrackings'])
             ->firstOrFail();
 
         return new OrderResource($order);

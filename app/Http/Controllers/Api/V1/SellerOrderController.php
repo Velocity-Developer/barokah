@@ -94,7 +94,7 @@ class SellerOrderController extends Controller
             ->where('order_number', $orderNumber)
             ->whereHas('items', fn ($query) => $query->where('seller_id', $sellerId))
             ->whereHas('payment', fn ($query) => $query->whereIn('status', [PaymentStatus::Paid, 'verified']))
-            ->with(['items' => fn ($query) => $query->where('seller_id', $sellerId), 'sellerTrackings' => fn ($query) => $query->where('seller_id', $sellerId)])
+            ->with(['items' => fn ($query) => $query->where('seller_id', $sellerId), 'payment', 'sellerTrackings' => fn ($query) => $query->where('seller_id', $sellerId)])
             ->first();
 
         if ($order === null || $request->user()?->cannot('view', $order)) {

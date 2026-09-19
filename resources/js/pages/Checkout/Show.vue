@@ -199,8 +199,10 @@ const paymentOptions = computed<PaymentOption[]>(() => [...manualOptions.value, 
 
 const manualOptions = computed<PaymentOption[]>(() => {
     const options: PaymentOption[] = [];
+    const bankTransferConfigured = Boolean(bankName.value && bankAccountName.value && bankAccountNumber.value);
+    const qrCodeConfigured = Boolean(qrCodeUrl.value);
 
-    if (bankTransferEnabled.value) {
+    if (bankTransferEnabled.value && bankTransferConfigured) {
         options.push({
             value: 'bank_transfer',
             label: 'Bank Transfer',
@@ -208,7 +210,7 @@ const manualOptions = computed<PaymentOption[]>(() => {
         });
     }
 
-    if (qrCodeEnabled.value) {
+    if (qrCodeEnabled.value && qrCodeConfigured) {
         options.push({
             value: 'qr_code',
             label: 'QR Code',
@@ -593,6 +595,7 @@ async function placeOrder(): Promise<void> {
                 shipping_city: buyer.shipping_city === '' ? undefined : buyer.shipping_city,
                 shipping_post_code: buyer.shipping_post_code,
                 shipping_method: shippingMethod.value,
+                payment_method: paymentMethod.value,
                 coupon_code: couponCode.value.trim() || undefined,
             }),
         });

@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentCallbackController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\PublicSettingController;
 use App\Http\Controllers\Api\V1\SellerActivationController;
@@ -40,7 +41,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('coupons.validate');
 
     Route::post('orders', [CheckoutController::class, 'store'])
-        ->middleware('throttle:30,1')
+        ->middleware(['web', 'throttle:30,1'])
         ->name('orders.store');
 
     // PayNet initiation + status polling (spec §11.5/§15); guest orders
@@ -82,6 +83,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         // Buyer order history (spec §11.4): own orders only.
         Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{orderNumber}', [OrderController::class, 'show'])->name('orders.show');
+        Route::post('order-items/{orderItem}/review', [ProductReviewController::class, 'store'])->name('order-items.review.store');
 
         Route::middleware('can:seller')->group(function (): void {
             Route::post('seller/coupons', [CouponCrudController::class, 'store'])->name('seller.coupons.store');

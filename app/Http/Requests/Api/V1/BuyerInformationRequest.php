@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Rules\CityInState;
+use App\Services\PaymentService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -33,6 +34,8 @@ class BuyerInformationRequest extends FormRequest
      */
     public function rules(): array
     {
+        $paymentMethods = app(PaymentService::class)->enabledMethods();
+
         return [
             'product_id' => ['required_without:items', 'nullable', 'integer', Rule::exists('products', 'id')],
             'quantity' => ['required_without:items', 'nullable', 'integer', 'min:1', 'max:1000000'],
@@ -53,6 +56,7 @@ class BuyerInformationRequest extends FormRequest
             'shipping_post_code' => ['required', 'string', 'max:20'],
             // Fixed Rate is the default; external resolves via ShippingService (spec §16).
             'shipping_method' => ['nullable', 'string', Rule::in(['fixed', 'external'])],
+            'payment_method' => ['required', 'string', Rule::in($paymentMethods)],
             'coupon_code' => ['nullable', 'string', 'max:50'],
         ];
     }

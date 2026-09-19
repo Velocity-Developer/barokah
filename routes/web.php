@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\CouponController;
 use App\Http\Controllers\Web\FlashSaleController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\ProductIndexController;
+use App\Http\Controllers\Web\ProductRatingController;
 use App\Http\Controllers\Web\ProductShowController;
 use App\Http\Controllers\Web\ProfileController as WebProfileController;
 use App\Http\Controllers\Web\SellerShowController;
@@ -39,6 +40,7 @@ Route::get('checkout/order/{orderNumber}', [CheckoutController::class, 'confirma
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('profile', WebProfileController::class)->name('profile.show');
+    Route::get('rating/order-items/{orderItem}', ProductRatingController::class)->name('rating.show');
     Route::patch('profile', [WebProfileController::class, 'update'])->name('my.profile.update');
     Route::put('profile/password', [WebProfileController::class, 'updatePassword'])
         ->middleware('throttle:6,1')

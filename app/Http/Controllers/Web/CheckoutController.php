@@ -49,7 +49,7 @@ class CheckoutController extends Controller
     {
         $order = Order::query()
             ->where('order_number', $orderNumber)
-            ->with(['items', 'payment'])
+            ->with(['items.seller', 'payment', 'sellerTrackings'])
             ->firstOrFail();
 
         $user = $request->user();

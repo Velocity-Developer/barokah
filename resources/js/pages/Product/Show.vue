@@ -19,6 +19,15 @@ type DetailImage = {
     is_primary: boolean;
 };
 
+type ProductReview = {
+    id: number;
+    rating: number;
+    review: string | null;
+    media?: { type: 'image' | 'video'; url: string }[];
+    created_at: string;
+    user?: { name: string; profile_photo_url?: string | null };
+};
+
 type DetailProduct = {
     id: number;
     name: string;
@@ -36,6 +45,9 @@ type DetailProduct = {
     category: { name: string; slug: string } | null;
     images: DetailImage[] | { data: DetailImage[] };
     primary_image: string | null;
+    average_rating?: number | null;
+    ratings_count?: number;
+    reviews?: ProductReview[] | { data: ProductReview[] };
 };
 
 const props = defineProps<{
@@ -68,6 +80,35 @@ function unwrapImages(images: DetailProduct['images']): DetailImage[] {
 }
 
 const gallery = computed(() => unwrapImages(product.value.images));
+
+const reviews = computed<ProductReview[]>(() => {
+    const raw = product.value.reviews;
+    return raw ? (Array.isArray(raw) ? raw : (raw.data ?? [])) : [];
+});
+
+const reviewFilter = ref<'all' | 'comments' | 'media' | 1 | 2 | 3 | 4 | 5>('all');
+
+const reviewFilters = computed(() => [
+    { key: 'all' as const, label: 'All', count: reviews.value.length },
+    { key: 5 as const, label: '5 Star', count: reviews.value.filter((review) => review.rating === 5).length },
+    { key: 4 as const, label: '4 Star', count: reviews.value.filter((review) => review.rating === 4).length },
+    { key: 3 as const, label: '3 Star', count: reviews.value.filter((review) => review.rating === 3).length },
+    { key: 2 as const, label: '2 Star', count: reviews.value.filter((review) => review.rating === 2).length },
+    { key: 1 as const, label: '1 Star', count: reviews.value.filter((review) => review.rating === 1).length },
+    { key: 'comments' as const, label: 'With Comments', count: reviews.value.filter((review) => Boolean(review.review)).length },
+    { key: 'media' as const, label: 'With Media', count: reviews.value.filter((review) => Boolean(review.media?.length)).length },
+].filter((filter) => filter.count > 0));
+
+function setReviewFilter(filter: typeof reviewFilter.value): void {
+    reviewFilter.value = filter;
+}
+
+const filteredReviews = computed(() => reviews.value.filter((review) => {
+    if (reviewFilter.value === 'comments') return Boolean(review.review);
+    if (reviewFilter.value === 'media') return Boolean(review.media?.length);
+    if (typeof reviewFilter.value === 'number') return review.rating === reviewFilter.value;
+    return true;
+}));
 
 const otherProducts = computed<DetailProduct[]>(() => {
     const raw = props.sellerProducts;
@@ -231,6 +272,19 @@ function addToCart(): void {
                             ]"
                         >
                             {{ isOutOfStock ? 'Out of stock' : 'In stock' }}
+                        </span>
+                    </div>
+
+                    <div
+                        v-if="product.ratings_count"
+                        class="mt-4 flex items-center gap-2 text-sm"
+                    >
+                        <span class="font-semibold text-amber-500">★</span>
+                        <span class="font-semibold text-[var(--text-primary)]">
+                            {{ Number(product.average_rating ?? 0).toFixed(1) }}/5
+                        </span>
+                        <span class="text-[var(--text-muted)]">
+                            from {{ product.ratings_count }} reviews
                         </span>
                     </div>
 
@@ -441,17 +495,39 @@ function addToCart(): void {
             </section>
 
             <!-- Rating card -->
-            <section
-                class="mt-4 rounded-sm border border-[var(--border-default)] bg-white"
-            >
-                <h2
-                    class="border-b border-[var(--border-soft)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)]"
-                >
-                    Rating produk
-                </h2>
-                <p class="px-4 py-6 text-center text-sm text-[var(--text-muted)]">
-                    Belum ada rating untuk produk ini.
-                </p>
+            <section class="mt-4 rounded-sm border border-[var(--border-default)] bg-white p-5">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-[var(--text-primary)]">Product Ratings & Reviews</h2>
+                        <p class="mt-1 text-sm text-[var(--text-muted)]">{{ Number(product.average_rating ?? 0).toFixed(1) }} out of 5 · {{ product.ratings_count ?? 0 }} reviews</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2 border-b border-[var(--border-soft)] pb-4 text-xs">
+                    <button v-for="filter in reviewFilters" :key="filter.key" type="button" :class="reviewFilter === filter.key ? 'border-[var(--brand-primary)] text-[var(--brand-primary)]' : 'border-[var(--border-default)] text-[var(--text-secondary)]'" class="border bg-white px-3 py-2" @click="setReviewFilter(filter.key)">{{ filter.label }} ({{ filter.count }})</button>
+                </div>
+                <div v-if="filteredReviews.length" class="mt-2 divide-y divide-[var(--border-soft)]">
+                    <article v-for="review in filteredReviews" :key="review.id" class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-semibold text-orange-600">
+                            <img v-if="review.user?.profile_photo_url" :src="review.user.profile_photo_url" alt="Reviewer" class="h-full w-full object-cover" />
+                            <span v-else>{{ (review.user?.name ?? 'Buyer').charAt(0).toUpperCase() }}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-[var(--text-primary)]">{{ review.user?.name ?? 'Buyer' }}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm tracking-wide text-orange-500">{{ '★'.repeat(review.rating) }}</span>
+                                <span class="text-xs text-[var(--text-muted)]">{{ new Date(review.created_at).toLocaleDateString('en-GB') }}</span>
+                            </div>
+                            <p v-if="review.review" class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{{ review.review }}</p>
+                            <div v-if="review.media?.length" class="mt-3 flex flex-wrap gap-2">
+                            <template v-for="media in review.media" :key="media.url">
+                                <img v-if="media.type === 'image'" :src="media.url" alt="Review media" class="h-20 w-20 rounded-md object-cover" />
+                                <video v-else :src="media.url" controls class="h-20 w-32 rounded-md object-cover" />
+                                </template>
+                            </div>
+                        </div>
+                    </article>
+                    <p v-if="!filteredReviews.length" class="py-6 text-sm text-[var(--text-muted)]">No reviews match this filter.</p>
+                </div>
             </section>
 
             <!-- Other products from this store -->

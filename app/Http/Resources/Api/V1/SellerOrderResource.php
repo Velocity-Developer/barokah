@@ -26,6 +26,10 @@ class SellerOrderResource extends JsonResource
             'id' => $this->id,
             'order_number' => $this->order_number,
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
+            'payment' => $this->payment ? [
+                'status' => $this->payment->status instanceof \BackedEnum ? $this->payment->status->value : $this->payment->status,
+                'payment_method' => $this->payment->payment_method instanceof \BackedEnum ? $this->payment->payment_method->value : $this->payment->payment_method,
+            ] : null,
             'currency_code' => $this->currency_code,
             'customer_name' => $this->customer_name,
             'customer_address' => $this->customer_address,

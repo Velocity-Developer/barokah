@@ -25,6 +25,8 @@ class ProductController extends Controller
         $products = Product::query()
             ->active()
             ->with(['seller', 'category', 'images', 'flashSales'])
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
             ->when($request->string('category')->toString() !== '', function ($query) use ($request): void {
                 $query->whereHas('category', fn ($category) => $category->where('slug', $request->string('category')->toString()));
             })

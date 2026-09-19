@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BuyerInformationRequest;
@@ -10,6 +11,7 @@ use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\CouponService;
+use App\Services\PaymentService;
 use App\Services\SettingsService;
 use App\Services\Shipping\ShippingService;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +32,12 @@ use Illuminate\Support\Str;
  */
 class CheckoutController extends Controller
 {
-    public function __construct(protected SettingsService $settings, protected ShippingService $shipping, protected CouponService $coupons) {}
+    public function __construct(
+        protected SettingsService $settings,
+        protected ShippingService $shipping,
+        protected CouponService $coupons,
+        protected PaymentService $payments,
+    ) {}
 
     /**
      * Create a pending_payment order from a direct Buy payload.
@@ -153,7 +160,7 @@ class CheckoutController extends Controller
                 'shipping_fee' => $shippingFee,
                 'total' => max(0, $subtotal - $discount + $shippingFee),
                 'status' => OrderStatus::PendingPayment,
-                'shipping_method' => $quote['method'],
+                'shipping_method' => $shippingMethod ?: 'fixed',
                 'expired_at' => now()->addMinutes($expirationMinutes),
             ]);
 
@@ -199,7 +206,12 @@ class CheckoutController extends Controller
             return $order->load(['items', 'sellerTrackings']);
         });
 
-        return (new OrderResource($order))->response()->setStatusCode(201);
+        $this->payments->initiate(
+            $order,
+            PaymentMethod::from($validated['payment_method']),
+        );
+
+        return (new OrderResource($order->load('payment')))->response()->setStatusCode(201);
     }
 
     /**

@@ -36,11 +36,11 @@ class PaymentService
     {
         $methods = [];
 
-        if ($this->isMethodEnabled('bank_transfer')) {
+        if ($this->isMethodEnabled('bank_transfer') && $this->hasBankTransferDetails()) {
             $methods[] = PaymentMethod::BankTransfer->value;
         }
 
-        if ($this->isMethodEnabled('qr_code')) {
+        if ($this->isMethodEnabled('qr_code') && $this->stringSetting('payment.qr_code_url') !== null) {
             $methods[] = PaymentMethod::QrCode->value;
         }
 
@@ -398,6 +398,13 @@ class PaymentService
         }
 
         return $value;
+    }
+
+    protected function hasBankTransferDetails(): bool
+    {
+        return $this->stringSetting('payment.bank_name') !== null
+            && $this->stringSetting('payment.bank_account_name') !== null
+            && $this->stringSetting('payment.bank_account_number') !== null;
     }
 
     protected function isMethodEnabled(string $method): bool

@@ -8,8 +8,10 @@ import { formatPrice } from '@/services/priceFormatter';
 
 type OrderItem = { id: number; product_name: string; price: string | number; quantity: number; subtotal: string | number };
 type SellerTracking = { courier?: string | null; waybill_number?: string | null; tracking_url?: string | null; tracking_status?: string | null; delivery_photo_path?: string | null };
+type SellerPayment = { status?: string | null; payment_method?: string | null };
 type SellerOrder = {
     tracking?: SellerTracking | null;
+    payment?: SellerPayment | null;
     subtotal: string | number; shipping_fee: string | number; total: string | number; currency_code: string; items: OrderItem[];
     status?: string | null; created_at?: string | null; customer_name: string; customer_address: string; customer_state: string;
     customer_city?: string | null; customer_post_code: string; shipping_address?: string | null; shipping_state?: string | null;
@@ -57,7 +59,14 @@ defineOptions({ layout: { breadcrumbs: [{ title: 'Customer orders', href: index(
     <div class="flex h-full flex-1 flex-col gap-4 p-4">
         <Link :href="index()" class="text-muted-foreground w-fit text-sm hover:underline">← Back to Customer orders</Link>
         <Heading variant="small" :title="orderNumber" :description="`Placed ${displayText(order?.created_at)}`" />
-        <div class="flex flex-wrap items-center gap-2"><Badge variant="secondary">{{ displayText(order?.status) }}</Badge><Badge variant="outline">Seller order</Badge></div>
+        <div class="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{{ displayText(order?.status) }}</Badge>
+            <Badge variant="outline">Seller order</Badge>
+            <Badge v-if="order?.payment" variant="outline">
+                Payment: {{ displayText(order.payment.status) }}
+                <span v-if="order.payment.payment_method"> · {{ order.payment.payment_method }}</span>
+            </Badge>
+        </div>
         <div v-if="order" class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4">
             <h3 class="mb-1 text-base font-medium">Items ({{ order.items.length }})</h3><p class="text-muted-foreground mb-4 text-sm">Products assigned to this seller.</p>
             <p v-if="order.items.length === 0" class="text-muted-foreground text-sm">No items in this order.</p>

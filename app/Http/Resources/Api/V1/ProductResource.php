@@ -38,6 +38,9 @@ class ProductResource extends JsonResource
                     ?? $this->images->first()?->url
             ),
             'created_at' => $this->created_at,
+            'average_rating' => $this->reviews_avg_rating,
+            'ratings_count' => $this->reviews_count,
+            'reviews' => ProductReviewResource::collection($this->whenLoaded('latestReviews')),
             'updated_at' => $this->updated_at,
         ];
     }
