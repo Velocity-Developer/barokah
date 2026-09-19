@@ -22,6 +22,7 @@ void createInertiaApp({
                 name.startsWith('Cart/') ||
                 name.startsWith('Checkout/') ||
                 name.startsWith('Coupon/') ||
+                name.startsWith('Tracking/') ||
                 name.startsWith('Store/') ||
                 name.startsWith('Profile/'):
                 return null;

@@ -41,7 +41,7 @@ const siteName = computed(() =>
             <nav aria-label="Account">
                 <p class="text-sm font-semibold">Account</p>
                 <ul class="mt-2 space-y-1.5 text-xs text-[var(--text-secondary)]">
-                    <li><Link :href="productsIndex()" class="hover:underline" title="Track order is a UI placeholder (TBC, no backend)">Track order</Link></li>
+                    <li><Link href="/tracking" class="hover:underline">Track order</Link></li>
                     <li><Link :href="sellerDashboard()" class="hover:underline">Seller center</Link></li>
                     <li><Link :href="productsIndex()" class="hover:underline" title="Help is a UI placeholder (TBC, no backend)">Help</Link></li>
                 </ul>

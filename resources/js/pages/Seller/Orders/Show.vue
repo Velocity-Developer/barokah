@@ -7,7 +7,7 @@ import { index } from '@/routes/seller/orders';
 import { formatPrice } from '@/services/priceFormatter';
 
 type OrderItem = { id: number; product_name: string; price: string | number; quantity: number; subtotal: string | number };
-type SellerTracking = { courier?: string | null; waybill_number?: string | null; tracking_url?: string | null; tracking_status?: string | null };
+type SellerTracking = { courier?: string | null; waybill_number?: string | null; tracking_url?: string | null; tracking_status?: string | null; delivery_photo_path?: string | null };
 type SellerOrder = {
     tracking?: SellerTracking | null;
     subtotal: string | number; shipping_fee: string | number; total: string | number; currency_code: string; items: OrderItem[];
@@ -18,8 +18,9 @@ type SellerOrder = {
 
 const props = defineProps<{ orderNumber: string }>();
 const order = ref<SellerOrder | null>(null);
-const courier = ref(''); const waybillNumber = ref(''); const trackingUrl = ref(''); const trackingStatus = ref('packed');
+const courier = ref(''); const waybillNumber = ref(''); const trackingUrl = ref(''); const trackingStatus = ref('packed'); const deliveryPhoto = ref<File | null>(null);
 const message = ref('');
+const deliveryPhotoPreview = ref('');
 const customerLocation = computed(() => order.value ? [order.value.customer_city, order.value.customer_state, order.value.customer_post_code].filter(Boolean).join(', ') || '-' : '-');
 const shippingLocation = computed(() => order.value ? [order.value.shipping_city, order.value.shipping_state, order.value.shipping_post_code].filter(Boolean).join(', ') || '-' : '-');
 function displayMoney(value: string | number): string { const amount = typeof value === 'number' ? value : Number(value); return Number.isFinite(amount) ? formatPrice(amount) : String(value); }
@@ -30,8 +31,25 @@ onMounted(async () => {
     if (!response.ok) { message.value = 'Order unavailable.'; return; }
     order.value = (await response.json() as { data: SellerOrder }).data;
     courier.value = order.value.tracking?.courier ?? ''; waybillNumber.value = order.value.tracking?.waybill_number ?? ''; trackingUrl.value = order.value.tracking?.tracking_url ?? ''; trackingStatus.value = order.value.tracking?.tracking_status ?? 'packed';
+    deliveryPhotoPreview.value = order.value.tracking?.delivery_photo_path ? `/storage/${order.value.tracking.delivery_photo_path}` : '';
 });
-async function save(): Promise<void> { const response = await fetch(`/api/v1/seller/orders/${props.orderNumber}`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '' }, body: JSON.stringify({ courier: courier.value || null, waybill_number: waybillNumber.value || null, tracking_url: trackingUrl.value || null, tracking_status: trackingStatus.value }) }); message.value = response.ok ? 'Tracking saved.' : 'Tracking save failed.'; }
+async function save(): Promise<void> {
+    const form = new FormData();
+    form.append('tracking_status', trackingStatus.value);
+    if (courier.value) form.append('courier', courier.value);
+    if (waybillNumber.value) form.append('waybill_number', waybillNumber.value);
+    if (trackingUrl.value) form.append('tracking_url', trackingUrl.value);
+    if (trackingStatus.value === 'delivered' && deliveryPhoto.value) form.append('delivery_photo', deliveryPhoto.value);
+
+    const response = await fetch(`/api/v1/seller/orders/${props.orderNumber}/tracking`, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '' }, body: form });
+    if (response.ok) {
+        message.value = 'Tracking saved.';
+        return;
+    }
+
+    const payload = await response.json().catch(() => null) as { message?: string; errors?: Record<string, string[]> } | null;
+    message.value = Object.values(payload?.errors ?? {}).flat()[0] ?? payload?.message ?? 'Tracking save failed.';
+}
 defineOptions({ layout: { breadcrumbs: [{ title: 'Customer orders', href: index() }] } });
 </script>
 <template>
@@ -46,6 +64,6 @@ defineOptions({ layout: { breadcrumbs: [{ title: 'Customer orders', href: index(
             <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px] text-left text-sm"><thead><tr class="text-muted-foreground border-b font-medium"><th class="px-3 py-2">Product</th><th class="px-3 py-2 text-right">Price</th><th class="px-3 py-2 text-right">Qty</th><th class="px-3 py-2 text-right">Subtotal</th></tr></thead><tbody><tr v-for="item in order.items" :key="item.id" class="hover:bg-muted/50 border-b transition-colors last:border-0"><td class="px-3 py-2 font-medium">{{ item.product_name }}</td><td class="px-3 py-2 text-right whitespace-nowrap">{{ displayMoney(item.price) }}</td><td class="px-3 py-2 text-right whitespace-nowrap">{{ item.quantity }}</td><td class="px-3 py-2 text-right whitespace-nowrap">{{ displayMoney(item.subtotal) }}</td></tr></tbody></table></div>
         </div>
         <div v-if="order" class="grid gap-4 lg:grid-cols-2"><div class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"><h3 class="mb-3 text-base font-medium">Billing customer</h3><table class="w-full text-left text-sm"><tbody><tr class="border-b"><th class="text-muted-foreground w-32 px-3 py-2 text-left font-medium">Name</th><td class="px-3 py-2">{{ order.customer_name }}</td></tr><tr class="border-b"><th class="text-muted-foreground w-32 px-3 py-2 text-left font-medium">Address</th><td class="px-3 py-2">{{ order.customer_address }}</td></tr><tr><th class="text-muted-foreground w-32 px-3 py-2 text-left font-medium">City / State</th><td class="px-3 py-2">{{ customerLocation }}</td></tr></tbody></table></div><div class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"><h3 class="mb-3 text-base font-medium">Delivery address</h3><table class="w-full text-left text-sm"><tbody><tr class="border-b"><th class="text-muted-foreground w-32 px-3 py-2 text-left font-medium">Address</th><td class="px-3 py-2">{{ order.shipping_address || 'Same as billing' }}</td></tr><tr class="border-b"><th class="text-muted-foreground w-32 px-3 py-2 text-left font-medium">City / State</th><td class="px-3 py-2">{{ shippingLocation }}</td></tr><tr><th class="text-muted-foreground w-32 px-3 py-2 text-left font-medium">Shipping</th><td class="px-3 py-2">{{ displayText(order.shipping_method) }}</td></tr></tbody></table></div></div>
-        <div class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"><h3 class="mb-3 text-base font-medium">Courier & tracking</h3><div class="grid gap-3 sm:grid-cols-2"><input v-model="courier" placeholder="Courier provider" class="rounded border px-3 py-2 text-sm" /><input v-model="waybillNumber" placeholder="Waybill number" class="rounded border px-3 py-2 text-sm" /><input v-model="trackingUrl" placeholder="Tracking URL" type="url" class="rounded border px-3 py-2 text-sm" /><select v-model="trackingStatus" class="rounded border px-3 py-2 text-sm"><option value="packed">packed</option><option value="shipped">shipped</option></select></div><button type="button" class="mt-3 rounded bg-primary px-4 py-2 text-sm text-primary-foreground" @click="save">Save tracking</button><p v-if="message" class="mt-2 text-sm text-muted-foreground">{{ message }}</p></div>
+        <div class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"><h3 class="mb-3 text-base font-medium">Courier & tracking</h3><div class="grid gap-3 sm:grid-cols-2"><select v-model="trackingStatus" class="rounded border px-3 py-2 text-sm sm:col-start-1 sm:row-start-1"><option value="received">received</option><option value="packed">packed</option><option value="shipped">shipped</option><option value="delivered">delivered</option></select><input v-model="courier" placeholder="Courier provider" class="rounded border px-3 py-2 text-sm" /><input v-model="waybillNumber" placeholder="Waybill number" class="rounded border px-3 py-2 text-sm" /><input v-model="trackingUrl" placeholder="Tracking URL" type="url" class="rounded border px-3 py-2 text-sm" /><input v-if="trackingStatus === 'delivered'" type="file" accept="image/jpeg,image/png,image/webp" class="rounded border px-3 py-2 text-sm" @change="deliveryPhoto = (($event.target as HTMLInputElement).files?.[0] ?? null); deliveryPhotoPreview = deliveryPhoto ? URL.createObjectURL(deliveryPhoto) : ''" /><img v-if="trackingStatus === 'delivered' && deliveryPhotoPreview" :src="deliveryPhotoPreview" alt="Delivery proof preview" class="max-h-48 rounded-lg border object-contain sm:col-span-2" /></div><button type="button" class="mt-3 rounded bg-primary px-4 py-2 text-sm text-primary-foreground" @click="save">Save tracking</button><p v-if="message" class="mt-2 text-sm text-muted-foreground">{{ message }}</p></div>
     </div>
 </template>

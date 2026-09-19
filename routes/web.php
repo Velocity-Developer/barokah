@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\ProductIndexController;
 use App\Http\Controllers\Web\ProductShowController;
 use App\Http\Controllers\Web\ProfileController as WebProfileController;
 use App\Http\Controllers\Web\SellerShowController;
+use App\Http\Controllers\Web\TrackingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -22,6 +23,7 @@ Route::get('/', HomeController::class)->name('home');
 Route::get('products', ProductIndexController::class)->name('products.index');
 Route::get('flash-sale', FlashSaleController::class)->name('flash-sale.index');
 Route::get('coupons', CouponController::class)->name('coupons.index');
+Route::get('tracking', TrackingController::class)->name('tracking.index');
 Route::get('products/{slug}', ProductShowController::class)->name('products.show');
 Route::get('sellers/{slug}', SellerShowController::class)->name('sellers.show');
 Route::get('cart', CartController::class)->name('cart.show');

@@ -92,6 +92,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::get('seller/orders', [SellerOrderController::class, 'index'])->name('seller.orders.index');
             Route::get('seller/orders/{orderNumber}', [SellerOrderController::class, 'show'])->name('seller.orders.show');
             Route::put('seller/orders/{orderNumber}', [SellerOrderController::class, 'update'])->name('seller.orders.update');
+            Route::post('seller/orders/{orderNumber}/tracking', [SellerOrderController::class, 'update'])->name('seller.orders.tracking.update');
             // Products resolve by ID here (spec §11.3 `{id}`); the public
             // detail route resolves by slug via Product::getRouteKeyName().
             Route::get('seller/products', [SellerProductController::class, 'index'])->name('seller.products.index');

@@ -16,9 +16,8 @@ use Inertia\Response;
 /**
  * Marketplace homepage (spec §18.3/§18.7).
  *
- * All slices come from active products only. Flash-sale and best-seller
- * sections are UI previews reusing the latest actives — promo/ranking
- * backends are TBC (spec §24 items 21-22) and no discount is applied.
+ * Homepage sections use active products. Flash-sale section only uses products
+ * with an active flash sale.
  */
 class HomeController extends Controller
 {
@@ -44,11 +43,19 @@ class HomeController extends Controller
             ->limit(24)
             ->get();
 
+        $flashSaleProducts = Product::query()
+            ->active()
+            ->whereHas('flashSales', fn ($query) => $query->active())
+            ->with(['seller', 'category', 'images', 'flashSales'])
+            ->latest()
+            ->limit(8)
+            ->get();
+
         return Inertia::render('Home', [
             'categories' => CategoryResource::collection($categories),
             'sellers' => SellerResource::collection($sellers),
             'latestProducts' => ProductResource::collection($latest),
-            'flashSaleProducts' => ProductResource::collection($latest->take(8)->values()),
+            'flashSaleProducts' => ProductResource::collection($flashSaleProducts),
             'bestSellerProducts' => ProductResource::collection($latest->take(8)->values()),
         ]);
     }

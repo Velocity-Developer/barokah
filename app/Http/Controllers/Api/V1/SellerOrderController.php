@@ -8,6 +8,7 @@ use App\Http\Resources\Api\V1\SellerOrderResource;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Storage;
 
 class SellerOrderController extends Controller
 {
@@ -38,7 +39,8 @@ class SellerOrderController extends Controller
             'courier' => ['nullable', 'string', 'max:255'],
             'waybill_number' => ['nullable', 'string', 'max:255'],
             'tracking_url' => ['nullable', 'url', 'max:500'],
-            'tracking_status' => ['required', 'in:packed,shipped'],
+            'tracking_status' => ['required', 'in:received,packed,shipped,picked_up,delivered'],
+            'delivery_photo' => ['nullable', 'image', 'max:5120'],
         ]);
 
         $order = Order::query()
@@ -47,10 +49,30 @@ class SellerOrderController extends Controller
             ->whereHas('payment', fn ($query) => $query->whereIn('status', [PaymentStatus::Paid, 'verified']))
             ->firstOrFail();
 
+        $deliveryPhoto = $request->file('delivery_photo');
+        unset($validated['delivery_photo']);
+
+        $timestamp = now();
+        $timestampField = $validated['tracking_status'] === 'shipped'
+            ? 'picked_up_at'
+            : $validated['tracking_status'].'_at';
+        $validated[$timestampField] = $timestamp;
+        $validated['tracking_status'] = $validated['tracking_status'] === 'shipped'
+            ? 'picked_up'
+            : $validated['tracking_status'];
+
         $tracking = $order->sellerTrackings()->updateOrCreate(
             ['seller_id' => $sellerId],
             $validated,
         );
+
+        if ($deliveryPhoto !== null && $validated['tracking_status'] === 'delivered') {
+            if ($tracking->delivery_photo_path !== null) {
+                Storage::disk('public')->delete($tracking->delivery_photo_path);
+            }
+
+            $tracking->update(['delivery_photo_path' => $deliveryPhoto->store('delivery-proofs', 'public')]);
+        }
 
         return new SellerOrderResource($order->refresh()->load([
             'items' => fn ($query) => $query->where('seller_id', $sellerId),

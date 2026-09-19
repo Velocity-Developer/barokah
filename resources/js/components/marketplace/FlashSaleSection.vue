@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 import type { HomeProductItem, ProductCardData } from '@/types/marketplace';
 import { toProductCardData } from '@/types/marketplace';
@@ -14,6 +14,11 @@ const props = defineProps<{
 const { formatAmount } = useSettingsStore();
 
 const cards = computed(() => props.products.map(toProductCardData));
+const carousel = ref<HTMLElement | null>(null);
+
+function scrollCarousel(direction: number): void {
+    carousel.value?.scrollBy({ left: direction * 390, behavior: 'smooth' });
+}
 
 function dealPrice(card: ProductCardData): string {
     return formatAmount(card.price);
@@ -39,10 +44,7 @@ function progressPercent(card: ProductCardData): number {
             >
                 {{ title ?? 'Flash Sale' }}
             </h2>
-            <Link
-                href="/flash-sale"
-                class="text-xs text-[var(--text-secondary)] hover:underline"
-            >
+            <Link href="/flash-sale" class="text-xs text-[var(--text-secondary)] hover:underline">
                 Lihat Semua &gt;
             </Link>
         </div>
@@ -62,7 +64,9 @@ function progressPercent(card: ProductCardData): number {
         >
             Flash deals will appear here when promotions are configured.
         </p>
-        <div v-else class="mt-3 flex gap-2 overflow-x-auto pb-1">
+        <div v-else class="relative mt-3">
+            <button type="button" aria-label="Produk sebelumnya" class="absolute top-1/2 left-0 z-10 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-xl leading-none text-[var(--text-secondary)] shadow-md transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]" @click="scrollCarousel(-1)">‹</button>
+            <div ref="carousel" class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Link
                 v-for="card in cards.filter((card) => card.flashSaleActive).slice(0, 8)"
                 :key="card.id"
@@ -78,7 +82,7 @@ function progressPercent(card: ProductCardData): number {
                         class="h-full w-full object-cover"
                     />
                     <span
-                        class="absolute top-0 right-0 bg-[var(--accent-red)] px-1.5 py-0.5 text-[10px] font-bold text-white"
+                        class="absolute top-2 right-2 rounded-sm bg-[var(--accent-red)] px-2 py-1 text-[10px] font-bold text-white shadow-sm"
                     >
                         FLASH SALE
                     </span>
@@ -103,6 +107,8 @@ function progressPercent(card: ProductCardData): number {
                     </p>
                 </div>
             </Link>
+            </div>
+            <button type="button" aria-label="Produk berikutnya" class="absolute top-1/2 right-0 z-10 flex h-9 w-9 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-xl leading-none text-[var(--text-secondary)] shadow-md transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]" @click="scrollCarousel(1)">›</button>
         </div>
     </section>
 </template>
