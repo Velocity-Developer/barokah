@@ -47,6 +47,8 @@ class OrderController extends Controller
             abort(404);
         }
 
+        $order->markExpiredIfOverdue();
+
         return new OrderResource($order);
     }
 }

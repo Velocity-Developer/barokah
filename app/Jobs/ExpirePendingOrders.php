@@ -58,7 +58,12 @@ class ExpirePendingOrders implements ShouldQueue
                         }
 
                         $locked->update(['status' => OrderStatus::Expired]);
-                        $locked->payment()->where('status', PaymentStatus::Pending)->update(['status' => PaymentStatus::Expired]);
+                        $locked->payment()
+                            ->whereIn('status', [PaymentStatus::Pending, PaymentStatus::Expired])
+                            ->update([
+                                'status' => PaymentStatus::Failed,
+                                'failed_at' => now(),
+                            ]);
                         $expired++;
                     });
                 }

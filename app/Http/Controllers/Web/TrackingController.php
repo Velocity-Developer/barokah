@@ -23,9 +23,10 @@ class TrackingController extends Controller
                 ->with(['sellerTrackings', 'items.product', 'items.review'])
                 ->first();
 
-            if ($order === null || $order->isExpired()) {
+            if ($order === null) {
                 $error = 'Order number not found. Please check and try again.';
-                $order = null;
+            } else {
+                $order->markExpiredIfOverdue();
             }
         }
 

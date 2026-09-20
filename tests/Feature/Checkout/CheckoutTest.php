@@ -1,11 +1,13 @@
 <?php
 
+use App\Enums\OrderStatus;
 use App\Enums\ProductStatus;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Seller;
 use App\Models\ShippingRate;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
 function createCheckoutSeller(): User
 {
@@ -274,4 +276,41 @@ test('checkout confirmation page renders order totals', function () {
     $this->withoutVite()->get(route('checkout.confirmation', $orderNumber))
         ->assertOk()
         ->assertSee($orderNumber);
+});
+
+test('checkout confirmation shows expired page instead of not found', function () {
+    $buyer = User::factory()->create();
+    $order = Order::factory()->create([
+        'user_id' => $buyer->id,
+        'status' => OrderStatus::PendingPayment,
+        'expired_at' => now()->subMinute(),
+    ]);
+
+    $this->actingAs($buyer)
+        ->withoutVite()
+        ->get(route('checkout.confirmation', $order->order_number))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Checkout/Confirmation')
+            ->where('order.is_expired', true)
+            ->where('order.is_payable', false)
+        );
+});
+
+test('checkout confirmation marks payable orders as payable', function () {
+    $buyer = User::factory()->create();
+    $order = Order::factory()->create([
+        'user_id' => $buyer->id,
+        'status' => OrderStatus::PendingPayment,
+        'expired_at' => now()->addHour(),
+    ]);
+
+    $this->actingAs($buyer)
+        ->withoutVite()
+        ->get(route('checkout.confirmation', $order->order_number))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('order.is_expired', false)
+            ->where('order.is_payable', true)
+        );
 });

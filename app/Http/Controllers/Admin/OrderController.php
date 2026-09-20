@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,6 +22,8 @@ class OrderController extends Controller
     public function show(string $orderNumber): Response
     {
         $order = Order::query()->where('order_number', $orderNumber)->with(['items.seller', 'payment', 'sellerTrackings'])->firstOrFail();
+
+        $order->markExpiredIfOverdue();
 
         return Inertia::render('Admin/Orders/Show', [
             'order' => [
@@ -67,12 +70,18 @@ class OrderController extends Controller
                     'seller_id' => $item->seller_id,
                     'seller' => $item->seller?->store_name,
                 ])->values(),
-                'seller_trackings' => $order->sellerTrackings->map(fn ($tracking) => [
+                'seller_trackings' => $order->sellerTrackings->loadMissing('seller')->map(fn ($tracking) => [
                     'seller_id' => $tracking->seller_id,
+                    'seller_name' => $tracking->seller?->store_name,
                     'courier' => $tracking->courier,
                     'waybill_number' => $tracking->waybill_number,
                     'tracking_url' => $tracking->tracking_url,
                     'tracking_status' => $tracking->tracking_status,
+                    'received_at' => $tracking->received_at,
+                    'packed_at' => $tracking->packed_at,
+                    'picked_up_at' => $tracking->picked_up_at,
+                    'delivered_at' => $tracking->delivered_at,
+                    'delivery_photo_url' => $tracking->delivery_photo_path ? Storage::disk('public')->url($tracking->delivery_photo_path) : null,
                 ])->values(),
             ],
         ]);

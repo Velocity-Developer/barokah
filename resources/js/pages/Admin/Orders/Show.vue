@@ -29,6 +29,20 @@ type AdminOrderDetailPayment = {
     paid_at?: string | null;
 } | null;
 
+type AdminSellerTracking = {
+    seller_id: number;
+    seller_name?: string | null;
+    courier?: string | null;
+    waybill_number?: string | null;
+    tracking_url?: string | null;
+    tracking_status?: string | null;
+    received_at?: string | null;
+    packed_at?: string | null;
+    picked_up_at?: string | null;
+    delivered_at?: string | null;
+    delivery_photo_url?: string | null;
+};
+
 type AdminOrderDetail = {
     id: number;
     order_number: string;
@@ -52,9 +66,10 @@ type AdminOrderDetail = {
     shipping_provider?: string | null;
     expired_at?: string | null;
     created_at?: string | null;
+    notes?: string | null;
     payment: AdminOrderDetailPayment;
     items: AdminOrderDetailItem[];
-    seller_trackings?: Array<{ seller_id: number; seller_name?: string | null; courier?: string | null; waybill_number?: string | null; tracking_url?: string | null; tracking_status?: string | null; }>;
+    seller_trackings?: AdminSellerTracking[];
 };
 
 const props = defineProps<{
@@ -82,6 +97,84 @@ function displayText(value: string | null | undefined): string {
     return value === null || value === undefined || value === ''
         ? '-'
         : value;
+}
+
+type TimelineStep = {
+    label: string;
+    time: string;
+    description?: string;
+    courierInfo?: { courier?: string | null; waybill_number?: string | null; tracking_url?: string | null };
+    deliveryPhotoUrl?: string | null;
+};
+
+function orderTimeline(
+    orderStatus: string,
+    tracking: AdminSellerTracking,
+): TimelineStep[] {
+    const steps: TimelineStep[] = [];
+
+    if (orderStatus === 'paid') {
+        steps.push({
+            label: 'Payment Successful',
+            time: '',
+            description: 'Your order will be prepared shortly.',
+        });
+    }
+
+    if (tracking.received_at) {
+        steps.push({ label: 'Order received', time: tracking.received_at });
+    }
+    if (tracking.packed_at) {
+        steps.push({ label: 'Order packed', time: tracking.packed_at });
+    }
+    if (tracking.picked_up_at) {
+        steps.push({
+            label: 'Order picked up by courier',
+            time: tracking.picked_up_at,
+            courierInfo: {
+                courier: tracking.courier,
+                waybill_number: tracking.waybill_number,
+                tracking_url: tracking.tracking_url,
+            },
+        });
+    }
+    if (tracking.delivered_at) {
+        steps.push({
+            label: 'Order delivered',
+            time: tracking.delivered_at,
+            deliveryPhotoUrl: tracking.delivery_photo_url,
+        });
+    }
+
+    return steps;
+}
+
+function statusBadgeClass(status: string | null | undefined): string {
+    switch (status) {
+        case 'delivered':
+            return 'bg-emerald-100 text-emerald-800';
+        case 'shipped':
+        case 'in_transit':
+            return 'bg-sky-100 text-sky-800';
+        case 'packed':
+            return 'bg-indigo-100 text-indigo-800';
+        case 'received':
+            return 'bg-amber-100 text-amber-800';
+        default:
+            return 'bg-slate-100 text-slate-700';
+    }
+}
+
+function statusLabel(status: string | null | undefined): string {
+    return (
+        {
+            received: 'Received',
+            packed: 'Packed',
+            shipped: 'Shipped',
+            in_transit: 'In transit',
+            delivered: 'Delivered',
+        } as Record<string, string>
+    )[status ?? ''] ?? displayText(status);
 }
 
 const customerLocation = computed(() => {
@@ -119,17 +212,6 @@ const isPaymentPending = computed(
 );
 const isVerifying = ref(false);
 const verifyError = ref<string | null>(null);
-
-async function saveTracking(tracking: NonNullable<AdminOrderDetail['seller_trackings']>[number]): Promise<void> {
-    const response = await fetch(`/api/v1/admin/orders/${props.order.order_number}`, {
-        method: 'PUT', credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '' },
-        body: JSON.stringify({ seller_id: tracking.seller_id, courier: tracking.courier || null, waybill_number: tracking.waybill_number || null, tracking_url: tracking.tracking_url || null, tracking_status: tracking.tracking_status || null }),
-    });
-    if (response.ok) {
-        router.reload();
-    }
-}
 
 async function verify(status: 'paid' | 'failed'): Promise<void> {
     if (!props.order.payment) {
@@ -595,22 +677,144 @@ async function verify(status: 'paid' | 'failed'): Promise<void> {
             </div>
         </div>
 
-        <div class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4">
-            <h3 class="mb-3 text-base font-medium">Courier & tracking</h3>
-            <div v-for="tracking in order.seller_trackings ?? []" :key="tracking.seller_id" class="mb-5 border-b pb-5 last:mb-0 last:border-0 last:pb-0">
-                <h4 class="mb-3 font-medium">{{ order.items.find((item) => item.seller_id === tracking.seller_id)?.seller ?? `Seller ${tracking.seller_id}` }}</h4>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <input v-model="tracking.courier" placeholder="Courier provider" class="rounded border px-3 py-2 text-sm" />
-                    <input v-model="tracking.waybill_number" placeholder="Waybill number" class="rounded border px-3 py-2 text-sm" />
-                    <input v-model="tracking.tracking_url" placeholder="Tracking URL" type="url" class="rounded border px-3 py-2 text-sm" />
-                    <select v-model="tracking.tracking_status" class="rounded border px-3 py-2 text-sm">
-                        <option value="">Select tracking status</option>
-                        <option v-for="status in ['packed', 'shipped', 'in_transit', 'delivered']" :key="status" :value="status">{{ status }}</option>
-                    </select>
+        <div
+            v-if="order.payment?.status === 'paid'"
+            class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"
+        >
+            <h3 class="mb-4 text-base font-medium">Courier & tracking</h3>
+
+            <div
+                v-if="!order.seller_trackings?.length"
+                class="text-muted-foreground text-sm"
+            >
+                No shipment tracking data for this order yet.
+            </div>
+
+            <div
+                v-for="tracking in order.seller_trackings ?? []"
+                :key="tracking.seller_id"
+                class="mb-6 border-b pb-6 last:mb-0 last:border-0 last:pb-0"
+            >
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                    <h4 class="font-medium">
+                        {{
+                            tracking.seller_name ??
+                            order.items.find((item) => item.seller_id === tracking.seller_id)
+                                ?.seller ??
+                            `Seller ${tracking.seller_id}`
+                        }}
+                    </h4>
+                    <span
+                        class="rounded-full px-3 py-1 text-xs font-semibold"
+                        :class="statusBadgeClass(tracking.tracking_status)"
+                    >
+                        {{ statusLabel(tracking.tracking_status) }}
+                    </span>
                 </div>
-                <button type="button" class="mt-3 rounded bg-primary px-4 py-2 text-sm text-primary-foreground" @click="saveTracking(tracking)">
-                    Save tracking
-                </button>
+
+                <div class="mb-5 grid gap-3 rounded-lg bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                        <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                            Courier
+                        </p>
+                        <p class="mt-1 text-sm font-medium">
+                            {{ displayText(tracking.courier) }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                            Waybill number
+                        </p>
+                        <p class="mt-1 text-sm font-medium">
+                            {{ displayText(tracking.waybill_number) }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                            Courier link
+                        </p>
+                        <a
+                            v-if="tracking.tracking_url"
+                            :href="tracking.tracking_url"
+                            target="_blank"
+                            rel="noopener"
+                            class="mt-1 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline"
+                        >
+                            Open courier tracking →
+                        </a>
+                        <p v-else class="mt-1 text-sm">-</p>
+                    </div>
+                </div>
+
+                <h5 class="text-sm font-semibold">Shipment progress</h5>
+                <ol
+                    v-if="orderTimeline(order.status, tracking).length"
+                    class="mt-4 space-y-5 border-l-2 border-slate-200 pl-6 text-sm"
+                >
+                    <li
+                        v-for="(step, idx) in orderTimeline(order.status, tracking)"
+                        :key="step.label + step.time + idx"
+                        class="relative"
+                    >
+                        <span
+                            class="absolute -left-[29px] top-0.5 h-4 w-4 rounded-full border-2 border-white bg-indigo-500 ring-1 ring-indigo-500"
+                        />
+                        <p class="font-medium">{{ step.label }}</p>
+                        <p
+                            v-if="step.time"
+                            class="mt-1 text-xs text-muted-foreground"
+                        >
+                            {{ step.time }}
+                        </p>
+                        <p
+                            v-if="step.description"
+                            class="mt-1 text-xs text-muted-foreground"
+                        >
+                            {{ step.description }}
+                        </p>
+
+                        <div
+                            v-if="step.courierInfo && (step.courierInfo.courier || step.courierInfo.waybill_number || step.courierInfo.tracking_url)"
+                            class="mt-3 rounded-md border bg-slate-50 p-3 text-xs text-slate-600"
+                        >
+                            <p v-if="step.courierInfo.courier" class="font-medium">
+                                Courier: {{ step.courierInfo.courier }}
+                            </p>
+                            <p v-if="step.courierInfo.waybill_number" class="mt-1">
+                                Tracking number:
+                                <span class="font-mono font-medium">
+                                    {{ step.courierInfo.waybill_number }}
+                                </span>
+                            </p>
+                            <a
+                                v-if="step.courierInfo.tracking_url"
+                                :href="step.courierInfo.tracking_url"
+                                target="_blank"
+                                rel="noopener"
+                                class="mt-1 inline-flex font-semibold text-indigo-600 hover:underline"
+                            >
+                                Open courier tracking
+                            </a>
+                        </div>
+
+                        <div
+                            v-if="step.deliveryPhotoUrl"
+                            class="mt-3 inline-block overflow-hidden rounded-lg border"
+                        >
+                            <img
+                                :src="step.deliveryPhotoUrl"
+                                alt="Delivery proof"
+                                class="max-h-80 max-w-full object-contain"
+                            />
+                        </div>
+                    </li>
+                </ol>
+                <p
+                    v-else
+                    class="mt-4 text-sm text-muted-foreground"
+                >
+                    No shipment progress recorded yet.
+                </p>
             </div>
         </div>
     </div>

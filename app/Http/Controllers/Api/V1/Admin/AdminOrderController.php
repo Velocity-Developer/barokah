@@ -43,6 +43,8 @@ class AdminOrderController extends Controller
             ->with(['items', 'payment', 'sellerTrackings'])
             ->firstOrFail();
 
+        $order->markExpiredIfOverdue();
+
         return new OrderResource($order);
     }
 

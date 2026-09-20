@@ -95,6 +95,15 @@ class UserSeeder extends Seeder
                 'city' => 'Petaling Jaya',
                 'post_code' => '47300',
             ],
+            ...array_map(fn (int $number): array => [
+                'name' => "Demo Reviewer {$number}",
+                'email' => "reviewer{$number}@barokah.local",
+                'phone' => sprintf('018-000%04d', $number),
+                'address' => 'Demo review address',
+                'state' => 'Selangor',
+                'city' => 'Petaling Jaya',
+                'post_code' => '47300',
+            ], range(1, 10)),
         ];
     }
 }

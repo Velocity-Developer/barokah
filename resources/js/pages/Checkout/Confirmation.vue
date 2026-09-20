@@ -23,6 +23,8 @@ type ConfirmationTracking = {
 type ConfirmationOrder = {
     order_number: string;
     status: string;
+    is_expired: boolean;
+    is_payable: boolean;
     payment_status: string | null;
     payment_method: string | null;
     payment_gateway: string | null;
@@ -116,7 +118,10 @@ const uploadError = ref<string | null>(null);
 const uploadSuccess = ref<string | null>(null);
 
 const canUploadProof = computed(
-    () => isManualPayment.value && paymentStatus.value === 'pending',
+    () =>
+        isManualPayment.value &&
+        paymentStatus.value === 'pending' &&
+        props.order.is_payable,
 );
 const paymentLabel = computed(() => {
     switch (paymentMethod.value) {
@@ -230,7 +235,11 @@ async function uploadProof(): Promise<void> {
             `/api/v1/orders/${props.order.order_number}/payment/proof`,
             {
                 method: 'POST',
-                headers: { Accept: 'application/json' },
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
                 body: form,
             },
         );
@@ -327,6 +336,25 @@ onBeforeUnmount(() => {
                         Payment: {{ paymentStatus }} · {{ paymentLabel }}
                     </span>
                 </div>
+            </div>
+
+            <div
+                v-if="order.is_expired"
+                class="mt-4 rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm"
+            >
+                <p class="text-sm font-semibold text-red-700">
+                    This order has expired
+                </p>
+                <p class="mt-1 text-sm text-red-600">
+                    The payment window closed before we received your receipt, so the
+                    reserved stock was released. Please place a new order to continue.
+                </p>
+                <Link
+                    href="/products"
+                    class="mt-3 inline-block h-10 rounded-md bg-[var(--brand-primary)] px-5 text-sm font-semibold leading-10 text-white transition hover:bg-[var(--brand-primary-hover)]"
+                >
+                    Shop again
+                </Link>
             </div>
 
             <div class="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -452,12 +480,18 @@ onBeforeUnmount(() => {
                                     {{ isUploading ? 'Uploading…' : proofUrl ? 'Replace receipt' : 'Upload receipt' }}
                                 </button>
                             </div>
-                            <p v-else-if="paymentStatus !== 'pending'" class="mt-3 text-xs text-[var(--text-muted)]">
+                            <p v-else-if="order.is_expired" class="mt-3 text-xs text-[var(--text-muted)]">
+                                Receipt upload is closed because this order has expired.
+                            </p>
+                            <p v-else class="mt-3 text-xs text-[var(--text-muted)]">
                                 Receipt upload is closed because this payment is {{ paymentStatus }}.
                             </p>
                         </div>
 
-                        <p v-if="order.expired_at" class="mt-4 text-xs text-[var(--text-muted)]">
+                        <p v-if="order.is_expired" class="mt-4 text-xs text-red-600">
+                            The payment window closed on {{ order.expired_at }}.
+                        </p>
+                        <p v-else-if="order.expired_at" class="mt-4 text-xs text-[var(--text-muted)]">
                             Complete payment before {{ order.expired_at }}.
                         </p>
                     </section>

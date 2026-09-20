@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
 import {
@@ -9,9 +9,30 @@ import {
     type HomeSellerItem,
 } from '@/types/marketplace';
 
+type StoreReview = {
+    id: number;
+    rating: number;
+    review: string | null;
+    media: { type: 'image' | 'video'; url: string }[];
+    created_at: string;
+    user?: {
+        name: string;
+        profile_photo_url?: string | null;
+    };
+    product?: {
+        id: number;
+        name: string;
+        slug: string;
+        image?: string | null;
+        average_rating?: number | null;
+        ratings_count?: number;
+    };
+};
+
 const props = defineProps<{
     seller: HomeSellerItem | { data: HomeSellerItem };
     products: HomeProductItem[] | { data: HomeProductItem[] };
+    reviews: StoreReview[] | { data: StoreReview[] };
 }>();
 
 const seller = computed<HomeSellerItem>(() =>
@@ -22,7 +43,20 @@ const productList = computed<HomeProductItem[]>(() =>
     Array.isArray(props.products) ? props.products : props.products.data,
 );
 
+const reviewList = computed<StoreReview[]>(() =>
+    Array.isArray(props.reviews) ? props.reviews : props.reviews.data,
+);
+
 const activeTab = ref<'products' | 'rating'>('products');
+const lightboxMedia = ref<{ type: 'image' | 'video'; url: string } | null>(null);
+
+function openLightbox(media: { type: 'image' | 'video'; url: string }): void {
+    lightboxMedia.value = media;
+}
+
+function closeLightbox(): void {
+    lightboxMedia.value = null;
+}
 
 const location = computed(
     () => seller.value.city || seller.value.state || null,
@@ -154,9 +188,10 @@ const productCards = computed(() =>
                                 Rating
                             </dt>
                             <dd
-                                class="mt-1 text-lg font-semibold text-[var(--text-muted)]"
+                                class="mt-1 text-lg font-semibold text-[var(--brand-primary)]"
                             >
-                                —
+                                {{ seller.average_rating !== null && seller.average_rating !== undefined ? Number(seller.average_rating).toFixed(1) : '—' }}
+                                <span v-if="seller.ratings_count">({{ seller.ratings_count }})</span>
                             </dd>
                         </div>
                         <div class="text-center">
@@ -225,6 +260,67 @@ const productCards = computed(() =>
                         </div>
                     </template>
 
+                    <div v-else-if="reviewList.length" class="divide-y divide-[var(--border-soft)]">
+                        <article
+                            v-for="review in reviewList"
+                            :key="review.id"
+                            class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0"
+                        >
+                            <div class="flex size-10 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-semibold text-orange-600">
+                                <img
+                                    v-if="review.user?.profile_photo_url"
+                                    :src="review.user.profile_photo_url"
+                                    alt="Reviewer"
+                                    class="size-full object-cover"
+                                />
+                                <span v-else>{{ (review.user?.name ?? 'Buyer').charAt(0).toUpperCase() }}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-[var(--text-primary)]">{{ review.user?.name ?? 'Buyer' }}</p>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-sm tracking-wide text-orange-500">{{ '★'.repeat(review.rating) }}</span>
+                                    <span class="text-xs text-[var(--text-muted)]">{{ new Date(review.created_at).toLocaleDateString('en-GB') }}</span>
+                                </div>
+                                <Link
+                                    v-if="review.product"
+                                    :href="`/products/${review.product.slug}`"
+                                    class="mt-3 flex max-w-md gap-3 rounded-sm bg-[var(--bg-muted)] p-2 transition hover:bg-[var(--brand-primary-soft)]"
+                                >
+                                    <img
+                                        v-if="review.product.image"
+                                        :src="review.product.image"
+                                        :alt="review.product.name"
+                                        class="size-14 shrink-0 rounded-sm object-cover"
+                                    />
+                                    <div class="min-w-0 self-center">
+                                        <p class="truncate text-sm font-medium text-[var(--text-primary)]">{{ review.product.name }}</p>
+                                        <p class="mt-0.5 text-xs text-[var(--brand-primary)]">
+                                            Rating {{ review.product.average_rating !== null && review.product.average_rating !== undefined ? Number(review.product.average_rating).toFixed(1) : '—' }}
+                                            ({{ review.product.ratings_count ?? 0 }} Rating)
+                                        </p>
+                                    </div>
+                                </Link>
+                                <p v-if="review.review" class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{{ review.review }}</p>
+                                <div v-if="review.media?.length" class="mt-3 flex flex-wrap gap-2">
+                                    <template v-for="media in review.media" :key="media.url">
+                                        <button v-if="media.type === 'image'" type="button" @click="openLightbox(media)">
+                                            <img
+                                                :src="media.url"
+                                                alt="Review media"
+                                                class="size-16 cursor-zoom-in rounded-sm object-cover"
+                                            />
+                                        </button>
+                                        <button v-else type="button" @click="openLightbox(media)">
+                                            <video
+                                                :src="media.url"
+                                                class="h-16 w-24 cursor-zoom-in rounded-sm object-cover"
+                                            />
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
                     <p
                         v-else
                         class="py-8 text-center text-sm text-[var(--text-muted)]"
@@ -233,6 +329,34 @@ const productCards = computed(() =>
                     </p>
                 </div>
             </section>
+        </div>
+
+        <div
+            v-if="lightboxMedia"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            @click.self="closeLightbox"
+        >
+            <button
+                type="button"
+                aria-label="Close media preview"
+                class="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/90 text-2xl text-gray-800"
+                @click="closeLightbox"
+            >
+                ×
+            </button>
+            <img
+                v-if="lightboxMedia.type === 'image'"
+                :src="lightboxMedia.url"
+                alt="Review media preview"
+                class="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            />
+            <video
+                v-else
+                :src="lightboxMedia.url"
+                controls
+                autoplay
+                class="max-h-[90vh] max-w-[90vw] rounded-lg"
+            />
         </div>
     </MarketplaceLayout>
 </template>

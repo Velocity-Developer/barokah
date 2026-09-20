@@ -61,13 +61,13 @@ class CheckoutController extends Controller
             abort(404);
         }
 
-        if ($order->isExpired()) {
-            abort(404);
-        }
+        $order->markExpiredIfOverdue();
 
         return Inertia::render('Checkout/Confirmation', [
             'order' => [
                 'order_number' => $order->order_number,
+                'is_expired' => $order->isExpired(),
+                'is_payable' => $order->isPayable(),
                 'status' => $order->status instanceof \BackedEnum ? $order->status->value : $order->status,
                 'payment_status' => $order->payment?->status instanceof \BackedEnum ? $order->payment->status->value : $order->payment?->status,
                 'payment_method' => $order->payment?->payment_method instanceof \BackedEnum ? $order->payment->payment_method->value : $order->payment?->payment_method,

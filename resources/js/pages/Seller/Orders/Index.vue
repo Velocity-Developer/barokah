@@ -9,12 +9,59 @@ type Order = {
     order_number: string;
     status: string;
     tracking_status?: string | null;
+    payment?: { status?: string | null } | null;
     created_at: string;
 };
 
 const orders = ref<Order[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
+
+function orderStatusLabel(status: string | null | undefined): string {
+    return (
+        {
+            pending_payment: 'Awaiting payment',
+            paid: 'Paid',
+            processing: 'Processing',
+            packed: 'Packed',
+            shipped: 'Shipped',
+            completed: 'Completed',
+            cancelled: 'Cancelled',
+            expired: 'Expired',
+        } as Record<string, string>
+    )[status ?? ''] ?? status ?? '-';
+}
+
+function orderStatusClass(status: string | null | undefined): string {
+    switch (status) {
+        case 'pending_payment':
+            return 'bg-amber-100 text-amber-800';
+        case 'paid':
+        case 'processing':
+            return 'bg-indigo-100 text-indigo-800';
+        case 'packed':
+        case 'shipped':
+        case 'completed':
+            return 'bg-emerald-100 text-emerald-800';
+        case 'cancelled':
+        case 'expired':
+            return 'bg-red-100 text-red-800';
+        default:
+            return 'bg-slate-100 text-slate-700';
+    }
+}
+
+function trackingStatusLabel(status: string | null | undefined): string {
+    return (
+        {
+            received: 'Order received',
+            packed: 'Order packed',
+            shipped: 'In transit',
+            in_transit: 'In transit',
+            delivered: 'Delivered',
+        } as Record<string, string>
+    )[status ?? ''] ?? status ?? '-';
+}
 
 onMounted(async () => {
     try {
@@ -41,7 +88,7 @@ defineOptions({ layout: { breadcrumbs: [{ title: 'Customer orders', href: orders
         <Heading
             variant="small"
             title="Customer orders"
-            description="Paid orders containing your products"
+            description="All customer orders that contain your products."
         />
         <div class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4">
             <div v-if="isLoading" class="animate-pulse space-y-2">
@@ -75,8 +122,15 @@ defineOptions({ layout: { breadcrumbs: [{ title: 'Customer orders', href: orders
                                 </Link>
                                 <p class="text-muted-foreground text-xs">{{ order.created_at }}</p>
                             </td>
-                            <td class="px-3 py-2">{{ order.status }}</td>
-                            <td class="px-3 py-2">{{ order.tracking_status ?? '-' }}</td>
+                            <td class="px-3 py-2">
+                                <span
+                                    class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                                    :class="orderStatusClass(order.status)"
+                                >
+                                    {{ orderStatusLabel(order.status) }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2">{{ trackingStatusLabel(order.tracking_status) }}</td>
                             <td class="px-3 py-2 text-right">
                                 <Link :href="show(order.order_number)" class="text-muted-foreground hover:underline">
                                     Detail

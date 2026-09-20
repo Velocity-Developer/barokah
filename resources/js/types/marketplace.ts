@@ -64,6 +64,8 @@ export type HomeSellerItem = {
     phone?: string | null;
     whatsapp?: string | null;
     status: string;
+    average_rating?: number | null;
+    ratings_count?: number;
 };
 
 export type HomeCategoryItem = {

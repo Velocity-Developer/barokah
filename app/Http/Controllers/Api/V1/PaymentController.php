@@ -38,6 +38,8 @@ class PaymentController extends Controller
             abort(404);
         }
 
+        $order->markExpiredIfOverdue();
+
         if (! $order->isPayable()) {
             abort(409, 'Order is no longer payable.');
         }
@@ -71,6 +73,8 @@ class PaymentController extends Controller
             return response()->json(['message' => 'No payment found for this order.'], 404);
         }
 
+        $order->markExpiredIfOverdue();
+
         if (! $order->isPayable()) {
             abort(409, 'Order is no longer payable.');
         }
@@ -98,6 +102,8 @@ class PaymentController extends Controller
         if ($order->payment === null) {
             return response()->json(['message' => 'No payment found for this order.'], 404);
         }
+
+        $order->markExpiredIfOverdue();
 
         return new PaymentResource($order->payment->load('order'));
     }

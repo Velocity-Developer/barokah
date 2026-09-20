@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { index, create, edit } from '@/routes/seller/products';
 import { formatPrice } from '@/services/priceFormatter';
 
+type PaginatedLinks = { url: string | null; label: string; active: boolean }[];
+type PaginatedMeta = { current_page: number; last_page: number; total: number; per_page: number; from: number; to: number };
+
 type SellerProduct = {
     id: number;
     name: string;
@@ -18,6 +21,8 @@ type SellerProduct = {
 };
 
 const products = ref<SellerProduct[]>([]);
+const pageLinks = ref<PaginatedLinks>([]);
+const pageMeta = ref<PaginatedMeta>({ current_page: 1, last_page: 1, total: 0, per_page: 15, from: 0, to: 0 });
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 
@@ -33,20 +38,40 @@ function statusVariant(status: string): 'default' | 'secondary' | 'destructive' 
     return status === 'active' ? 'default' : status === 'archived' ? 'destructive' : 'secondary';
 }
 
-async function loadProducts(): Promise<void> {
+function isNumericLabel(label: string): boolean {
+    return /^\d+$/.test(label);
+}
+
+async function loadProducts(page: number = 1): Promise<void> {
+    isLoading.value = true;
+    error.value = null;
     try {
-        const response = await fetch('/api/v1/seller/products', {
+        const response = await fetch(`/api/v1/seller/products?page=${encodeURIComponent(page)}`, {
             credentials: 'same-origin',
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         });
         if (!response.ok) throw new Error();
-        const data = (await response.json()) as { data: SellerProduct[] };
+        const data = (await response.json()) as {
+            data: SellerProduct[];
+            links: PaginatedLinks;
+            meta: PaginatedMeta;
+        };
         products.value = data.data;
+        pageLinks.value = data.links;
+        pageMeta.value = data.meta;
     } catch {
         error.value = 'Products are temporarily unavailable.';
     } finally {
         isLoading.value = false;
     }
+}
+
+function gotoPage(page: number): void {
+    if (page < 1 || page > pageMeta.value.last_page) {
+        return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    void loadProducts(page);
 }
 
 async function removeProduct(product: SellerProduct): Promise<void> {
@@ -63,11 +88,15 @@ async function removeProduct(product: SellerProduct): Promise<void> {
     });
 
     if (response.ok) {
-        products.value = products.value.filter(({ id }) => id !== product.id);
+        if (products.value.length === 1 && pageMeta.value.current_page > 1) {
+            void loadProducts(pageMeta.value.current_page - 1);
+        } else {
+            void loadProducts(pageMeta.value.current_page);
+        }
     }
 }
 
-onMounted(loadProducts);
+onMounted(() => loadProducts(1));
 </script>
 
 <template>
@@ -95,6 +124,64 @@ onMounted(loadProducts);
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <div
+                v-if="!isLoading && !error && pageMeta.last_page > 1"
+                class="mt-5 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+                <p class="text-muted-foreground text-xs">
+                    Showing
+                    <span class="font-medium text-slate-800">{{ pageMeta.from }}</span>
+                    to
+                    <span class="font-medium text-slate-800">{{ pageMeta.to }}</span>
+                    of
+                    <span class="font-medium text-slate-800">{{ pageMeta.total }}</span>
+                    products
+                    <span class="ml-1">(page {{ pageMeta.current_page }} of {{ pageMeta.last_page }})</span>
+                </p>
+
+                <nav class="flex flex-wrap items-center gap-1">
+                    <button
+                        type="button"
+                        :disabled="pageMeta.current_page === 1"
+                        class="rounded border px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="gotoPage(pageMeta.current_page - 1)"
+                    >
+                        &laquo; Previous
+                    </button>
+
+                    <template v-for="(link, idx) in pageLinks" :key="`${link.label}-${idx}`">
+                        <button
+                            v-if="link.url !== null && isNumericLabel(link.label)"
+                            type="button"
+                            :class="
+                                link.active
+                                    ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white'
+                                    : 'border text-slate-700 hover:bg-slate-100'
+                            "
+                            class="rounded border px-3 py-1.5 text-xs font-medium"
+                            @click="gotoPage(Number(link.label))"
+                        >
+                            {{ link.label }}
+                        </button>
+                        <span
+                            v-else-if="!isNumericLabel(link.label)"
+                            class="px-2 text-xs text-slate-400"
+                        >
+                            {{ link.label }}
+                        </span>
+                    </template>
+
+                    <button
+                        type="button"
+                        :disabled="pageMeta.current_page === pageMeta.last_page"
+                        class="rounded border px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="gotoPage(pageMeta.current_page + 1)"
+                    >
+                        Next &raquo;
+                    </button>
+                </nav>
             </div>
         </div>
     </div>

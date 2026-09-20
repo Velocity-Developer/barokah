@@ -50,10 +50,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('throttle:30,1')
         ->name('orders.payments.store');
     Route::post('orders/{orderNumber}/payment/proof', [PaymentController::class, 'proof'])
-        ->middleware('throttle:30,1')
+        ->middleware(['web', 'throttle:30,1'])
         ->name('orders.payments.proof');
     Route::get('orders/{orderNumber}/payment', [PaymentController::class, 'show'])
-        ->middleware('throttle:60,1')
+        ->middleware(['web', 'throttle:60,1'])
         ->name('orders.payment.show');
 
     // PayNet callback/webhook (spec §11.5/§15.4): public but

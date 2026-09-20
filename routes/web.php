@@ -45,7 +45,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('profile/password', [WebProfileController::class, 'updatePassword'])
         ->middleware('throttle:6,1')
         ->name('my.profile.password.update');
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', function () {
+        if (auth()->user()->isSeller()) {
+            return redirect()->route('seller.dashboard');
+        }
+
+        return redirect()->route('home');
+    })->name('dashboard');
     Route::redirect('seller', 'seller/dashboard')->name('seller.index');
     Route::get('seller/dashboard', SellerDashboardController::class)
         ->middleware('can:seller')

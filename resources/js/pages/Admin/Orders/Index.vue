@@ -5,7 +5,7 @@ import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { index, show } from '@/routes/admin/orders';
 import { formatPrice } from '@/services/priceFormatter';
-import { fetchAdminList } from '../useAdminList';
+import { fetchAdminPaginated, type PaginatedLinks, type PaginatedMeta } from '../useAdminList';
 
 type AdminOrderListItem = {
     id: number;
@@ -28,6 +28,9 @@ defineOptions({
 });
 
 const orders = ref<AdminOrderListItem[]>([]);
+const pageLinks = ref<PaginatedLinks>([]);
+const pageMeta = ref<PaginatedMeta>({ current_page: 1, last_page: 1, total: 0, per_page: 15, from: 0, to: 0 });
+const currentPage = ref(1);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 
@@ -37,15 +40,35 @@ function displayTotal(total: string | number): string {
     return Number.isFinite(amount) ? formatPrice(amount) : String(total);
 }
 
-onMounted(async () => {
+function isNumericLabel(label: string): boolean {
+    return /^\d+$/.test(label);
+}
+
+async function loadOrders(page: number = 1): Promise<void> {
+    isLoading.value = true;
+    error.value = null;
     try {
-        orders.value = await fetchAdminList<AdminOrderListItem>('/api/v1/admin/orders');
+        const result = await fetchAdminPaginated<AdminOrderListItem>('/api/v1/admin/orders', page);
+        orders.value = result.data;
+        pageLinks.value = result.links;
+        pageMeta.value = result.meta;
+        currentPage.value = result.meta.current_page;
     } catch {
         error.value = 'Customer orders are temporarily unavailable.';
     } finally {
         isLoading.value = false;
     }
-});
+}
+
+function gotoPage(page: number): void {
+    if (page < 1 || page > pageMeta.value.last_page) {
+        return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    void loadOrders(page);
+}
+
+onMounted(() => loadOrders(1));
 </script>
 
 <template>
@@ -134,6 +157,64 @@ onMounted(async () => {
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <div
+                v-if="!isLoading && !error && pageMeta.last_page > 1"
+                class="mt-5 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+                <p class="text-muted-foreground text-xs">
+                    Showing
+                    <span class="font-medium text-slate-800">{{ pageMeta.from }}</span>
+                    to
+                    <span class="font-medium text-slate-800">{{ pageMeta.to }}</span>
+                    of
+                    <span class="font-medium text-slate-800">{{ pageMeta.total }}</span>
+                    orders
+                    <span class="ml-1">(page {{ pageMeta.current_page }} of {{ pageMeta.last_page }})</span>
+                </p>
+
+                <nav class="flex flex-wrap items-center gap-1">
+                    <button
+                        type="button"
+                        :disabled="pageMeta.current_page === 1"
+                        class="rounded border px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="gotoPage(pageMeta.current_page - 1)"
+                    >
+                        &laquo; Previous
+                    </button>
+
+                    <template v-for="(link, idx) in pageLinks" :key="`${link.label}-${idx}`">
+                        <button
+                            v-if="link.url !== null && isNumericLabel(link.label)"
+                            type="button"
+                            :class="
+                                link.active
+                                    ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white'
+                                    : 'border text-slate-700 hover:bg-slate-100'
+                            "
+                            class="rounded border px-3 py-1.5 text-xs font-medium"
+                            @click="gotoPage(Number(link.label))"
+                        >
+                            {{ link.label }}
+                        </button>
+                        <span
+                            v-else-if="!isNumericLabel(link.label)"
+                            class="px-2 text-xs text-slate-400"
+                        >
+                            {{ link.label }}
+                        </span>
+                    </template>
+
+                    <button
+                        type="button"
+                        :disabled="pageMeta.current_page === pageMeta.last_page"
+                        class="rounded border px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="gotoPage(pageMeta.current_page + 1)"
+                    >
+                        Next &raquo;
+                    </button>
+                </nav>
             </div>
         </div>
     </div>

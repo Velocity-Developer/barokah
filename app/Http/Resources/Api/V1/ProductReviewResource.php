@@ -20,6 +20,14 @@ class ProductReviewResource extends JsonResource
             'media' => $this->media ?? [],
             'created_at' => $this->created_at,
             'user' => new UserResource($this->whenLoaded('user')),
+            'product' => $this->whenLoaded('product', fn (): array => [
+                'id' => $this->product->id,
+                'name' => $this->product->name,
+                'slug' => $this->product->slug,
+                'image' => $this->product->images->first()?->url,
+                'average_rating' => $this->product->reviews_avg_rating,
+                'ratings_count' => $this->product->reviews_count,
+            ]),
         ];
     }
 }

@@ -34,24 +34,53 @@ defineProps<{
 
 function statusLabel(status: string | null): string {
     return ({
+        pending_payment: 'Awaiting payment',
         pending: 'Awaiting payment',
         paid: 'Payment received',
+        processing: 'Being processed',
         packed: 'Being packed',
         shipped: 'Being shipped',
         completed: 'Order completed',
         cancelled: 'Order cancelled',
+        expired: 'Order expired',
     } as Record<string, string>)[status ?? ''] ?? status ?? 'Not available';
 }
 
-function timeline(tracking: Tracking | undefined): { label: string; time: string }[] {
-    if (!tracking) return [];
+function orderTimeline(
+    orderStatus: string | null,
+    tracking: Tracking | undefined,
+): { label: string; time: string; description?: string }[] {
+    const steps: { label: string; time: string; description?: string }[] = [];
 
-    return [
-        { label: 'Order received', time: tracking.received_at },
-        { label: 'Order packed', time: tracking.packed_at },
-        { label: 'Order picked up by courier', time: tracking.picked_up_at },
-        { label: 'Order delivered', time: tracking.delivered_at },
-    ].filter((step): step is { label: string; time: string } => Boolean(step.time));
+    if (orderStatus === 'expired') {
+        steps.push({ label: 'Pemesanan telah expired', time: '' });
+        return steps;
+    }
+
+    if (orderStatus === 'paid') {
+        steps.push({
+            label: 'Payment Successful',
+            time: '',
+            description: 'Your order will be prepared shortly.',
+        });
+    }
+
+    if (tracking) {
+        if (tracking.received_at) {
+            steps.push({ label: 'Order received', time: tracking.received_at });
+        }
+        if (tracking.packed_at) {
+            steps.push({ label: 'Order packed', time: tracking.packed_at });
+        }
+        if (tracking.picked_up_at) {
+            steps.push({ label: 'Order picked up by courier', time: tracking.picked_up_at });
+        }
+        if (tracking.delivered_at) {
+            steps.push({ label: 'Order delivered', time: tracking.delivered_at });
+        }
+    }
+
+    return steps;
 }
 </script>
 
@@ -77,32 +106,71 @@ function timeline(tracking: Tracking | undefined): { label: string; time: string
                 <p v-if="error" class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">Order number not found. Please check and try again.</p>
 
                 <div v-if="order" class="mt-6 space-y-4 border-t border-[var(--border-soft)] pt-6">
+                    <div
+                        v-if="order.status === 'expired'"
+                        class="rounded-xl border border-red-200 bg-red-50 p-4"
+                    >
+                        <p class="text-sm font-semibold text-red-700">Pemesanan telah expired</p>
+                        <p class="mt-1 text-sm text-red-600">
+                            Jangka waktu pembayaran telah habis. Silakan buat pesanan baru untuk melanjutkan belanja.
+                        </p>
+                    </div>
+
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div>
                             <p class="text-xs text-[var(--text-muted)]">Order number</p>
                             <p class="font-semibold">{{ order.order_number }}</p>
                         </div>
-                        <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{{ statusLabel(order.tracking_status || order.status) }}</span>
+                        <span
+                            class="rounded-full px-3 py-1 text-xs font-semibold"
+                            :class="
+                                order.status === 'expired'
+                                    ? 'bg-red-100 text-red-800'
+                                    : order.status === 'paid' || order.status === 'completed'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-amber-100 text-amber-800'
+                            "
+                        >
+                            {{ statusLabel(order.tracking_status || order.status) }}
+                        </span>
                     </div>
 
-                    <div v-for="tracking in order.seller_trackings" :key="tracking.waybill_number ?? tracking.delivered_at ?? tracking.received_at" class="rounded-lg border border-[var(--border-soft)] p-4">
-                        <p class="font-semibold">Order progress</p>
-                        <ol v-if="timeline(tracking).length" class="mt-4 space-y-4 border-l-2 border-[var(--border-soft)] pl-5 text-sm">
-                            <li v-for="step in timeline(tracking)" :key="step.label + step.time" class="relative">
-                                <span class="absolute -left-[25px] top-0.5 h-3 w-3 rounded-full border-2 border-white bg-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)]" />
-                                <p class="font-medium">{{ step.label }}</p>
-                                <p class="mt-1 text-xs text-[var(--text-muted)]">{{ step.time }}</p>
-                                <div v-if="step.label === 'Order picked up by courier'" class="mt-2 text-xs text-[var(--text-secondary)]">
-                                    <p v-if="tracking.courier">Courier: {{ tracking.courier }}</p>
-                                    <p v-if="tracking.waybill_number">Tracking number: {{ tracking.waybill_number }}</p>
-                                    <a v-if="tracking.tracking_url" :href="tracking.tracking_url" target="_blank" rel="noopener" class="mt-1 inline-flex font-semibold text-[var(--brand-primary)] hover:underline">Open courier tracking</a>
-                                </div>
-                                <div v-if="step.label === 'Order delivered' && tracking.delivery_photo_url" class="mt-3">
-                                    <img :src="tracking.delivery_photo_url" alt="Delivery proof" class="max-h-72 rounded-lg border object-contain" />
-                                </div>
-                            </li>
-                        </ol>
-                    </div>
+                    <template v-if="order.status !== 'expired'">
+                        <div
+                            v-for="tracking in order.seller_trackings"
+                            :key="tracking.waybill_number ?? tracking.delivered_at ?? tracking.received_at"
+                            class="rounded-lg border border-[var(--border-soft)] p-4"
+                        >
+                            <p class="font-semibold">Order progress</p>
+                            <ol
+                                v-if="orderTimeline(order.status, tracking).length"
+                                class="mt-4 space-y-4 border-l-2 border-[var(--border-soft)] pl-5 text-sm"
+                            >
+                                <li
+                                    v-for="step in orderTimeline(order.status, tracking)"
+                                    :key="step.label + step.time"
+                                    class="relative"
+                                >
+                                    <span
+                                        class="absolute -left-[25px] top-0.5 h-3 w-3 rounded-full border-2 border-white bg-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)]"
+                                    />
+                                    <p class="font-medium">{{ step.label }}</p>
+                                    <p v-if="step.time" class="mt-1 text-xs text-[var(--text-muted)]">{{ step.time }}</p>
+                                    <p v-if="step.description" class="mt-1 text-xs text-[var(--text-secondary)]">
+                                        {{ step.description }}
+                                    </p>
+                                    <div v-if="step.label === 'Order picked up by courier'" class="mt-2 text-xs text-[var(--text-secondary)]">
+                                        <p v-if="tracking.courier">Courier: {{ tracking.courier }}</p>
+                                        <p v-if="tracking.waybill_number">Tracking number: {{ tracking.waybill_number }}</p>
+                                        <a v-if="tracking.tracking_url" :href="tracking.tracking_url" target="_blank" rel="noopener" class="mt-1 inline-flex font-semibold text-[var(--brand-primary)] hover:underline">Open courier tracking</a>
+                                    </div>
+                                    <div v-if="step.label === 'Order delivered' && tracking.delivery_photo_url" class="mt-3">
+                                        <img :src="tracking.delivery_photo_url" alt="Delivery proof" class="max-h-72 rounded-lg border object-contain" />
+                                    </div>
+                                </li>
+                            </ol>
+                        </div>
+                    </template>
 
                     <div
                         v-if="order.can_review && order.seller_trackings.some((tracking) => tracking.delivered_at && tracking.items.length)"

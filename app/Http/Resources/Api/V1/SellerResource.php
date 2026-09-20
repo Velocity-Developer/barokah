@@ -29,6 +29,8 @@ class SellerResource extends JsonResource
             'state' => $this->state,
             'city' => $this->city,
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
+            'average_rating' => $this->average_rating,
+            'ratings_count' => $this->ratings_count ?? 0,
         ];
     }
 }

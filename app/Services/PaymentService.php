@@ -7,6 +7,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Product;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -233,11 +234,10 @@ class PaymentService
                     'paid_at' => now(),
                     'failed_at' => null,
                 ],
-                PaymentStatus::Failed => $updates += [
+                PaymentStatus::Failed, PaymentStatus::Expired => $updates += [
                     'status' => PaymentStatus::Failed,
                     'failed_at' => now(),
                 ],
-                PaymentStatus::Expired => $updates += ['status' => PaymentStatus::Expired],
                 PaymentStatus::Cancelled => $updates += ['status' => PaymentStatus::Cancelled],
                 default => $updates += ['status' => PaymentStatus::Pending],
             };
@@ -250,9 +250,15 @@ class PaymentService
                 $order->update(['status' => OrderStatus::Paid]);
             }
 
-            if (in_array($status, [PaymentStatus::Expired, PaymentStatus::Cancelled], true)
-                && $order->status === OrderStatus::PendingPayment
-                && $status === PaymentStatus::Expired) {
+            if ($status === PaymentStatus::Expired && $order->status === OrderStatus::PendingPayment) {
+                $order->load('items');
+                foreach ($order->items as $item) {
+                    if ($item->product_id !== null) {
+                        Product::query()
+                            ->whereKey($item->product_id)
+                            ->increment('stock', $item->quantity);
+                    }
+                }
                 $order->update(['status' => OrderStatus::Expired]);
             }
 
@@ -296,7 +302,8 @@ class PaymentService
     }
 
     /**
-     * Mark a payment expired; expire its pending_payment order too.
+     * Mark a payment expired (as failed); expire its pending_payment order too
+     * and restore reserved stock per item (consistent with ExpirePendingOrders).
      */
     public function markExpired(Payment $payment): Payment
     {
@@ -304,12 +311,26 @@ class PaymentService
             /** @var Payment $locked */
             $locked = Payment::query()->whereKey($payment->id)->lockForUpdate()->firstOrFail();
 
-            $locked->update(['status' => PaymentStatus::Expired]);
+            $locked->update([
+                'status' => PaymentStatus::Failed,
+                'failed_at' => now(),
+            ]);
 
             /** @var Order $order */
-            $order = Order::query()->whereKey($locked->order_id)->lockForUpdate()->firstOrFail();
+            $order = Order::query()
+                ->whereKey($locked->order_id)
+                ->with('items')
+                ->lockForUpdate()
+                ->firstOrFail();
 
             if ($order->status === OrderStatus::PendingPayment) {
+                foreach ($order->items as $item) {
+                    if ($item->product_id !== null) {
+                        Product::query()
+                            ->whereKey($item->product_id)
+                            ->increment('stock', $item->quantity);
+                    }
+                }
                 $order->update(['status' => OrderStatus::Expired]);
             }
 

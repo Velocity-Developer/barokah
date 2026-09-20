@@ -44,6 +44,22 @@ class SettingsSeeder extends Seeder
             $settings->set($key, $definition['value'] ?? null);
         }
 
+        $bannerDefaults = [
+            'homepage.banner_1_url' => 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=85',
+            'homepage.banner_2_url' => 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1600&q=85',
+            'homepage.banner_3_url' => 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=85',
+            'homepage.right_top_banner_url' => 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=1000&q=85',
+            'homepage.right_bottom_banner_url' => 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1000&q=85',
+        ];
+
+        foreach ($bannerDefaults as $key => $url) {
+            $currentValue = Setting::query()->where('key', $key)->value('value');
+
+            if (! $currentValue || str_starts_with((string) $currentValue, 'https://coresg-normal.trae.ai/')) {
+                $settings->set($key, $url);
+            }
+        }
+
         $settings->forget();
     }
 }

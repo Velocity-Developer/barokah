@@ -15,7 +15,9 @@ class SellerOrderController extends Controller
     /**
      * List orders containing items owned by the current seller.
      *
-     * Scoped via order_items.seller_id (spec §14.3); only the current
+     * Scoped via order_items.seller_id (spec §14.3); all order statuses
+     * including pending_payment are visible so the seller can see unpaid
+     * reservations containing their products as well. Only the current
      * seller's items are serialized.
      */
     public function index(Request $request): AnonymousResourceCollection
@@ -24,7 +26,6 @@ class SellerOrderController extends Controller
 
         $orders = Order::query()
             ->whereHas('items', fn ($query) => $query->where('seller_id', $sellerId))
-            ->whereHas('payment', fn ($query) => $query->whereIn('status', [PaymentStatus::Paid, 'verified']))
             ->with(['items' => fn ($query) => $query->where('seller_id', $sellerId)])
             ->latest()
             ->paginate(15);
@@ -46,8 +47,12 @@ class SellerOrderController extends Controller
         $order = Order::query()
             ->where('order_number', $orderNumber)
             ->whereHas('items', fn ($query) => $query->where('seller_id', $sellerId))
-            ->whereHas('payment', fn ($query) => $query->whereIn('status', [PaymentStatus::Paid, 'verified']))
             ->firstOrFail();
+
+        // Only orders that have been paid can be processed by the seller.
+        if ($order->payment?->status !== PaymentStatus::Paid) {
+            abort(403, 'Order is not paid yet.');
+        }
 
         $deliveryPhoto = $request->file('delivery_photo');
         unset($validated['delivery_photo']);
@@ -84,7 +89,9 @@ class SellerOrderController extends Controller
      * Show one order scoped to the current seller's items.
      *
      * Orders without the seller's items return 404 so sellers cannot
-     * probe other sellers' orders.
+     * probe other sellers' orders. All order statuses (including
+     * pending_payment) are reachable; the front-end hides editing UI
+     * for unpaid orders and the update action rejects them with 403.
      */
     public function show(Request $request, string $orderNumber): SellerOrderResource
     {
@@ -93,7 +100,6 @@ class SellerOrderController extends Controller
         $order = Order::query()
             ->where('order_number', $orderNumber)
             ->whereHas('items', fn ($query) => $query->where('seller_id', $sellerId))
-            ->whereHas('payment', fn ($query) => $query->whereIn('status', [PaymentStatus::Paid, 'verified']))
             ->with(['items' => fn ($query) => $query->where('seller_id', $sellerId), 'payment', 'sellerTrackings' => fn ($query) => $query->where('seller_id', $sellerId)])
             ->first();
 

@@ -87,6 +87,15 @@ const reviews = computed<ProductReview[]>(() => {
 });
 
 const reviewFilter = ref<'all' | 'comments' | 'media' | 1 | 2 | 3 | 4 | 5>('all');
+const lightboxMedia = ref<{ type: 'image' | 'video'; url: string } | null>(null);
+
+function openLightbox(media: { type: 'image' | 'video'; url: string }): void {
+    lightboxMedia.value = media;
+}
+
+function closeLightbox(): void {
+    lightboxMedia.value = null;
+}
 
 const reviewFilters = computed(() => [
     { key: 'all' as const, label: 'All', count: reviews.value.length },
@@ -495,17 +504,17 @@ function addToCart(): void {
             </section>
 
             <!-- Rating card -->
-            <section class="mt-4 rounded-sm border border-[var(--border-default)] bg-white p-5">
-                <div class="flex items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-lg font-semibold text-[var(--text-primary)]">Product Ratings & Reviews</h2>
-                        <p class="mt-1 text-sm text-[var(--text-muted)]">{{ Number(product.average_rating ?? 0).toFixed(1) }} out of 5 · {{ product.ratings_count ?? 0 }} reviews</p>
-                    </div>
+            <section class="mt-4 rounded-sm border border-[var(--border-default)] bg-white">
+                <div class="border-b border-[var(--border-soft)] px-4 py-3">
+                    <h2 class="text-sm font-semibold text-[var(--text-primary)]">Product Ratings & Reviews</h2>
                 </div>
-                <div class="mt-4 flex flex-wrap gap-2 border-b border-[var(--border-soft)] pb-4 text-xs">
+                <div class="px-4 py-3">
+                    <p class="text-sm text-[var(--text-muted)]">{{ Number(product.average_rating ?? 0).toFixed(1) }} out of 5 · {{ product.ratings_count ?? 0 }} reviews</p>
+                </div>
+                <div class="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-4 text-xs">
                     <button v-for="filter in reviewFilters" :key="filter.key" type="button" :class="reviewFilter === filter.key ? 'border-[var(--brand-primary)] text-[var(--brand-primary)]' : 'border-[var(--border-default)] text-[var(--text-secondary)]'" class="border bg-white px-3 py-2" @click="setReviewFilter(filter.key)">{{ filter.label }} ({{ filter.count }})</button>
                 </div>
-                <div v-if="filteredReviews.length" class="mt-2 divide-y divide-[var(--border-soft)]">
+                <div v-if="filteredReviews.length" class="mt-2 divide-y divide-[var(--border-soft)] px-4 py-4">
                     <article v-for="review in filteredReviews" :key="review.id" class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0">
                         <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-semibold text-orange-600">
                             <img v-if="review.user?.profile_photo_url" :src="review.user.profile_photo_url" alt="Reviewer" class="h-full w-full object-cover" />
@@ -520,8 +529,12 @@ function addToCart(): void {
                             <p v-if="review.review" class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{{ review.review }}</p>
                             <div v-if="review.media?.length" class="mt-3 flex flex-wrap gap-2">
                             <template v-for="media in review.media" :key="media.url">
-                                <img v-if="media.type === 'image'" :src="media.url" alt="Review media" class="h-20 w-20 rounded-md object-cover" />
-                                <video v-else :src="media.url" controls class="h-20 w-32 rounded-md object-cover" />
+                                <button v-if="media.type === 'image'" type="button" class="block" @click="openLightbox(media)">
+                                    <img :src="media.url" alt="Review media" class="h-20 w-20 cursor-zoom-in rounded-md object-cover" />
+                                </button>
+                                <button v-else type="button" class="block" @click="openLightbox(media)">
+                                    <video :src="media.url" class="h-20 w-32 cursor-zoom-in rounded-md object-cover" />
+                                </button>
                                 </template>
                             </div>
                         </div>
@@ -557,6 +570,12 @@ function addToCart(): void {
                     />
                 </div>
             </section>
+        </div>
+
+        <div v-if="lightboxMedia" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" @click.self="closeLightbox">
+            <button type="button" aria-label="Close media preview" class="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/90 text-2xl text-gray-800" @click="closeLightbox">×</button>
+            <img v-if="lightboxMedia.type === 'image'" :src="lightboxMedia.url" alt="Review media preview" class="max-h-[90vh] max-w-[90vw] rounded-lg object-contain" />
+            <video v-else :src="lightboxMedia.url" controls autoplay class="max-h-[90vh] max-w-[90vw] rounded-lg" />
         </div>
     </MarketplaceLayout>
 </template>
