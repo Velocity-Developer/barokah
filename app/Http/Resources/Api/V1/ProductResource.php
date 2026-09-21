@@ -27,6 +27,7 @@ class ProductResource extends JsonResource
             'flash_sale' => new FlashSaleResource($this->when($this->activeFlashSale() !== null, $this->activeFlashSale())),
             'flash_sale_active' => $this->activeFlashSale() !== null,
             'stock' => $this->stock,
+            'sold_count' => $this->when($this->sold_count !== null, fn (): int => (int) $this->sold_count),
             'weight_grams' => $this->weight_grams,
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
             'seller' => new SellerResource($this->whenLoaded('seller')),

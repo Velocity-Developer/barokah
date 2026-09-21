@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\OrderStatus;
 use App\Enums\SellerStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\CategoryResource;
@@ -10,6 +11,7 @@ use App\Http\Resources\Api\V1\SellerResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Seller;
+use Illuminate\Database\Eloquent\Builder;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -51,12 +53,33 @@ class HomeController extends Controller
             ->limit(8)
             ->get();
 
+        $soldStatuses = [
+            OrderStatus::Paid,
+            OrderStatus::Processing,
+            OrderStatus::Shipped,
+            OrderStatus::Completed,
+        ];
+
+        $bestSellers = Product::query()
+            ->active()
+            ->with(['seller', 'category', 'images'])
+            ->whereHas('orderItems.order', fn (Builder $order) => $order->whereIn('status', $soldStatuses))
+            ->withSum(
+                ['orderItems as sold_count' => fn (Builder $items) => $items
+                    ->whereHas('order', fn (Builder $order) => $order->whereIn('status', $soldStatuses))],
+                'quantity'
+            )
+            ->orderByDesc('sold_count')
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
+
         return Inertia::render('Home', [
             'categories' => CategoryResource::collection($categories),
             'sellers' => SellerResource::collection($sellers),
             'latestProducts' => ProductResource::collection($latest),
             'flashSaleProducts' => ProductResource::collection($flashSaleProducts),
-            'bestSellerProducts' => ProductResource::collection($latest->take(8)->values()),
+            'bestSellerProducts' => ProductResource::collection($bestSellers),
         ]);
     }
 }

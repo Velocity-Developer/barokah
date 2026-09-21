@@ -46,6 +46,7 @@ export type HomeProductItem = {
     flash_sale_active?: boolean;
     flash_sale?: { ends_at?: string; remaining_quantity?: number } | null;
     stock: number;
+    sold_count?: number | null;
     status: string;
     category: { id: number; name: string; slug: string } | null;
     images: { id: number; url: string; sort_order: number; is_primary: boolean }[];
@@ -93,6 +94,7 @@ export function toProductCardData(product: HomeProductItem): ProductCardData {
         flashSaleRemaining: product.flash_sale?.remaining_quantity,
         flashSaleQuantity: product.flash_sale?.quantity,
         flashSaleSold: product.flash_sale?.quantity_sold,
+        soldCount: product.sold_count ?? undefined,
         stockLabel: product.stock <= 0 ? 'Out of stock' : `${product.stock} in stock`,
     };
 }

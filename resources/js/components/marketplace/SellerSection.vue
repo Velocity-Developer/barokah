@@ -17,15 +17,15 @@ defineProps<{
             class="flex min-h-[56px] items-center justify-between border-b border-[var(--border-soft)] pb-3"
         >
             <h2 class="text-base font-semibold text-[var(--text-primary)]">
-                Seller
+                Featured Sellers
             </h2>
             <span class="text-xs text-[var(--text-secondary)]">
-                Seller aktif
+                Active sellers
             </span>
         </div>
 
         <p v-if="sellers.length === 0" class="mt-3 text-sm text-[var(--text-muted)]">
-            Belum ada seller aktif.
+            No active sellers.
         </p>
 
         <div v-else class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

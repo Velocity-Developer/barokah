@@ -87,6 +87,8 @@ const reviews = computed<ProductReview[]>(() => {
 });
 
 const reviewFilter = ref<'all' | 'comments' | 'media' | 1 | 2 | 3 | 4 | 5>('all');
+const reviewsPerPage = 5;
+const visibleReviewCount = ref(reviewsPerPage);
 const lightboxMedia = ref<{ type: 'image' | 'video'; url: string } | null>(null);
 
 function openLightbox(media: { type: 'image' | 'video'; url: string }): void {
@@ -110,6 +112,7 @@ const reviewFilters = computed(() => [
 
 function setReviewFilter(filter: typeof reviewFilter.value): void {
     reviewFilter.value = filter;
+    visibleReviewCount.value = reviewsPerPage;
 }
 
 const filteredReviews = computed(() => reviews.value.filter((review) => {
@@ -118,6 +121,25 @@ const filteredReviews = computed(() => reviews.value.filter((review) => {
     if (typeof reviewFilter.value === 'number') return review.rating === reviewFilter.value;
     return true;
 }));
+
+const visibleReviews = computed<ProductReview[]>(() =>
+    filteredReviews.value.slice(0, visibleReviewCount.value),
+);
+
+const hasMoreReviews = computed<boolean>(() =>
+    visibleReviewCount.value < filteredReviews.value.length,
+);
+
+const remainingReviewsCount = computed<number>(() =>
+    Math.max(0, filteredReviews.value.length - visibleReviewCount.value),
+);
+
+function loadMoreReviews(): void {
+    if (!hasMoreReviews.value) {
+        return;
+    }
+    visibleReviewCount.value += reviewsPerPage;
+}
 
 const otherProducts = computed<DetailProduct[]>(() => {
     const raw = props.sellerProducts;
@@ -456,23 +478,23 @@ function addToCart(): void {
                 <h2
                     class="border-b border-[var(--border-soft)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)]"
                 >
-                    Spesifikasi produk
+                    Product Specification
                 </h2>
                 <dl class="divide-y divide-[var(--border-soft)] text-sm">
                     <div class="grid grid-cols-3 gap-3 px-4 py-3">
-                        <dt class="text-[var(--text-muted)]">Kategori</dt>
+                        <dt class="text-[var(--text-muted)]">Category</dt>
                         <dd class="col-span-2 text-[var(--text-primary)]">
                             {{ product.category?.name ?? '—' }}
                         </dd>
                     </div>
                     <div class="grid grid-cols-3 gap-3 px-4 py-3">
-                        <dt class="text-[var(--text-muted)]">Berat</dt>
+                        <dt class="text-[var(--text-muted)]">Weight</dt>
                         <dd class="col-span-2 text-[var(--text-primary)]">
                             {{ weightLabel ?? '—' }}
                         </dd>
                     </div>
                     <div class="grid grid-cols-3 gap-3 px-4 py-3">
-                        <dt class="text-[var(--text-muted)]">Stok</dt>
+                        <dt class="text-[var(--text-muted)]">Stock</dt>
                         <dd class="col-span-2 text-[var(--text-primary)]">
                             {{
                                 isOutOfStock
@@ -482,7 +504,7 @@ function addToCart(): void {
                         </dd>
                     </div>
                     <div class="grid grid-cols-3 gap-3 px-4 py-3">
-                        <dt class="text-[var(--text-muted)]">Toko</dt>
+                        <dt class="text-[var(--text-muted)]">Store</dt>
                         <dd class="col-span-2 text-[var(--text-primary)]">
                             {{ product.seller?.store_name ?? '—' }}
                         </dd>
@@ -493,7 +515,7 @@ function addToCart(): void {
                     <h3
                         class="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]"
                     >
-                        Deskripsi produk
+                        Product Description
                     </h3>
                     <p
                         class="px-4 pb-4 text-sm leading-relaxed whitespace-pre-line text-[var(--text-secondary)]"
@@ -514,32 +536,46 @@ function addToCart(): void {
                 <div class="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-4 text-xs">
                     <button v-for="filter in reviewFilters" :key="filter.key" type="button" :class="reviewFilter === filter.key ? 'border-[var(--brand-primary)] text-[var(--brand-primary)]' : 'border-[var(--border-default)] text-[var(--text-secondary)]'" class="border bg-white px-3 py-2" @click="setReviewFilter(filter.key)">{{ filter.label }} ({{ filter.count }})</button>
                 </div>
-                <div v-if="filteredReviews.length" class="mt-2 divide-y divide-[var(--border-soft)] px-4 py-4">
-                    <article v-for="review in filteredReviews" :key="review.id" class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-semibold text-orange-600">
-                            <img v-if="review.user?.profile_photo_url" :src="review.user.profile_photo_url" alt="Reviewer" class="h-full w-full object-cover" />
-                            <span v-else>{{ (review.user?.name ?? 'Buyer').charAt(0).toUpperCase() }}</span>
+                <div class="mt-2 px-4 py-4">
+                    <template v-if="filteredReviews.length">
+                        <div class="divide-y divide-[var(--border-soft)]">
+                            <article v-for="review in visibleReviews" :key="review.id" class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0">
+                                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-semibold text-orange-600">
+                                    <img v-if="review.user?.profile_photo_url" :src="review.user.profile_photo_url" alt="Reviewer" class="h-full w-full object-cover" />
+                                    <span v-else>{{ (review.user?.name ?? 'Buyer').charAt(0).toUpperCase() }}</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-[var(--text-primary)]">{{ review.user?.name ?? 'Buyer' }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm tracking-wide text-orange-500">{{ '★'.repeat(review.rating) }}</span>
+                                        <span class="text-xs text-[var(--text-muted)]">{{ new Date(review.created_at).toLocaleDateString('en-GB') }}</span>
+                                    </div>
+                                    <p v-if="review.review" class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{{ review.review }}</p>
+                                    <div v-if="review.media?.length" class="mt-3 flex flex-wrap gap-2">
+                                    <template v-for="media in review.media" :key="media.url">
+                                        <button v-if="media.type === 'image'" type="button" class="block" @click="openLightbox(media)">
+                                            <img :src="media.url" alt="Review media" class="h-20 w-20 cursor-zoom-in rounded-md object-cover" />
+                                        </button>
+                                        <button v-else type="button" class="block" @click="openLightbox(media)">
+                                            <video :src="media.url" class="h-20 w-32 cursor-zoom-in rounded-md object-cover" />
+                                        </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </article>
                         </div>
-                        <div>
-                            <p class="text-sm font-medium text-[var(--text-primary)]">{{ review.user?.name ?? 'Buyer' }}</p>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm tracking-wide text-orange-500">{{ '★'.repeat(review.rating) }}</span>
-                                <span class="text-xs text-[var(--text-muted)]">{{ new Date(review.created_at).toLocaleDateString('en-GB') }}</span>
-                            </div>
-                            <p v-if="review.review" class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{{ review.review }}</p>
-                            <div v-if="review.media?.length" class="mt-3 flex flex-wrap gap-2">
-                            <template v-for="media in review.media" :key="media.url">
-                                <button v-if="media.type === 'image'" type="button" class="block" @click="openLightbox(media)">
-                                    <img :src="media.url" alt="Review media" class="h-20 w-20 cursor-zoom-in rounded-md object-cover" />
-                                </button>
-                                <button v-else type="button" class="block" @click="openLightbox(media)">
-                                    <video :src="media.url" class="h-20 w-32 cursor-zoom-in rounded-md object-cover" />
-                                </button>
-                                </template>
-                            </div>
+                        <div v-if="hasMoreReviews" class="mt-4 flex justify-center">
+                            <button
+                                type="button"
+                                class="inline-flex h-10 items-center justify-center rounded-sm border border-[var(--brand-primary)] bg-white px-5 text-sm font-medium text-[var(--brand-primary)] transition hover:bg-[var(--brand-primary-soft)]"
+                                @click="loadMoreReviews"
+                            >
+                                Load more
+                                <span class="ml-1 text-xs text-[var(--text-muted)]">({{ remainingReviewsCount }} remaining)</span>
+                            </button>
                         </div>
-                    </article>
-                    <p v-if="!filteredReviews.length" class="py-6 text-sm text-[var(--text-muted)]">No reviews match this filter.</p>
+                    </template>
+                    <p v-else class="py-6 text-sm text-[var(--text-muted)]">No reviews match this filter.</p>
                 </div>
             </section>
 
@@ -552,14 +588,14 @@ function addToCart(): void {
                     class="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3"
                 >
                     <h2 class="text-sm font-semibold text-[var(--text-primary)]">
-                        Produk lain dari toko ini
+                        Other products from this store
                     </h2>
                     <Link
                         v-if="product.seller"
                         :href="sellerShow.url(product.seller.slug)"
                         class="text-xs font-medium text-[var(--brand-primary)] hover:underline"
                     >
-                        Lihat semua
+                        View all
                     </Link>
                 </div>
                 <div class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3 md:grid-cols-6">

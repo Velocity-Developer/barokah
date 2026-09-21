@@ -48,7 +48,57 @@ const reviewList = computed<StoreReview[]>(() =>
 );
 
 const activeTab = ref<'products' | 'rating'>('products');
+const reviewsPerPage = 5;
+const visibleReviewCount = ref(reviewsPerPage);
 const lightboxMedia = ref<{ type: 'image' | 'video'; url: string } | null>(null);
+
+const reviewFilter = ref<'all' | 'comments' | 'media' | 1 | 2 | 3 | 4 | 5>('all');
+
+const reviewFilters = computed(() =>
+    [
+        { key: 'all' as const, label: 'All', count: reviewList.value.length },
+        { key: 5 as const, label: '5 Star', count: reviewList.value.filter((review) => review.rating === 5).length },
+        { key: 4 as const, label: '4 Star', count: reviewList.value.filter((review) => review.rating === 4).length },
+        { key: 3 as const, label: '3 Star', count: reviewList.value.filter((review) => review.rating === 3).length },
+        { key: 2 as const, label: '2 Star', count: reviewList.value.filter((review) => review.rating === 2).length },
+        { key: 1 as const, label: '1 Star', count: reviewList.value.filter((review) => review.rating === 1).length },
+        { key: 'comments' as const, label: 'With Comments', count: reviewList.value.filter((review) => Boolean(review.review)).length },
+        { key: 'media' as const, label: 'With Media', count: reviewList.value.filter((review) => Boolean(review.media?.length)).length },
+    ].filter((filter) => filter.count > 0),
+);
+
+function setReviewFilter(filter: typeof reviewFilter.value): void {
+    reviewFilter.value = filter;
+    visibleReviewCount.value = reviewsPerPage;
+}
+
+const filteredReviews = computed<StoreReview[]>(() =>
+    reviewList.value.filter((review) => {
+        if (reviewFilter.value === 'comments') return Boolean(review.review);
+        if (reviewFilter.value === 'media') return Boolean(review.media?.length);
+        if (typeof reviewFilter.value === 'number') return review.rating === reviewFilter.value;
+        return true;
+    }),
+);
+
+const visibleReviews = computed<StoreReview[]>(() =>
+    filteredReviews.value.slice(0, visibleReviewCount.value),
+);
+
+const hasMoreReviews = computed<boolean>(() =>
+    visibleReviewCount.value < filteredReviews.value.length,
+);
+
+const remainingReviewsCount = computed<number>(() =>
+    Math.max(0, filteredReviews.value.length - visibleReviewCount.value),
+);
+
+function loadMoreReviews(): void {
+    if (!hasMoreReviews.value) {
+        return;
+    }
+    visibleReviewCount.value += reviewsPerPage;
+}
 
 function openLightbox(media: { type: 'image' | 'video'; url: string }): void {
     lightboxMedia.value = media;
@@ -260,73 +310,113 @@ const productCards = computed(() =>
                         </div>
                     </template>
 
-                    <div v-else-if="reviewList.length" class="divide-y divide-[var(--border-soft)]">
-                        <article
-                            v-for="review in reviewList"
-                            :key="review.id"
-                            class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0"
-                        >
-                            <div class="flex size-10 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-semibold text-orange-600">
-                                <img
-                                    v-if="review.user?.profile_photo_url"
-                                    :src="review.user.profile_photo_url"
-                                    alt="Reviewer"
-                                    class="size-full object-cover"
-                                />
-                                <span v-else>{{ (review.user?.name ?? 'Buyer').charAt(0).toUpperCase() }}</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-[var(--text-primary)]">{{ review.user?.name ?? 'Buyer' }}</p>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <span class="text-sm tracking-wide text-orange-500">{{ '★'.repeat(review.rating) }}</span>
-                                    <span class="text-xs text-[var(--text-muted)]">{{ new Date(review.created_at).toLocaleDateString('en-GB') }}</span>
-                                </div>
-                                <Link
-                                    v-if="review.product"
-                                    :href="`/products/${review.product.slug}`"
-                                    class="mt-3 flex max-w-md gap-3 rounded-sm bg-[var(--bg-muted)] p-2 transition hover:bg-[var(--brand-primary-soft)]"
+                    <template v-else>
+                        <div v-if="reviewList.length">
+                            <div class="flex flex-wrap gap-2 border-b border-[var(--border-soft)] pb-4 text-xs">
+                                <button
+                                    v-for="filter in reviewFilters"
+                                    :key="filter.key"
+                                    type="button"
+                                    :class="
+                                        reviewFilter === filter.key
+                                            ? 'border-[var(--brand-primary)] text-[var(--brand-primary)]'
+                                            : 'border-[var(--border-default)] text-[var(--text-secondary)]'
+                                    "
+                                    class="border bg-white px-3 py-2"
+                                    @click="setReviewFilter(filter.key)"
                                 >
-                                    <img
-                                        v-if="review.product.image"
-                                        :src="review.product.image"
-                                        :alt="review.product.name"
-                                        class="size-14 shrink-0 rounded-sm object-cover"
-                                    />
-                                    <div class="min-w-0 self-center">
-                                        <p class="truncate text-sm font-medium text-[var(--text-primary)]">{{ review.product.name }}</p>
-                                        <p class="mt-0.5 text-xs text-[var(--brand-primary)]">
-                                            Rating {{ review.product.average_rating !== null && review.product.average_rating !== undefined ? Number(review.product.average_rating).toFixed(1) : '—' }}
-                                            ({{ review.product.ratings_count ?? 0 }} Rating)
-                                        </p>
-                                    </div>
-                                </Link>
-                                <p v-if="review.review" class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{{ review.review }}</p>
-                                <div v-if="review.media?.length" class="mt-3 flex flex-wrap gap-2">
-                                    <template v-for="media in review.media" :key="media.url">
-                                        <button v-if="media.type === 'image'" type="button" @click="openLightbox(media)">
-                                            <img
-                                                :src="media.url"
-                                                alt="Review media"
-                                                class="size-16 cursor-zoom-in rounded-sm object-cover"
-                                            />
-                                        </button>
-                                        <button v-else type="button" @click="openLightbox(media)">
-                                            <video
-                                                :src="media.url"
-                                                class="h-16 w-24 cursor-zoom-in rounded-sm object-cover"
-                                            />
-                                        </button>
-                                    </template>
-                                </div>
+                                    {{ filter.label }} ({{ filter.count }})
+                                </button>
                             </div>
-                        </article>
-                    </div>
-                    <p
-                        v-else
-                        class="py-8 text-center text-sm text-[var(--text-muted)]"
-                    >
-                        Belum ada rating untuk toko ini.
-                    </p>
+                            <div class="mt-2">
+                                <template v-if="filteredReviews.length">
+                                    <div class="divide-y divide-[var(--border-soft)]">
+                                <article
+                                    v-for="review in visibleReviews"
+                                    :key="review.id"
+                                    class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0"
+                                >
+                                    <div class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-semibold text-orange-600">
+                                        <img
+                                            v-if="review.user?.profile_photo_url"
+                                            :src="review.user.profile_photo_url"
+                                            alt="Reviewer"
+                                            class="size-full object-cover"
+                                        />
+                                        <span v-else>{{ (review.user?.name ?? 'Buyer').charAt(0).toUpperCase() }}</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-[var(--text-primary)]">{{ review.user?.name ?? 'Buyer' }}</p>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="text-sm tracking-wide text-orange-500">{{ '★'.repeat(review.rating) }}</span>
+                                            <span class="text-xs text-[var(--text-muted)]">{{ new Date(review.created_at).toLocaleDateString('en-GB') }}</span>
+                                        </div>
+                                        <Link
+                                            v-if="review.product"
+                                            :href="`/products/${review.product.slug}`"
+                                            class="mt-3 flex max-w-md gap-3 rounded-sm bg-[var(--bg-muted)] p-2 transition hover:bg-[var(--brand-primary-soft)]"
+                                        >
+                                            <img
+                                                v-if="review.product.image"
+                                                :src="review.product.image"
+                                                :alt="review.product.name"
+                                                class="size-14 shrink-0 rounded-sm object-cover"
+                                            />
+                                            <div class="min-w-0 self-center">
+                                                <p class="truncate text-sm font-medium text-[var(--text-primary)]">{{ review.product.name }}</p>
+                                                <p class="mt-0.5 text-xs text-[var(--brand-primary)]">
+                                                    Rating {{ review.product.average_rating !== null && review.product.average_rating !== undefined ? Number(review.product.average_rating).toFixed(1) : '—' }}
+                                                    ({{ review.product.ratings_count ?? 0 }} Rating)
+                                                </p>
+                                            </div>
+                                        </Link>
+                                        <p v-if="review.review" class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{{ review.review }}</p>
+                                        <div v-if="review.media?.length" class="mt-3 flex flex-wrap gap-2">
+                                            <template v-for="media in review.media" :key="media.url">
+                                                <button v-if="media.type === 'image'" type="button" class="block" @click="openLightbox(media)">
+                                                    <img
+                                                        :src="media.url"
+                                                        alt="Review media"
+                                                        class="size-16 cursor-zoom-in rounded-sm object-cover"
+                                                    />
+                                                </button>
+                                                <button v-else type="button" class="block" @click="openLightbox(media)">
+                                                    <video
+                                                        :src="media.url"
+                                                        class="h-16 w-24 cursor-zoom-in rounded-sm object-cover"
+                                                    />
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </article>
+                                    </div>
+                                    <div v-if="hasMoreReviews" class="mt-4 flex justify-center">
+                                        <button
+                                            type="button"
+                                            class="inline-flex h-10 items-center justify-center rounded-sm border border-[var(--brand-primary)] bg-white px-5 text-sm font-medium text-[var(--brand-primary)] transition hover:bg-[var(--brand-primary-soft)]"
+                                            @click="loadMoreReviews"
+                                        >
+                                            Load more
+                                            <span class="ml-1 text-xs text-[var(--text-muted)]">({{ remainingReviewsCount }} remaining)</span>
+                                        </button>
+                                    </div>
+                                </template>
+                                <p
+                                    v-else
+                                    class="py-6 text-sm text-[var(--text-muted)]"
+                                >
+                                    Tidak ada review yang sesuai dengan filter ini.
+                                </p>
+                            </div>
+                        </div>
+                        <p
+                            v-else
+                            class="py-8 text-center text-sm text-[var(--text-muted)]"
+                        >
+                            Belum ada rating untuk toko ini.
+                        </p>
+                    </template>
                 </div>
             </section>
         </div>

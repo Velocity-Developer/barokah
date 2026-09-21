@@ -23,17 +23,11 @@ const tiles = computed(() =>
         class="mt-5 rounded-sm bg-white p-4 shadow-[var(--shadow-card)]"
     >
         <div
-            class="flex min-h-[56px] items-center justify-between border-b border-[var(--border-soft)] pb-3"
+            class="flex min-h-[56px] items-center border-b border-[var(--border-soft)] pb-3"
         >
             <h2 class="text-base font-semibold text-[var(--text-primary)]">
                 Categories
             </h2>
-            <Link
-                href="/products"
-                class="text-xs text-[var(--text-secondary)] hover:underline"
-            >
-                Lihat Semua &gt;
-            </Link>
         </div>
         <div
             v-if="loading"
