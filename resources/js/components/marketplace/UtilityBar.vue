@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import LanguageSwitcher from '@/components/marketplace/LanguageSwitcher.vue';
 import { help, login, register, sellerCenter } from '@/routes';
 import { show as profileShow } from '@/routes/profile';
 </script>
@@ -23,8 +24,7 @@ import { show as profileShow } from '@/routes/profile';
                 </Link>
             </div>
             <div class="flex items-center gap-4 px-4">
-                <span>English / Malay</span>
-                <span aria-hidden="true" class="opacity-50">|</span>
+                <LanguageSwitcher />
                 <template v-if="$page.props.auth.user">
                     <Link :href="profileShow()" class="hover:underline">
                         {{ $page.props.auth.user.name }}

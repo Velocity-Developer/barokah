@@ -172,3 +172,19 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Google Translate: keep our own language switcher, hide Google's banner, tooltip and highlight. */
+.goog-te-banner-frame,
+iframe.skiptranslate,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+#google_translate_element {
+    display: none !important;
+}
+body {
+    top: 0 !important;
+}
+.goog-text-highlight {
+    background: none !important;
+    box-shadow: none !important;
+}

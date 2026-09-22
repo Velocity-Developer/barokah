@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { store as loginStore } from '@/routes/login';
 import { show as profileShow } from '@/routes/profile';
 import { home } from '@/routes';
+import LanguageSwitcher from '@/components/marketplace/LanguageSwitcher.vue';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { dashboard as sellerDashboard } from '@/routes/seller';
 
@@ -148,6 +149,9 @@ function submitSearch(): void {
                     </Link>
                 </div>
             </div>
+
+            <!-- The utility bar (with its language links) is hidden on phones. -->
+            <LanguageSwitcher variant="compact" class="md:hidden" />
 
             <Link
                 href="/cart"
