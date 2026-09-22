@@ -34,8 +34,9 @@ import { index as adminOrdersIndex } from '@/routes/admin/orders';
 import { index as adminPaymentsIndex } from '@/routes/admin/payments';
 import { index as adminProductsIndex } from '@/routes/admin/products';
 import { index as sellerFlashSalesIndex } from '@/routes/seller/flash-sales';
-import { Ticket } from '@lucide/vue';
+import { Ticket, UserCheck } from '@lucide/vue';
 import { index as adminSellersIndex } from '@/routes/admin/sellers';
+import { index as adminSellerApprovalsIndex } from '@/routes/admin/seller-approvals';
 import { show as adminSettingsShow } from '@/routes/admin/settings';
 import { index as adminUsersIndex } from '@/routes/admin/users';
 import { index as adminFlashSalesIndex } from '@/routes/admin/flash-sales';
@@ -60,8 +61,12 @@ const authUser = computed(
             ?.user,
 );
 const isAdmin = computed(() => authUser.value?.is_admin === true);
+// Uses the same gate as the seller routes, so a pending application does not
+// show seller links that would return 403.
 const isSeller = computed(
-    () => authUser.value?.is_active_as_seller === true,
+    () =>
+        (page.props as unknown as { auth?: { can?: { seller?: boolean } } }).auth
+            ?.can?.seller === true,
 );
 
 const mainNavItems: NavItem[] = [
@@ -126,6 +131,11 @@ const adminNavItems: NavItem[] = [
         title: 'Stores',
         href: adminSellersIndex(),
         icon: Store,
+    },
+    {
+        title: 'Seller approvals',
+        href: adminSellerApprovalsIndex(),
+        icon: UserCheck,
     },
     {
         title: 'Products',

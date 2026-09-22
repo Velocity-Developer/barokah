@@ -3,7 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { Bell, House, ShoppingCart, User } from '@lucide/vue';
 import { computed } from 'vue';
 import { home, login } from '@/routes';
-import { edit as profileEdit } from '@/routes/profile';
+import { show as profileShow } from '@/routes/profile';
 import { index as productsIndex } from '@/routes/products';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useCartStore } from '@/stores/cart';
@@ -33,7 +33,7 @@ const items = computed(() => [
     },
     {
         label: 'Me',
-        href: authUser.value ? profileEdit() : login(),
+        href: authUser.value ? profileShow() : login(),
         icon: User,
         placeholder: false,
     },

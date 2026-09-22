@@ -10,7 +10,7 @@ test('guest cannot activate as seller', function () {
     ])->assertUnauthorized();
 });
 
-test('authenticated buyer can activate as seller', function () {
+test('authenticated buyer can apply as seller and waits for admin approval', function () {
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->postJson('/api/v1/seller/activate', [
@@ -20,11 +20,11 @@ test('authenticated buyer can activate as seller', function () {
 
     $response->assertCreated()
         ->assertJsonPath('data.store_name', 'Barokah Store')
-        ->assertJsonPath('data.status', SellerStatus::Active->value);
+        ->assertJsonPath('data.status', SellerStatus::Pending->value);
 
     expect($user->refresh()->is_active_as_seller)->toBeTrue();
     expect(Seller::query()->where('user_id', $user->id)->exists())->toBeTrue();
-    expect($user->refresh()->isSeller())->toBeTrue();
+    expect($user->refresh()->isSeller())->toBeFalse();
 });
 
 test('seller activation requires a unique store name', function () {

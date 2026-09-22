@@ -25,12 +25,25 @@ class SellerResource extends JsonResource
             'phone' => $this->phone,
             'whatsapp' => $this->whatsapp,
             'store_location' => $this->store_location,
-            'bank_account' => $this->bank_account,
+            'bank_account' => $this->when($this->canViewPrivateDetails($request), $this->bank_account),
             'state' => $this->state,
             'city' => $this->city,
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
             'average_rating' => $this->average_rating,
             'ratings_count' => $this->ratings_count ?? 0,
+            'followers_count' => $this->whenCounted('followers'),
+            'is_followed' => $this->whenHas('is_followed'),
         ];
+    }
+
+    /**
+     * Payout details are only for the store owner and admins, never for
+     * public pages that embed the seller (store page, product cards, etc.).
+     */
+    private function canViewPrivateDetails(Request $request): bool
+    {
+        $user = $request->user();
+
+        return $user !== null && ($user->isAdmin() || $user->id === $this->user_id);
     }
 }

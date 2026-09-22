@@ -25,6 +25,7 @@ class UserResource extends JsonResource
             'state' => $this->state,
             'city' => $this->city,
             'post_code' => $this->post_code,
+            'profile_photo_url' => $this->profile_photo_url,
             'is_admin' => $this->isAdmin(),
             'is_active_as_seller' => (bool) $this->is_active_as_seller,
             'is_seller' => $this->isSeller(),

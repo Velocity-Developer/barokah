@@ -51,6 +51,7 @@ export type HomeProductItem = {
     category: { id: number; name: string; slug: string } | null;
     images: { id: number; url: string; sort_order: number; is_primary: boolean }[];
     primary_image: string | null;
+    is_favorited?: boolean;
 };
 
 export type HomeSellerItem = {
@@ -67,6 +68,8 @@ export type HomeSellerItem = {
     status: string;
     average_rating?: number | null;
     ratings_count?: number;
+    followers_count?: number;
+    is_followed?: boolean;
 };
 
 export type HomeCategoryItem = {

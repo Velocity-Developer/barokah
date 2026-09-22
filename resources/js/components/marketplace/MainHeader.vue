@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Search, ShoppingCart, UserRound, ChevronDown, LogOut, Settings2, Home as HomeIcon } from '@lucide/vue';
+import { Search, ShoppingCart, UserRound, ChevronDown, LogOut, Settings2, Home as HomeIcon, ShieldCheck, Store } from '@lucide/vue';
 import { useCartStore } from '@/stores/cart';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 import { store as loginStore } from '@/routes/login';
 import { show as profileShow } from '@/routes/profile';
 import { home } from '@/routes';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import { dashboard as sellerDashboard } from '@/routes/seller';
 
 const props = withDefaults(
     defineProps<{
@@ -22,9 +24,15 @@ const emit = defineEmits<{
 const { getSettingValue } = useSettingsStore();
 const { count: cartCount } = useCartStore();
 const query = ref(props.initialSearch);
-const keywords = computed(() => ['Keripik', 'Hijab', 'Kerudung']);
+const quickCategories = [
+    { name: 'Keripik', slug: 'keripik' },
+    { name: 'Hijab', slug: 'hijab' },
+    { name: 'Kerudung', slug: 'kerudung' },
+];
 const page = usePage();
 const authUser = computed(() => (page.props.auth?.user as Record<string, unknown> | null) ?? null);
+const canOpenAdmin = computed<boolean>(() => page.props.auth?.can?.admin === true);
+const canOpenSeller = computed<boolean>(() => page.props.auth?.can?.seller === true);
 const userMenuOpen = ref(false);
 const userMenuRef = ref<HTMLDivElement | null>(null);
 
@@ -68,11 +76,6 @@ function submitSearch(): void {
         { search: query.value || undefined },
         { preserveState: false, replace: false },
     );
-}
-
-function searchKeyword(keyword: string): void {
-    query.value = keyword;
-    submitSearch();
 }
 </script>
 
@@ -134,15 +137,14 @@ function searchKeyword(keyword: string): void {
                 <div
                     class="mt-1 hidden gap-3 overflow-hidden text-[11px] whitespace-nowrap text-white/90 md:flex"
                 >
-                    <button
-                        v-for="keyword in keywords"
-                        :key="keyword"
-                        type="button"
-                        class="cursor-pointer hover:underline"
-                        @click="searchKeyword(keyword)"
+                    <Link
+                        v-for="category in quickCategories"
+                        :key="category.slug"
+                        :href="`/products?category=${category.slug}`"
+                        class="hover:underline"
                     >
-                        {{ keyword }}
-                    </button>
+                        {{ category.name }}
+                    </Link>
                 </div>
             </div>
 
@@ -169,7 +171,14 @@ function searchKeyword(keyword: string): void {
                         :aria-expanded="userMenuOpen"
                         @click="userMenuOpen = !userMenuOpen"
                     >
+                        <img
+                            v-if="authUser.profile_photo_url"
+                            :src="String(authUser.profile_photo_url)"
+                            alt=""
+                            class="h-8 w-8 rounded-full bg-white object-cover"
+                        />
                         <span
+                            v-else
                             class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[13px] font-bold"
                             style="color: var(--brand-primary)"
                             aria-hidden="true"
@@ -209,6 +218,26 @@ function searchKeyword(keyword: string): void {
                         >
                             <UserRound class="h-4 w-4 shrink-0 text-gray-400" />
                             <span>My Profile</span>
+                        </Link>
+                        <Link
+                            v-if="canOpenAdmin"
+                            :href="adminDashboard()"
+                            role="menuitem"
+                            class="flex items-center gap-2.5 rounded-md px-3 py-2 text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
+                            @click="userMenuOpen = false"
+                        >
+                            <ShieldCheck class="h-4 w-4 shrink-0 text-gray-400" />
+                            <span>Dashboard Admin</span>
+                        </Link>
+                        <Link
+                            v-if="canOpenSeller"
+                            :href="sellerDashboard()"
+                            role="menuitem"
+                            class="flex items-center gap-2.5 rounded-md px-3 py-2 text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
+                            @click="userMenuOpen = false"
+                        >
+                            <Store class="h-4 w-4 shrink-0 text-gray-400" />
+                            <span>Dashboard Seller</span>
                         </Link>
                         <Link
                             :href="home()"

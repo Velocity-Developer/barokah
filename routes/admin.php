@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\FlashSaleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\SellerApprovalController;
 use App\Http\Controllers\Admin\SellerController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
@@ -24,6 +25,9 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
 
     Route::get('sellers', [SellerController::class, 'index'])->name('sellers.index');
+    Route::get('seller-approvals', [SellerApprovalController::class, 'index'])->name('seller-approvals.index');
+    Route::post('sellers/{seller}/approve', [SellerApprovalController::class, 'approve'])->name('sellers.approve');
+    Route::post('sellers/{seller}/reject', [SellerApprovalController::class, 'reject'])->name('sellers.reject');
     Route::get('sellers/{seller}/edit', [SellerController::class, 'edit'])->name('sellers.edit');
     Route::get('sellers/{seller}', [SellerController::class, 'show'])->name('sellers.show');
 

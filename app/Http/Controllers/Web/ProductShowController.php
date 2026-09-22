@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\ProductResource;
 use App\Models\Product;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,7 +15,7 @@ use Inertia\Response;
  */
 class ProductShowController extends Controller
 {
-    public function __invoke(string $slug): Response
+    public function __invoke(Request $request, string $slug): Response
     {
         $product = Product::query()
             ->active()
@@ -23,6 +24,8 @@ class ProductShowController extends Controller
             ->withAvg('reviews', 'rating')
             ->withCount('reviews')
             ->firstOrFail();
+
+        $product->setAttribute('is_favorited', $request->user()?->hasFavorited($product) ?? false);
 
         $sellerProducts = Product::query()
             ->active()

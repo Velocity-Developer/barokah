@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { login, register } from '@/routes';
-import { edit as profileEdit } from '@/routes/profile';
-import { dashboard as sellerDashboard } from '@/routes/seller';
+import { login, register, sellerCenter } from '@/routes';
+import { show as profileShow } from '@/routes/profile';
 </script>
 
 <template>
@@ -15,7 +14,7 @@ import { dashboard as sellerDashboard } from '@/routes/seller';
             style="max-width: var(--container-max)"
         >
             <div class="flex items-center gap-4 px-4">
-                <Link :href="sellerDashboard()" class="hover:underline">
+                <Link :href="sellerCenter()" class="hover:underline">
                     Seller Center
                 </Link>
                 <span aria-hidden="true" class="opacity-50">|</span>
@@ -31,7 +30,7 @@ import { dashboard as sellerDashboard } from '@/routes/seller';
                 <span>English / Malay</span>
                 <span aria-hidden="true" class="opacity-50">|</span>
                 <template v-if="$page.props.auth.user">
-                    <Link :href="profileEdit()" class="hover:underline">
+                    <Link :href="profileShow()" class="hover:underline">
                         {{ $page.props.auth.user.name }}
                     </Link>
                 </template>

@@ -6,6 +6,7 @@ import MainHeader from '@/components/marketplace/MainHeader.vue';
 import MarketplaceFooter from '@/components/marketplace/MarketplaceFooter.vue';
 import MobileBottomNav from '@/components/marketplace/MobileBottomNav.vue';
 import UtilityBar from '@/components/marketplace/UtilityBar.vue';
+import { Toaster } from '@/components/ui/sonner';
 import { useSettingsStore } from '@/stores/settings';
 
 const { getSettingValue } = useSettingsStore();
@@ -56,5 +57,6 @@ const pageTitle = computed(() => `${siteName.value} Marketplace`);
 
         <slot name="mobileNav" />
         <MobileBottomNav v-if="showDefaultNav" />
+        <Toaster position="top-center" />
     </div>
 </template>

@@ -1,27 +1,85 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Form, Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
+import ProductCard from '@/components/product/ProductCard.vue';
 import ProfileController from '@/actions/App/Http/Controllers/Web/ProfileController';
-import { UserRound, KeyRound, Home, LogOut } from '@lucide/vue';
+import { UserRound, KeyRound, Home, LogOut, Store, Heart, ImageIcon, BadgeCheck } from '@lucide/vue';
 import { send } from '@/routes/verification';
 import { home } from '@/routes';
 import { store as loginStore } from '@/routes/login';
 import { show as profileShow } from '@/routes/profile';
+import { dashboard as sellerDashboard } from '@/routes/seller';
+import { show as sellerShow } from '@/routes/sellers';
+import {
+    toProductCardData,
+    type HomeProductItem,
+    type HomeSellerItem,
+} from '@/types/marketplace';
 
 const page = usePage();
 const authUser = computed(() => page.props.auth.user as Record<string, unknown> | null);
 
-const activeTab = ref<'profile' | 'password'>('profile');
+type ProfileTab = 'profile' | 'media' | 'password' | 'seller' | 'following_sellers' | 'favorite_products';
+
+const profileTabs: ProfileTab[] = ['profile', 'media', 'password', 'seller', 'following_sellers', 'favorite_products'];
+
+function tabFromUrl(): ProfileTab {
+    const requested = new URLSearchParams(page.url.split('?')[1] ?? '').get('tab');
+
+    return profileTabs.includes(requested as ProfileTab) ? (requested as ProfileTab) : 'profile';
+}
+
+const activeTab = ref<ProfileTab>(tabFromUrl());
+
+watch(
+    () => page.url,
+    () => {
+        activeTab.value = tabFromUrl();
+    },
+);
+
+const tabHeadings: Record<ProfileTab, { title: string; subtitle: string }> = {
+    profile: { title: 'Account Info', subtitle: 'Update your profile and delivery information.' },
+    media: { title: 'Foto Profil & Banner', subtitle: 'Atur foto profil dan gambar latar kartu profil Anda.' },
+    seller: { title: 'Seller', subtitle: 'Buka toko Anda sendiri di marketplace.' },
+    password: { title: 'Change Password', subtitle: 'Keep your account secure with a strong password.' },
+    following_sellers: { title: 'Toko Diikuti', subtitle: 'Toko yang Anda ikuti.' },
+    favorite_products: { title: 'Produk Favorit', subtitle: 'Produk yang Anda simpan sebagai favorit.' },
+};
 const toast = computed(() => (page.props.toast as { type: string; message: string } | null) ?? null);
 
+type SellerApplication = {
+    store_name: string;
+    slug: string;
+    status: 'pending' | 'active' | 'suspended';
+    submitted_at: string | null;
+};
+
 type Props = {
+    sellerApplication?: SellerApplication | null;
     mustVerifyEmail: boolean;
     status?: string;
+    followedSellers?: HomeSellerItem[] | { data: HomeSellerItem[] };
+    favoriteProducts?: HomeProductItem[] | { data: HomeProductItem[] };
 };
 
 const props = defineProps<Props>();
+
+function unwrapList<T>(value: T[] | { data: T[] } | undefined): T[] {
+    if (!value) {
+        return [];
+    }
+
+    return Array.isArray(value) ? value : (value.data ?? []);
+}
+
+const followedSellerList = computed<HomeSellerItem[]>(() => unwrapList(props.followedSellers));
+
+const favoriteProductCards = computed(() =>
+    unwrapList(props.favoriteProducts).map((product) => toProductCardData(product)),
+);
 
 const initials = computed(() => {
     const name = String(authUser.value?.name ?? 'U');
@@ -91,6 +149,111 @@ function saveProfile(): void {
     });
 }
 
+const media = useForm<{
+    profile_photo: File | null;
+    banner: File | null;
+    remove_profile_photo: boolean;
+    remove_banner: boolean;
+}>({
+    profile_photo: null,
+    banner: null,
+    remove_profile_photo: false,
+    remove_banner: false,
+});
+
+const photoPreview = ref<string | null>(null);
+const bannerPreview = ref<string | null>(null);
+const photoInput = ref<HTMLInputElement | null>(null);
+const bannerInput = ref<HTMLInputElement | null>(null);
+
+const currentPhotoUrl = computed(() => (authUser.value?.profile_photo_url as string | null | undefined) ?? null);
+const currentBannerUrl = computed(() => (authUser.value?.banner_url as string | null | undefined) ?? null);
+
+const shownPhotoUrl = computed(() =>
+    photoPreview.value ?? (media.remove_profile_photo ? null : currentPhotoUrl.value),
+);
+const shownBannerUrl = computed(() =>
+    bannerPreview.value ?? (media.remove_banner ? null : currentBannerUrl.value),
+);
+
+function replacePreview(target: typeof photoPreview, file: File | null): void {
+    if (target.value) {
+        URL.revokeObjectURL(target.value);
+    }
+    target.value = file ? URL.createObjectURL(file) : null;
+}
+
+function pickPhoto(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    media.profile_photo = file;
+    media.remove_profile_photo = false;
+    replacePreview(photoPreview, file);
+}
+
+function pickBanner(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    media.banner = file;
+    media.remove_banner = false;
+    replacePreview(bannerPreview, file);
+}
+
+function removePhoto(): void {
+    media.profile_photo = null;
+    media.remove_profile_photo = true;
+    replacePreview(photoPreview, null);
+    if (photoInput.value) photoInput.value.value = '';
+}
+
+function removeBanner(): void {
+    media.banner = null;
+    media.remove_banner = true;
+    replacePreview(bannerPreview, null);
+    if (bannerInput.value) bannerInput.value.value = '';
+}
+
+function resetMedia(): void {
+    media.reset();
+    media.clearErrors();
+    replacePreview(photoPreview, null);
+    replacePreview(bannerPreview, null);
+    if (photoInput.value) photoInput.value.value = '';
+    if (bannerInput.value) bannerInput.value.value = '';
+}
+
+const mediaDirty = computed(
+    () => media.profile_photo !== null || media.banner !== null || media.remove_profile_photo || media.remove_banner,
+);
+
+function saveMedia(): void {
+    media.submit(ProfileController.updateMedia(), {
+        preserveScroll: true,
+        forceFormData: true,
+        onSuccess: () => resetMedia(),
+    });
+}
+
+onBeforeUnmount(() => {
+    replacePreview(photoPreview, null);
+    replacePreview(bannerPreview, null);
+});
+
+const sellerApplication = computed<SellerApplication | null>(() => props.sellerApplication ?? null);
+
+const sellerForm = useForm({ store_name: '', description: '' });
+
+function submitSellerApplication(): void {
+    sellerForm.post(ProfileController.applyAsSeller().url, {
+        preserveScroll: true,
+        onSuccess: () => sellerForm.reset(),
+    });
+}
+
+function formatDate(value: string | null): string {
+    return value
+        ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '-';
+}
+
 function savePassword(): void {
     password.submit(ProfileController.updatePassword(), {
         preserveScroll: true,
@@ -132,12 +295,23 @@ function savePassword(): void {
                             class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-100"
                         >
                             <div
-                                class="h-20"
-                                style="background-color: var(--brand-primary)"
+                                class="h-20 bg-cover bg-center"
+                                :style="
+                                    shownBannerUrl
+                                        ? { backgroundImage: `url('${shownBannerUrl}')` }
+                                        : { backgroundColor: 'var(--brand-primary)' }
+                                "
                                 aria-hidden="true"
                             ></div>
                             <div class="px-5 pb-5">
+                                <img
+                                    v-if="shownPhotoUrl"
+                                    :src="shownPhotoUrl"
+                                    alt=""
+                                    class="-mt-8 h-16 w-16 rounded-full border-4 border-white bg-gray-100 object-cover shadow-sm"
+                                />
                                 <div
+                                    v-else
                                     class="-mt-8 inline-flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-gray-100 text-2xl font-bold text-gray-700 shadow-sm"
                                     aria-hidden="true"
                                 >
@@ -150,7 +324,7 @@ function savePassword(): void {
                                     {{ authUser?.email }}
                                 </p>
                                 <p
-                                    v-if="authUser?.is_active_as_seller"
+                                    v-if="sellerApplication?.status === 'active'"
                                     class="mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
                                     style="
                                         background-color: color-mix(
@@ -187,6 +361,19 @@ function savePassword(): void {
                                 type="button"
                                 class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition"
                                 :class="
+                                    activeTab === 'media'
+                                        ? 'bg-gray-50 font-medium text-gray-900'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                "
+                                @click="activeTab = 'media'"
+                            >
+                                <ImageIcon class="h-4 w-4 shrink-0" />
+                                <span>Foto &amp; Banner</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition"
+                                :class="
                                     activeTab === 'password'
                                         ? 'bg-gray-50 font-medium text-gray-900'
                                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -195,6 +382,53 @@ function savePassword(): void {
                             >
                                 <KeyRound class="h-4 w-4 shrink-0" />
                                 <span>Password</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition"
+                                :class="
+                                    activeTab === 'seller'
+                                        ? 'bg-gray-50 font-medium text-gray-900'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                "
+                                @click="activeTab = 'seller'"
+                            >
+                                <BadgeCheck class="h-4 w-4 shrink-0" />
+                                <span>Seller</span>
+                                <span
+                                    v-if="sellerApplication?.status === 'pending'"
+                                    class="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"
+                                >
+                                    Menunggu
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition"
+                                :class="
+                                    activeTab === 'following_sellers'
+                                        ? 'bg-gray-50 font-medium text-gray-900'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                "
+                                @click="activeTab = 'following_sellers'"
+                            >
+                                <Store class="h-4 w-4 shrink-0" />
+                                <span>Toko Diikuti</span>
+                                <span class="ml-auto text-xs text-gray-400">{{ followedSellerList.length }}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition"
+                                :class="
+                                    activeTab === 'favorite_products'
+                                        ? 'bg-gray-50 font-medium text-gray-900'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                "
+                                @click="activeTab = 'favorite_products'"
+                            >
+                                <Heart class="h-4 w-4 shrink-0" />
+                                <span>Produk Favorit</span>
+                                <span class="ml-auto text-xs text-gray-400">{{ favoriteProductCards.length }}</span>
                             </button>
                             <hr class="my-1 border-gray-100" />
                             <Link
@@ -224,14 +458,10 @@ function savePassword(): void {
                         >
                             <div>
                                 <h1 class="text-lg font-semibold text-gray-900">
-                                    {{ activeTab === 'profile' ? 'Account Info' : 'Change Password' }}
+                                    {{ tabHeadings[activeTab].title }}
                                 </h1>
                                 <p class="mt-0.5 text-sm text-gray-500">
-                                    {{
-                                        activeTab === 'profile'
-                                            ? 'Update your profile and delivery information.'
-                                            : 'Keep your account secure with a strong password.'
-                                    }}
+                                    {{ tabHeadings[activeTab].subtitle }}
                                 </p>
                             </div>
                         </header>
@@ -398,6 +628,210 @@ function savePassword(): void {
                             </Form>
                         </div>
 
+                        <div v-show="activeTab === 'media'" class="px-6 py-5">
+                            <form class="grid gap-6" @submit.prevent="saveMedia">
+                                <div class="grid gap-2">
+                                    <p class="text-sm font-medium text-gray-700">Banner</p>
+                                    <div
+                                        class="flex h-32 w-full items-center justify-center overflow-hidden rounded-md bg-cover bg-center text-sm text-white/90 ring-1 ring-gray-100 md:h-40"
+                                        :style="
+                                            shownBannerUrl
+                                                ? { backgroundImage: `url('${shownBannerUrl}')` }
+                                                : { backgroundColor: 'var(--brand-primary)' }
+                                        "
+                                    >
+                                        <span v-if="!shownBannerUrl">Belum ada banner</span>
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <label
+                                            for="banner"
+                                            class="inline-flex h-9 cursor-pointer items-center rounded-md border border-gray-200 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                        >
+                                            Pilih gambar
+                                        </label>
+                                        <input
+                                            id="banner"
+                                            ref="bannerInput"
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/webp"
+                                            class="sr-only"
+                                            @change="pickBanner"
+                                        />
+                                        <button
+                                            v-if="shownBannerUrl"
+                                            type="button"
+                                            class="h-9 rounded-md px-3 text-sm text-red-600 transition hover:bg-red-50"
+                                            @click="removeBanner"
+                                        >
+                                            Hapus banner
+                                        </button>
+                                        <span class="text-xs text-gray-500">JPG, PNG, atau WEBP, maks. 4 MB. Disarankan rasio lebar ±4:1.</span>
+                                    </div>
+                                    <p v-if="media.errors.banner" class="text-xs text-red-600">
+                                        {{ media.errors.banner }}
+                                    </p>
+                                </div>
+
+                                <div class="grid gap-2">
+                                    <p class="text-sm font-medium text-gray-700">Foto profil</p>
+                                    <div class="flex flex-wrap items-center gap-4">
+                                        <img
+                                            v-if="shownPhotoUrl"
+                                            :src="shownPhotoUrl"
+                                            alt="Pratinjau foto profil"
+                                            class="h-20 w-20 rounded-full object-cover ring-1 ring-gray-100"
+                                        />
+                                        <div
+                                            v-else
+                                            class="inline-flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-2xl font-bold text-gray-700"
+                                            aria-hidden="true"
+                                        >
+                                            {{ initials }}
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <label
+                                                for="profile_photo"
+                                                class="inline-flex h-9 cursor-pointer items-center rounded-md border border-gray-200 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                            >
+                                                Pilih foto
+                                            </label>
+                                            <input
+                                                id="profile_photo"
+                                                ref="photoInput"
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                class="sr-only"
+                                                @change="pickPhoto"
+                                            />
+                                            <button
+                                                v-if="shownPhotoUrl"
+                                                type="button"
+                                                class="h-9 rounded-md px-3 text-sm text-red-600 transition hover:bg-red-50"
+                                                @click="removePhoto"
+                                            >
+                                                Hapus foto
+                                            </button>
+                                            <span class="text-xs text-gray-500">JPG, PNG, atau WEBP, maks. 2 MB.</span>
+                                        </div>
+                                    </div>
+                                    <p v-if="media.errors.profile_photo" class="text-xs text-red-600">
+                                        {{ media.errors.profile_photo }}
+                                    </p>
+                                </div>
+
+                                <div class="flex items-center gap-3 border-t border-gray-100 pt-5">
+                                    <button
+                                        type="submit"
+                                        :disabled="media.processing || !mediaDirty"
+                                        class="inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                                        style="background-color: var(--brand-primary)"
+                                    >
+                                        {{ media.processing ? 'Menyimpan...' : 'Simpan' }}
+                                    </button>
+                                    <button
+                                        v-if="mediaDirty && !media.processing"
+                                        type="button"
+                                        class="h-11 rounded-md px-4 text-sm text-gray-600 transition hover:bg-gray-50"
+                                        @click="resetMedia"
+                                    >
+                                        Batal
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div v-show="activeTab === 'seller'" class="px-6 py-5">
+                            <div
+                                v-if="sellerApplication?.status === 'pending'"
+                                class="rounded-md border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800"
+                            >
+                                <p class="font-semibold">Menunggu persetujuan admin</p>
+                                <p class="mt-1">
+                                    Pengajuan toko <strong>{{ sellerApplication.store_name }}</strong>
+                                    dikirim {{ formatDate(sellerApplication.submitted_at) }}. Anda akan bisa membuka
+                                    Dashboard Seller setelah admin menyetujuinya.
+                                </p>
+                            </div>
+
+                            <div
+                                v-else-if="sellerApplication?.status === 'active'"
+                                class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-green-200 bg-green-50 px-4 py-4 text-sm text-green-800"
+                            >
+                                <div>
+                                    <p class="font-semibold">Toko aktif</p>
+                                    <p class="mt-1">{{ sellerApplication.store_name }} sudah aktif sebagai seller.</p>
+                                </div>
+                                <Link
+                                    :href="sellerDashboard()"
+                                    class="inline-flex h-10 items-center rounded-md px-4 text-sm font-semibold text-white"
+                                    style="background-color: var(--brand-primary)"
+                                >
+                                    Buka Dashboard Seller
+                                </Link>
+                            </div>
+
+                            <div
+                                v-else-if="sellerApplication?.status === 'suspended'"
+                                class="rounded-md border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700"
+                            >
+                                <p class="font-semibold">Toko ditangguhkan</p>
+                                <p class="mt-1">
+                                    Toko {{ sellerApplication.store_name }} sedang ditangguhkan. Hubungi admin untuk
+                                    informasi lebih lanjut.
+                                </p>
+                            </div>
+
+                            <form v-else class="grid gap-5" @submit.prevent="submitSellerApplication">
+                                <p class="text-sm text-gray-600">
+                                    Ajukan akun Anda menjadi seller. Setelah admin menyetujui, Anda bisa mengelola
+                                    produk, pesanan, dan pengaturan toko di Dashboard Seller.
+                                </p>
+                                <div class="grid gap-1.5">
+                                    <label for="store_name" class="text-sm font-medium text-gray-700">
+                                        Nama toko
+                                    </label>
+                                    <input
+                                        id="store_name"
+                                        v-model="sellerForm.store_name"
+                                        type="text"
+                                        required
+                                        maxlength="255"
+                                        class="h-11 w-full rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                                        placeholder="mis. Keripik Barokah"
+                                    />
+                                    <p v-if="sellerForm.errors.store_name" class="text-xs text-red-600">
+                                        {{ sellerForm.errors.store_name }}
+                                    </p>
+                                </div>
+                                <div class="grid gap-1.5">
+                                    <label for="store_description" class="text-sm font-medium text-gray-700">
+                                        Deskripsi toko <span class="font-normal text-gray-400">(opsional)</span>
+                                    </label>
+                                    <textarea
+                                        id="store_description"
+                                        v-model="sellerForm.description"
+                                        rows="4"
+                                        maxlength="2000"
+                                        class="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+                                        placeholder="Produk apa yang akan Anda jual?"
+                                    ></textarea>
+                                    <p v-if="sellerForm.errors.description" class="text-xs text-red-600">
+                                        {{ sellerForm.errors.description }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <button
+                                        type="submit"
+                                        :disabled="sellerForm.processing"
+                                        class="inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                                        style="background-color: var(--brand-primary)"
+                                    >
+                                        {{ sellerForm.processing ? 'Mengirim...' : 'Aktifkan Seller' }}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
                         <div v-show="activeTab === 'password'" class="px-6 py-5">
                             <Form
                                 @submit.prevent="savePassword"
@@ -470,6 +904,71 @@ function savePassword(): void {
                                     </button>
                                 </div>
                             </Form>
+                        </div>
+
+                        <div v-show="activeTab === 'following_sellers'" class="px-6 py-5">
+                            <p
+                                v-if="followedSellerList.length === 0"
+                                class="py-10 text-center text-sm text-gray-500"
+                            >
+                                Belum mengikuti toko manapun.
+                            </p>
+                            <ul v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <li
+                                    v-for="seller in followedSellerList"
+                                    :key="seller.id"
+                                    class="flex items-center gap-3 rounded-md border border-gray-100 p-3"
+                                >
+                                    <img
+                                        v-if="seller.profile_photo_url"
+                                        :src="seller.profile_photo_url"
+                                        :alt="seller.store_name"
+                                        class="size-12 shrink-0 rounded-full object-cover"
+                                    />
+                                    <span
+                                        v-else
+                                        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-navy)] text-lg font-semibold text-white"
+                                        aria-hidden="true"
+                                    >
+                                        {{ seller.store_name.charAt(0).toUpperCase() }}
+                                    </span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-semibold text-gray-900">
+                                            {{ seller.store_name }}
+                                        </p>
+                                        <p class="truncate text-xs text-gray-500">
+                                            {{ seller.city || seller.state || 'Marketplace seller' }}
+                                            · {{ seller.followers_count ?? 0 }} pengikut
+                                        </p>
+                                    </div>
+                                    <Link
+                                        :href="sellerShow(seller.slug)"
+                                        class="shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium transition hover:bg-gray-50"
+                                        style="border-color: var(--brand-primary); color: var(--brand-primary)"
+                                    >
+                                        Lihat Toko
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div v-show="activeTab === 'favorite_products'" class="px-6 py-5">
+                            <p
+                                v-if="favoriteProductCards.length === 0"
+                                class="py-10 text-center text-sm text-gray-500"
+                            >
+                                Produk favorit masih kosong.
+                            </p>
+                            <div
+                                v-else
+                                class="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4"
+                            >
+                                <ProductCard
+                                    v-for="card in favoriteProductCards"
+                                    :key="card.id"
+                                    :product="card"
+                                />
+                            </div>
                         </div>
                     </section>
                 </div>

@@ -42,6 +42,7 @@ class ProductResource extends JsonResource
             'average_rating' => $this->reviews_avg_rating,
             'ratings_count' => $this->reviews_count,
             'reviews' => ProductReviewResource::collection($this->whenLoaded('latestReviews')),
+            'is_favorited' => $this->whenHas('is_favorited'),
             'updated_at' => $this->updated_at,
         ];
     }

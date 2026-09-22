@@ -40,6 +40,12 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                // Same gates as the admin / seller route groups, so the header
+                // only offers dashboards the user can actually open.
+                'can' => [
+                    'admin' => $request->user()?->can('admin') ?? false,
+                    'seller' => $request->user()?->can('seller') ?? false,
+                ],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

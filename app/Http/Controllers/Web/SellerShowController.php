@@ -9,12 +9,13 @@ use App\Http\Resources\Api\V1\ProductReviewResource;
 use App\Http\Resources\Api\V1\SellerResource;
 use App\Models\ProductReview;
 use App\Models\Seller;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SellerShowController extends Controller
 {
-    public function __invoke(string $slug): Response
+    public function __invoke(Request $request, string $slug): Response
     {
         $seller = Seller::query()
             ->where('status', SellerStatus::Active)
@@ -24,6 +25,7 @@ class SellerShowController extends Controller
                 ->with(['images', 'category'])
                 ->withAvg('reviews', 'rating')
                 ->withCount('reviews')])
+            ->withCount('followers')
             ->firstOrFail();
 
         $reviews = ProductReview::query()
@@ -39,6 +41,7 @@ class SellerShowController extends Controller
 
         $seller->setAttribute('average_rating', $reviews->avg('rating'));
         $seller->setAttribute('ratings_count', $reviews->count());
+        $seller->setAttribute('is_followed', $request->user()?->followsSeller($seller) ?? false);
 
         return Inertia::render('Store/Show', [
             'seller' => new SellerResource($seller),

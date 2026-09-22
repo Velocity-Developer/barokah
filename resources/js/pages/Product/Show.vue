@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Heart } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
+import { login } from '@/routes';
+import { favorite as productFavorite } from '@/routes/products';
 import { show as sellerShow } from '@/routes/sellers';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
@@ -48,6 +51,7 @@ type DetailProduct = {
     average_rating?: number | null;
     ratings_count?: number;
     reviews?: ProductReview[] | { data: ProductReview[] };
+    is_favorited?: boolean;
 };
 
 const props = defineProps<{
@@ -179,6 +183,37 @@ function decrement(): void {
     if (quantity.value > 1) {
         quantity.value -= 1;
     }
+}
+
+const page = usePage();
+const isLoggedIn = computed<boolean>(() => Boolean(page.props.auth?.user));
+const isFavorited = ref<boolean>(product.value.is_favorited ?? false);
+const favoriteProcessing = ref(false);
+
+watch(product, (value) => {
+    isFavorited.value = value.is_favorited ?? false;
+});
+
+function toggleFavorite(): void {
+    if (favoriteProcessing.value) {
+        return;
+    }
+
+    const previous = isFavorited.value;
+    isFavorited.value = !previous;
+
+    router.post(productFavorite(product.value.slug).url, {}, {
+        preserveScroll: true,
+        onStart: () => {
+            favoriteProcessing.value = true;
+        },
+        onError: () => {
+            isFavorited.value = previous;
+        },
+        onFinish: () => {
+            favoriteProcessing.value = false;
+        },
+    });
 }
 
 function addToCart(): void {
@@ -432,6 +467,33 @@ function addToCart(): void {
                             "
                         >
                             Buy Now
+                        </Link>
+                        <button
+                            v-if="isLoggedIn"
+                            type="button"
+                            :disabled="favoriteProcessing"
+                            :aria-pressed="isFavorited"
+                            :aria-label="isFavorited ? 'Hapus dari favorit' : 'Tambah ke favorit'"
+                            :title="isFavorited ? 'Hapus dari favorit' : 'Tambah ke favorit'"
+                            class="flex h-12 items-center justify-center gap-2 rounded-sm border-2 border-[var(--border-default)] bg-white px-4 font-semibold text-[var(--text-secondary)] transition hover:border-[var(--brand-primary)] disabled:opacity-70 sm:w-12 sm:px-0"
+                            @click="toggleFavorite"
+                        >
+                            <Heart
+                                class="h-5 w-5"
+                                :class="isFavorited ? 'fill-[var(--brand-primary)] text-[var(--brand-primary)]' : ''"
+                                aria-hidden="true"
+                            />
+                            <span class="sm:sr-only">Favorit</span>
+                        </button>
+                        <Link
+                            v-else
+                            :href="login()"
+                            aria-label="Login untuk menambah favorit"
+                            title="Login untuk menambah favorit"
+                            class="flex h-12 items-center justify-center gap-2 rounded-sm border-2 border-[var(--border-default)] bg-white px-4 font-semibold text-[var(--text-secondary)] transition hover:border-[var(--brand-primary)] sm:w-12 sm:px-0"
+                        >
+                            <Heart class="h-5 w-5" aria-hidden="true" />
+                            <span class="sm:sr-only">Favorit</span>
                         </Link>
                     </div>
                     <p class="mt-2 text-xs text-[var(--text-muted)]">

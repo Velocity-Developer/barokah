@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { login } from '@/routes';
+import { follow as sellerFollow } from '@/routes/sellers';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
 import {
@@ -46,6 +48,41 @@ const productList = computed<HomeProductItem[]>(() =>
 const reviewList = computed<StoreReview[]>(() =>
     Array.isArray(props.reviews) ? props.reviews : props.reviews.data,
 );
+
+const page = usePage();
+const isLoggedIn = computed<boolean>(() => Boolean(page.props.auth?.user));
+const isFollowed = ref<boolean>(seller.value.is_followed ?? false);
+const followersCount = ref<number>(seller.value.followers_count ?? 0);
+const followProcessing = ref(false);
+
+watch(seller, (value) => {
+    isFollowed.value = value.is_followed ?? false;
+    followersCount.value = value.followers_count ?? 0;
+});
+
+function toggleFollow(): void {
+    if (followProcessing.value) {
+        return;
+    }
+
+    const previous = { followed: isFollowed.value, count: followersCount.value };
+    isFollowed.value = !previous.followed;
+    followersCount.value = Math.max(0, previous.count + (previous.followed ? -1 : 1));
+
+    router.post(sellerFollow(seller.value.slug).url, {}, {
+        preserveScroll: true,
+        onStart: () => {
+            followProcessing.value = true;
+        },
+        onError: () => {
+            isFollowed.value = previous.followed;
+            followersCount.value = previous.count;
+        },
+        onFinish: () => {
+            followProcessing.value = false;
+        },
+    });
+}
 
 const activeTab = ref<'products' | 'rating'>('products');
 const reviewsPerPage = 5;
@@ -210,13 +247,28 @@ const productCards = computed(() =>
                                 Chat
                             </button>
                             <button
+                                v-if="isLoggedIn"
                                 type="button"
-                                disabled
-                                title="Segera hadir"
-                                class="cursor-not-allowed rounded-sm border border-[var(--border-default)] px-4 py-2 text-sm text-[var(--text-faint)]"
+                                :disabled="followProcessing"
+                                :aria-pressed="isFollowed"
+                                :class="[
+                                    'rounded-sm border px-4 py-2 text-sm font-medium transition disabled:opacity-70',
+                                    isFollowed
+                                        ? 'border-[var(--border-default)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-muted)]'
+                                        : 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)]',
+                                ]"
+                                @click="toggleFollow"
+                            >
+                                {{ isFollowed ? 'Mengikuti' : 'Follow' }}
+                            </button>
+                            <Link
+                                v-else
+                                :href="login()"
+                                title="Login untuk follow"
+                                class="rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-primary-hover)]"
                             >
                                 Follow
-                            </button>
+                            </Link>
                         </div>
                     </div>
 
@@ -249,9 +301,9 @@ const productCards = computed(() =>
                                 Pengikut
                             </dt>
                             <dd
-                                class="mt-1 text-lg font-semibold text-[var(--text-muted)]"
+                                class="mt-1 text-lg font-semibold text-[var(--brand-primary)]"
                             >
-                                —
+                                {{ followersCount }}
                             </dd>
                         </div>
                     </dl>

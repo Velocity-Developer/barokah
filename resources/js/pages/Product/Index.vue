@@ -113,6 +113,12 @@ function applyFilters(): void {
     );
 }
 
+function selectCategory(slug: string): void {
+    selectedCategory.value = slug;
+    search.value = '';
+    applyFilters();
+}
+
 function resetFilters(): void {
     search.value = '';
     sort.value = 'latest';
@@ -162,8 +168,7 @@ function resetFilters(): void {
                                             : 'text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]',
                                     ]"
                                     @click="
-                                        selectedCategory = '';
-                                        applyFilters();
+                                        selectCategory('')
                                     "
                                 >
                                     Semua produk
@@ -182,8 +187,7 @@ function resetFilters(): void {
                                             : 'text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]',
                                     ]"
                                     @click="
-                                        selectedCategory = category.slug;
-                                        applyFilters();
+                                        selectCategory(category.slug)
                                     "
                                 >
                                     {{ category.name }}
