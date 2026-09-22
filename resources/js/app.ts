@@ -23,6 +23,7 @@ void createInertiaApp({
                 name.startsWith('Checkout/') ||
                 name.startsWith('Coupon/') ||
                 name.startsWith('Tracking/') ||
+                name.startsWith('Help/') ||
                 name.startsWith('Rating/') ||
                 name.startsWith('Store/') ||
                 name.startsWith('Profile/'):

@@ -36,6 +36,7 @@ const accountLinks: FooterLink[] = [
     { label: 'My profile', href: profileShow().url },
     { label: 'Seller center', href: sellerCenter().url },
     { label: 'Cart', href: '/cart' },
+    { label: 'Help Center', href: '/help' },
 ];
 
 const contactItems = computed<ContactItem[]>(() => {

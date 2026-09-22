@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Heart } from '@lucide/vue';
+import { Check, Heart, MapPin, MessageCircle, Plus, Star, Store } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { login } from '@/routes';
 import { favorite as productFavorite } from '@/routes/products';
@@ -14,6 +14,7 @@ import {
 import { useCheckoutStore } from '@/stores/checkout';
 import { useCartStore } from '@/stores/cart';
 import { useSettingsStore } from '@/stores/settings';
+import { sellerWhatsappLink, useSellerFollow } from '@/composables/useSellerFollow';
 
 type DetailImage = {
     id: number;
@@ -31,6 +32,22 @@ type ProductReview = {
     user?: { name: string; profile_photo_url?: string | null };
 };
 
+type DetailSeller = {
+    store_name: string;
+    slug: string;
+    profile_photo_url?: string | null;
+    city?: string | null;
+    state?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    average_rating?: number | string | null;
+    ratings_count?: number;
+    products_count?: number;
+    followers_count?: number;
+    is_followed?: boolean;
+    joined_at?: string | null;
+};
+
 type DetailProduct = {
     id: number;
     name: string;
@@ -44,7 +61,7 @@ type DetailProduct = {
     stock: number;
     weight_grams?: number;
     status: string;
-    seller: { store_name: string; slug: string; profile_photo_url?: string | null } | null;
+    seller: DetailSeller | null;
     category: { name: string; slug: string } | null;
     images: DetailImage[] | { data: DetailImage[] };
     primary_image: string | null;
@@ -192,6 +209,24 @@ const favoriteProcessing = ref(false);
 
 watch(product, (value) => {
     isFavorited.value = value.is_favorited ?? false;
+});
+
+const storeSeller = computed<DetailSeller | null>(() => product.value.seller);
+const {
+    isFollowed,
+    followersCount,
+    followProcessing,
+    toggleFollow,
+} = useSellerFollow(storeSeller);
+
+const storeLocation = computed<string>(
+    () => product.value.seller?.city || product.value.seller?.state || 'Marketplace seller',
+);
+const storeWhatsapp = computed<string | null>(() => sellerWhatsappLink(product.value.seller));
+const storeJoined = computed<string>(() => {
+    const joined = product.value.seller?.joined_at;
+
+    return joined ? new Date(joined).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
 });
 
 function toggleFavorite(): void {
@@ -505,39 +540,119 @@ function addToCart(): void {
             <!-- Store card -->
             <section
                 v-if="product.seller"
-                class="mt-4 flex flex-col gap-3 rounded-sm border border-[var(--border-default)] bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                aria-label="Store"
+                class="mt-4 grid gap-4 rounded-sm border border-[var(--border-default)] bg-white p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-center lg:gap-6"
             >
-                <div class="flex items-center gap-3">
-                    <img
-                        v-if="product.seller.profile_photo_url"
-                        :src="product.seller.profile_photo_url"
-                        alt=""
-                        class="size-12 shrink-0 rounded-full object-cover"
-                    />
-                    <div
-                        v-else
-                        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-navy)] text-lg font-semibold text-white"
-                        aria-hidden="true"
-                    >
-                        {{ product.seller.store_name.charAt(0).toUpperCase() }}
-                    </div>
-                    <div>
-                        <h2
-                            class="text-sm font-semibold text-[var(--text-primary)]"
+                <div class="flex items-start gap-3 lg:border-r lg:border-[var(--border-soft)] lg:pr-6">
+                    <Link :href="sellerShow.url(product.seller.slug)" class="shrink-0" :aria-label="product.seller.store_name">
+                        <img
+                            v-if="product.seller.profile_photo_url"
+                            :src="product.seller.profile_photo_url"
+                            alt=""
+                            class="size-16 rounded-full border border-[var(--border-soft)] object-cover"
+                        />
+                        <span
+                            v-else
+                            class="flex size-16 items-center justify-center rounded-full bg-[var(--accent-navy)] text-xl font-semibold text-white"
+                            aria-hidden="true"
                         >
-                            {{ product.seller.store_name }}
-                        </h2>
-                        <p class="text-xs text-[var(--text-muted)]">
-                            See all products from this store
+                            {{ product.seller.store_name.charAt(0).toUpperCase() }}
+                        </span>
+                    </Link>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <Link
+                                :href="sellerShow.url(product.seller.slug)"
+                                class="truncate text-base font-semibold text-[var(--text-primary)] hover:text-[var(--brand-primary)]"
+                            >
+                                {{ product.seller.store_name }}
+                            </Link>
+                            <span class="rounded-sm bg-[var(--brand-primary-soft)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--brand-primary)]">
+                                Active
+                            </span>
+                        </div>
+                        <p class="mt-0.5 flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                            <MapPin class="h-3 w-3 shrink-0" aria-hidden="true" />
+                            {{ storeLocation }}
                         </p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <a
+                                v-if="storeWhatsapp"
+                                :href="storeWhatsapp"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex h-9 items-center gap-1.5 rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary-soft)] px-3 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white"
+                            >
+                                <MessageCircle class="h-4 w-4" aria-hidden="true" />
+                                Chat
+                            </a>
+                            <button
+                                v-if="isLoggedIn"
+                                type="button"
+                                :disabled="followProcessing"
+                                :aria-pressed="isFollowed"
+                                :class="[
+                                    'inline-flex h-9 items-center gap-1.5 rounded-sm border px-3 text-sm font-medium transition disabled:opacity-70',
+                                    isFollowed
+                                        ? 'border-[var(--border-default)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-muted)]'
+                                        : 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)]',
+                                ]"
+                                @click="toggleFollow"
+                            >
+                                <component :is="isFollowed ? Check : Plus" class="h-4 w-4" aria-hidden="true" />
+                                {{ isFollowed ? 'Following' : 'Follow' }}
+                            </button>
+                            <Link
+                                v-else
+                                :href="login()"
+                                title="Log in to follow"
+                                class="inline-flex h-9 items-center gap-1.5 rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary)] px-3 text-sm font-medium text-white hover:bg-[var(--brand-primary-hover)]"
+                            >
+                                <Plus class="h-4 w-4" aria-hidden="true" />
+                                Follow
+                            </Link>
+                            <Link
+                                :href="sellerShow.url(product.seller.slug)"
+                                class="inline-flex h-9 items-center gap-1.5 rounded-sm border border-[var(--border-default)] px-3 text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
+                            >
+                                <Store class="h-4 w-4" aria-hidden="true" />
+                                Visit store
+                            </Link>
+                        </div>
                     </div>
                 </div>
-                <Link
-                    :href="sellerShow.url(product.seller.slug)"
-                    class="inline-flex h-10 items-center justify-center rounded-sm border border-[var(--brand-primary)] px-4 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary-soft)]"
-                >
-                    Visit store
-                </Link>
+
+                <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+                    <div>
+                        <dt class="text-xs text-[var(--text-muted)]">Rating</dt>
+                        <dd class="mt-0.5 flex items-center gap-1 font-semibold text-[var(--brand-primary)]">
+                            <Star class="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
+                            <template v-if="product.seller.ratings_count">
+                                {{ Number(product.seller.average_rating ?? 0).toFixed(1) }}
+                                <span class="font-normal text-[var(--text-muted)]">({{ product.seller.ratings_count }})</span>
+                            </template>
+                            <span v-else class="font-normal text-[var(--text-muted)]">No reviews</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-[var(--text-muted)]">Products</dt>
+                        <dd class="mt-0.5 font-semibold text-[var(--brand-primary)]">
+                            {{ product.seller.products_count ?? 0 }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-[var(--text-muted)]">Followers</dt>
+                        <dd class="mt-0.5 font-semibold text-[var(--brand-primary)]">
+                            {{ followersCount }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-[var(--text-muted)]">Joined</dt>
+                        <dd class="mt-0.5 font-semibold text-[var(--brand-primary)]">
+                            {{ storeJoined }}
+                        </dd>
+                    </div>
+                </dl>
             </section>
 
             <!-- Specification card -->

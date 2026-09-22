@@ -1,6 +1,88 @@
+<script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
+import {
+    Heart,
+    LifeBuoy,
+    Sparkles,
+    Store,
+    Tag,
+    Ticket,
+    Truck,
+    Zap,
+} from '@lucide/vue';
+import type { Component } from 'vue';
+import { computed } from 'vue';
+import { sellerCenter } from '@/routes';
+import { index as productsIndex } from '@/routes/products';
+import { show as profileShow } from '@/routes/profile';
+import { useSettingsStore } from '@/stores/settings';
+import type { HomeCategoryItem } from '@/types/marketplace';
+
+type ServiceTile = {
+    key: string;
+    label: string;
+    href: string;
+    icon: Component;
+};
+
+const props = withDefaults(
+    defineProps<{
+        categories?: HomeCategoryItem[];
+    }>(),
+    { categories: () => [] },
+);
+
+const MAX_TILES = 10;
+
+const { getSettingValue } = useSettingsStore();
+
+const services = computed<ServiceTile[]>(() => {
+    const leading: ServiceTile[] = [
+        { key: 'flash-sale', label: 'Flash Sale', href: '/flash-sale', icon: Zap },
+        { key: 'vouchers', label: 'Vouchers', href: '/coupons', icon: Ticket },
+        {
+            key: 'new-arrivals',
+            label: 'New Arrivals',
+            href: productsIndex({ query: { sort: 'latest' } }).url,
+            icon: Sparkles,
+        },
+    ];
+
+    const trailing: ServiceTile[] = [
+        {
+            key: 'favorites',
+            label: 'Favorites',
+            href: profileShow({ query: { tab: 'favorite_products' } }).url,
+            icon: Heart,
+        },
+        { key: 'track-order', label: 'Track Order', href: '/tracking', icon: Truck },
+        {
+            key: 'sell',
+            label: `Sell on ${getSettingValue<string>('branding.site_name', 'Barokah')}`,
+            href: sellerCenter().url,
+            icon: Store,
+        },
+        { key: 'help', label: 'Help', href: '/help', icon: LifeBuoy },
+    ];
+
+    // Categories fill the remaining slots, in the order admins set.
+    const categoryTiles: ServiceTile[] = props.categories
+        .slice(0, Math.max(0, MAX_TILES - leading.length - trailing.length))
+        .map((category) => ({
+            key: `category-${category.slug}`,
+            label: category.name,
+            href: productsIndex({ query: { category: category.slug } }).url,
+            icon: Tag,
+        }));
+
+    return [...leading, ...categoryTiles, ...trailing];
+});
+
+</script>
+
 <template>
     <section
-        aria-label="Quick services preview"
+        aria-label="Quick services"
         class="mt-5 rounded-sm bg-white p-4 shadow-[var(--shadow-card)]"
     >
         <div
@@ -10,46 +92,27 @@
                 Quick Services
             </h2>
         </div>
-        <p class="mt-2 text-[11px] text-[var(--text-muted)]">
-            UI tiles only. Service destinations are TBC (spec §24) — no
-            finance/pay-later/games backend.
-        </p>
         <div
             class="mt-3 grid grid-cols-5 gap-2 md:grid-cols-8 lg:grid-cols-10"
         >
-            <div
+            <Link
                 v-for="service in services"
-                :key="service"
-                class="flex flex-col items-center gap-1.5 rounded-sm p-2 transition hover:-translate-y-0.5"
+                :key="service.key"
+                :href="service.href"
+                class="group flex flex-col items-center gap-1.5 rounded-sm p-2 transition hover:-translate-y-0.5"
             >
                 <span
-                    class="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand-primary-soft)] text-base font-bold md:h-[48px] md:w-[48px]"
-                    style="color: var(--brand-primary)"
+                    class="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand-primary-soft)] text-[var(--brand-primary)] transition group-hover:bg-[var(--brand-primary)] group-hover:text-white md:h-[48px] md:w-[48px]"
                     aria-hidden="true"
                 >
-                    {{ service.charAt(0) }}
+                    <component :is="service.icon" class="h-5 w-5" />
                 </span>
                 <span
                     class="line-clamp-2 text-center text-[11px] text-[var(--text-secondary)] md:text-[12px]"
                 >
-                    {{ service }}
+                    {{ service.label }}
                 </span>
-            </div>
+            </Link>
         </div>
     </section>
 </template>
-
-<script setup lang="ts">
-const services = [
-    'Vouchers',
-    'Top Up',
-    'Bills',
-    'Food',
-    'Mall',
-    'Live',
-    'Games',
-    'Finance',
-    'Travel',
-    'More',
-];
-</script>

@@ -28,6 +28,7 @@ Route::get('products', ProductIndexController::class)->name('products.index');
 Route::get('flash-sale', FlashSaleController::class)->name('flash-sale.index');
 Route::get('coupons', CouponController::class)->name('coupons.index');
 Route::get('tracking', TrackingController::class)->name('tracking.index');
+Route::inertia('help', 'Help/Index')->name('help');
 Route::get('products/{slug}', ProductShowController::class)->name('products.show');
 Route::get('sellers/{slug}', SellerShowController::class)->name('sellers.show');
 Route::get('cart', CartController::class)->name('cart.show');

@@ -22,6 +22,11 @@ class CategoryResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'products_count' => $this->whenCounted('products'),
+            'image_url' => $this->whenLoaded('products', function (): ?string {
+                $images = $this->products->first()?->images;
+
+                return $images?->firstWhere('is_primary', true)?->url ?? $images?->first()?->url;
+            }),
         ];
     }
 }

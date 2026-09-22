@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
 import { login } from '@/routes';
-import { follow as sellerFollow } from '@/routes/sellers';
+import { sellerWhatsappLink, useSellerFollow } from '@/composables/useSellerFollow';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
 import {
@@ -49,40 +49,7 @@ const reviewList = computed<StoreReview[]>(() =>
     Array.isArray(props.reviews) ? props.reviews : props.reviews.data,
 );
 
-const page = usePage();
-const isLoggedIn = computed<boolean>(() => Boolean(page.props.auth?.user));
-const isFollowed = ref<boolean>(seller.value.is_followed ?? false);
-const followersCount = ref<number>(seller.value.followers_count ?? 0);
-const followProcessing = ref(false);
-
-watch(seller, (value) => {
-    isFollowed.value = value.is_followed ?? false;
-    followersCount.value = value.followers_count ?? 0;
-});
-
-function toggleFollow(): void {
-    if (followProcessing.value) {
-        return;
-    }
-
-    const previous = { followed: isFollowed.value, count: followersCount.value };
-    isFollowed.value = !previous.followed;
-    followersCount.value = Math.max(0, previous.count + (previous.followed ? -1 : 1));
-
-    router.post(sellerFollow(seller.value.slug).url, {}, {
-        preserveScroll: true,
-        onStart: () => {
-            followProcessing.value = true;
-        },
-        onError: () => {
-            isFollowed.value = previous.followed;
-            followersCount.value = previous.count;
-        },
-        onFinish: () => {
-            followProcessing.value = false;
-        },
-    });
-}
+const { isLoggedIn, isFollowed, followersCount, followProcessing, toggleFollow } = useSellerFollow(seller);
 
 const activeTab = ref<'products' | 'rating'>('products');
 const reviewsPerPage = 5;
@@ -149,14 +116,7 @@ const location = computed(
     () => seller.value.city || seller.value.state || null,
 );
 
-const whatsappLink = computed<string | null>(() => {
-    const number = (seller.value.whatsapp || seller.value.phone || '').replace(
-        /\D/g,
-        '',
-    );
-
-    return number ? `https://wa.me/${number}` : null;
-});
+const whatsappLink = computed<string | null>(() => sellerWhatsappLink(seller.value));
 
 const productCards = computed(() =>
     productList.value.map((product) => ({

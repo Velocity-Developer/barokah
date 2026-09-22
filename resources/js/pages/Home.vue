@@ -15,6 +15,7 @@ import type {
 const props = defineProps<{
     categories: HomeCategoryItem[] | { data: HomeCategoryItem[] };
     latestProducts: HomeProductItem[] | { data: HomeProductItem[] };
+    latestProductsHasMore?: boolean;
     flashSaleProducts: HomeProductItem[] | { data: HomeProductItem[] };
     bestSellerProducts: HomeProductItem[] | { data: HomeProductItem[] };
     sellers: HomeSellerItem[] | { data: HomeSellerItem[] };
@@ -27,11 +28,14 @@ function unwrap<T>(value: T[] | { data: T[] }): T[] {
 
 <template>
     <MarketplaceLayout show-hero>
-        <QuickServices />
+        <QuickServices :categories="unwrap(categories)" />
         <FlashSaleSection :products="unwrap(flashSaleProducts)" />
         <BestSellerSection :products="unwrap(bestSellerProducts)" />
         <SellerSection :sellers="unwrap(sellers)" />
         <CategorySection :categories="unwrap(categories)" />
-        <RecommendationSection :products="unwrap(latestProducts)" />
+        <RecommendationSection
+            :products="unwrap(latestProducts)"
+            :has-more="latestProductsHasMore"
+        />
     </MarketplaceLayout>
 </template>

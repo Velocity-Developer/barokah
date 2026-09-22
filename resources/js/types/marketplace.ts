@@ -70,6 +70,7 @@ export type HomeSellerItem = {
     average_rating?: number | null;
     ratings_count?: number;
     followers_count?: number;
+    products_count?: number;
     is_followed?: boolean;
 };
 
@@ -79,6 +80,7 @@ export type HomeCategoryItem = {
     slug: string;
     description: string | null;
     products_count?: number;
+    image_url?: string | null;
 };
 
 /**

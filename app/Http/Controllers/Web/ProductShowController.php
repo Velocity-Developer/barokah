@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\ProductResource;
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,12 +22,28 @@ class ProductShowController extends Controller
         $product = Product::query()
             ->active()
             ->where('slug', $slug)
-            ->with(['seller.user', 'category', 'images', 'latestReviews.user'])
+            ->with([
+                'seller' => fn ($query) => $query
+                    ->with('user')
+                    ->withCount([
+                        'products' => fn (Builder $products) => $products->where('status', ProductStatus::Active),
+                        'followers',
+                        'productReviews as ratings_count' => fn (Builder $reviews) => $reviews->where('products.status', ProductStatus::Active),
+                    ])
+                    ->withAvg(
+                        ['productReviews as average_rating' => fn (Builder $reviews) => $reviews->where('products.status', ProductStatus::Active)],
+                        'rating',
+                    ),
+                'category',
+                'images',
+                'latestReviews.user',
+            ])
             ->withAvg('reviews', 'rating')
             ->withCount('reviews')
             ->firstOrFail();
 
         $product->setAttribute('is_favorited', $request->user()?->hasFavorited($product) ?? false);
+        $product->seller?->setAttribute('is_followed', $request->user()?->followsSeller($product->seller) ?? false);
 
         $sellerProducts = Product::query()
             ->active()

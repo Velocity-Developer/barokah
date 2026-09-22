@@ -1,17 +1,44 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import ProductCard from '@/components/product/ProductCard.vue';
 import type { HomeProductItem, ProductCardData } from '@/types/marketplace';
 import { toProductCardData } from '@/types/marketplace';
-import { computed } from 'vue';
 
 const props = defineProps<{
     products: HomeProductItem[];
+    hasMore?: boolean;
     loading?: boolean;
 }>();
 
 const cards = computed<ProductCardData[]>(() =>
     props.products.map(toProductCardData),
 );
+
+const page = ref(1);
+const isLoadingMore = ref(false);
+
+/** Fetch the next page; the server merges it into `latestProducts`. */
+function loadMore(): void {
+    if (isLoadingMore.value || !props.hasMore) {
+        return;
+    }
+
+    router.reload({
+        only: ['latestProducts', 'latestProductsHasMore'],
+        data: { recommendations_page: page.value + 1 },
+        preserveUrl: true,
+        onStart: () => {
+            isLoadingMore.value = true;
+        },
+        onSuccess: () => {
+            page.value += 1;
+        },
+        onFinish: () => {
+            isLoadingMore.value = false;
+        },
+    });
+}
 </script>
 
 <template>
@@ -61,6 +88,25 @@ const cards = computed<ProductCardData[]>(() =>
                 :key="card.id"
                 :product="card"
             />
+        </div>
+        <div v-if="!loading && cards.length > 0" class="mt-4 flex justify-center">
+            <button
+                v-if="hasMore"
+                type="button"
+                :disabled="isLoadingMore"
+                class="inline-flex h-10 min-w-48 items-center justify-center gap-2 rounded-sm border border-[var(--brand-primary)] bg-white px-6 text-sm font-medium text-[var(--brand-primary)] transition hover:bg-[var(--brand-primary)] hover:text-white disabled:cursor-wait disabled:opacity-70"
+                @click="loadMore"
+            >
+                <span
+                    v-if="isLoadingMore"
+                    class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                    aria-hidden="true"
+                />
+                {{ isLoadingMore ? 'Loading...' : 'Load more' }}
+            </button>
+            <p v-else class="text-xs text-[var(--text-muted)]">
+                You've reached the end of the list.
+            </p>
         </div>
     </section>
 </template>

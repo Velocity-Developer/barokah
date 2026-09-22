@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\ProductStatus;
 use App\Enums\SellerStatus;
+use App\Models\Product;
 use App\Models\Seller;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -76,4 +78,24 @@ it('lists only active followed sellers on the profile page', function () {
             ->has('followedSellers.data', 1)
             ->where('followedSellers.data.0.id', $active->id)
             ->where('followedSellers.data.0.followers_count', 1));
+});
+
+it('shows store stats and follow state on the product page', function () {
+    $seller = Seller::factory()->create(['status' => SellerStatus::Active]);
+    $product = Product::factory()->create(['seller_id' => $seller->id]);
+    Product::factory()->create(['seller_id' => $seller->id, 'status' => ProductStatus::Draft]);
+    $follower = User::factory()->create();
+    $seller->followers()->attach($follower);
+
+    $this->get(route('products.show', $product->slug))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('product.data.seller.products_count', 1)
+            ->where('product.data.seller.followers_count', 1)
+            ->where('product.data.seller.is_followed', false)
+            ->has('product.data.seller.joined_at')
+            ->missing('product.data.seller.bank_account'));
+
+    $this->actingAs($follower)
+        ->get(route('products.show', $product->slug))
+        ->assertInertia(fn (Assert $page) => $page->where('product.data.seller.is_followed', true));
 });

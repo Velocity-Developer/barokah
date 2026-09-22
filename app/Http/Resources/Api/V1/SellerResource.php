@@ -39,6 +39,8 @@ class SellerResource extends JsonResource
             'average_rating' => $this->average_rating,
             'ratings_count' => $this->ratings_count ?? 0,
             'followers_count' => $this->whenCounted('followers'),
+            'products_count' => $this->whenCounted('products'),
+            'joined_at' => $this->created_at?->toIso8601String(),
             'is_followed' => $this->whenHas('is_followed'),
         ];
     }

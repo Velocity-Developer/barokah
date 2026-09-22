@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { login, register, sellerCenter } from '@/routes';
+import { help, login, register, sellerCenter } from '@/routes';
 import { show as profileShow } from '@/routes/profile';
 </script>
 
@@ -18,11 +18,7 @@ import { show as profileShow } from '@/routes/profile';
                     Seller Center
                 </Link>
                 <span aria-hidden="true" class="opacity-50">|</span>
-                <Link
-                    href="/products"
-                    class="hover:underline"
-                    title="Help is a UI placeholder (TBC, no backend)"
-                >
+                <Link :href="help()" class="hover:underline">
                     Help
                 </Link>
             </div>
