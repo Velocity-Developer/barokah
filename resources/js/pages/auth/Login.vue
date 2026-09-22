@@ -41,8 +41,8 @@ defineProps<{
         v-slot="{ errors, processing }"
         class="flex flex-col gap-6"
     >
-        <div class="grid gap-6">
-            <div class="grid gap-2">
+        <div class="grid content-start gap-6">
+            <div class="grid content-start gap-2">
                 <Label for="email">Email address</Label>
                 <Input
                     id="email"
@@ -57,7 +57,7 @@ defineProps<{
                 <InputError :message="errors.email" />
             </div>
 
-            <div class="grid gap-2">
+            <div class="grid content-start gap-2">
                 <div class="flex items-center justify-between">
                     <Label for="password">Password</Label>
                     <TextLink

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProductStatus;
+use App\Enums\SellerStatus;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -61,12 +62,24 @@ class Product extends Model
     }
 
     /**
-     * Only products visible to public browsing.
+     * Only products visible to public browsing: active products of active
+     * stores, so suspending a store takes its catalogue off the storefront.
      */
     #[Scope]
     protected function active(Builder $query): Builder
     {
-        return $query->where('status', ProductStatus::Active);
+        return $query
+            ->where($query->qualifyColumn('status'), ProductStatus::Active)
+            ->whereHas('seller', fn (Builder $seller) => $seller->where('status', SellerStatus::Active));
+    }
+
+    /**
+     * Whether the product can be browsed and bought (see the active scope).
+     */
+    public function isAvailable(): bool
+    {
+        return $this->status === ProductStatus::Active
+            && $this->seller()->where('status', SellerStatus::Active)->exists();
     }
 
     /**

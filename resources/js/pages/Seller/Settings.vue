@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { getMalaysiaCities } from '@/composables/useMalaysiaCities';
 import malaysiaStates from '@/data/malaysia-states.json';
 import RichTextEditor from '@/components/RichTextEditor.vue';
+import StoreMediaFields from '@/components/marketplace/StoreMediaFields.vue';
 
 type SellerSettingsDetail = {
     id: number;
@@ -17,6 +18,9 @@ type SellerSettingsDetail = {
     status: string;
     description?: string | null;
     profile_photo_url?: string | null;
+    banner_url?: string | null;
+    owner_photo_url?: string | null;
+    owner_banner_url?: string | null;
     phone?: string | null;
     whatsapp?: string | null;
     store_location?: string | null;
@@ -63,16 +67,8 @@ const isSaving = ref(false);
 const notice = ref<string | null>(null);
 const newPhoto = ref<File | null>(null);
 const removePhoto = ref(false);
-
-const newPhotoPreview = computed(() =>
-    newPhoto.value ? URL.createObjectURL(newPhoto.value) : null,
-);
-
-const visiblePhotoUrl = computed(() =>
-    removePhoto.value
-        ? null
-        : (newPhotoPreview.value ?? props.seller.profile_photo_url ?? null),
-);
+const newBanner = ref<File | null>(null);
+const removeBanner = ref(false);
 
 function csrfToken(): string {
     return (
@@ -82,27 +78,6 @@ function csrfToken(): string {
             ) as HTMLMetaElement | null
         )?.content ?? ''
     );
-}
-
-function onPhotoChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    newPhoto.value = file;
-    if (file) {
-        removePhoto.value = false;
-    }
-    input.value = '';
-}
-
-function clearNewPhoto(): void {
-    newPhoto.value = null;
-}
-
-function toggleRemovePhoto(): void {
-    removePhoto.value = !removePhoto.value;
-    if (removePhoto.value) {
-        newPhoto.value = null;
-    }
 }
 
 async function save(): Promise<void> {
@@ -128,6 +103,14 @@ async function save(): Promise<void> {
 
     if (removePhoto.value) {
         formData.append('remove_profile_photo', '1');
+    }
+
+    if (newBanner.value) {
+        formData.append('banner', newBanner.value);
+    }
+
+    if (removeBanner.value) {
+        formData.append('remove_banner', '1');
     }
 
     try {
@@ -162,6 +145,8 @@ async function save(): Promise<void> {
         notice.value = 'Store settings saved.';
         newPhoto.value = null;
         removePhoto.value = false;
+        newBanner.value = null;
+        removeBanner.value = false;
 
         router.reload({ only: ['seller'] });
     } catch {
@@ -185,13 +170,13 @@ async function save(): Promise<void> {
             </p>
 
             <form class="space-y-5" @submit.prevent="save">
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="store_name">Store name</Label>
                     <Input id="store_name" v-model="form.store_name" type="text" />
                     <InputError :message="errors.store_name" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="slug">Slug (optional)</Label>
                     <Input id="slug" v-model="form.slug" type="text" placeholder="auto-generated" />
                     <p class="text-muted-foreground text-xs">
@@ -200,55 +185,39 @@ async function save(): Promise<void> {
                     <InputError :message="errors.slug" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="description">Description</Label>
                     <RichTextEditor v-model="form.description" />
                     <InputError :message="errors.description" />
                 </div>
 
-                <div class="grid gap-2">
-                    <Label>Profile photo</Label>
-                    <img v-if="visiblePhotoUrl" :src="visiblePhotoUrl" :alt="seller.store_name"
-                        class="h-20 w-20 rounded border object-cover" />
-                    <p v-else class="text-muted-foreground text-xs">
-                        No profile photo.
-                    </p>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Input id="profile_photo" type="file" accept="image/jpeg,image/png,image/webp"
-                            @change="onPhotoChange" />
-                        <Button v-if="newPhoto" type="button" variant="outline" @click="clearNewPhoto">
-                            Clear new photo
-                        </Button>
-                        <Button v-if="
-                            !newPhoto &&
-                            (props.seller.profile_photo_url || removePhoto)
-                        " type="button" variant="outline" @click="toggleRemovePhoto">
-                            {{ removePhoto ? 'Undo remove' : 'Remove photo' }}
-                        </Button>
-                    </div>
-                    <p class="text-muted-foreground text-xs">
-                        JPG, PNG, or WebP. Max 2MB.
-                    </p>
-                    <InputError :message="errors['profile_photo'] ??
-                        errors.profile_photo ??
-                        errors.remove_profile_photo
-                        " />
-                </div>
+                <StoreMediaFields
+                    v-model:photo="newPhoto"
+                    v-model:remove-photo="removePhoto"
+                    v-model:banner="newBanner"
+                    v-model:remove-banner="removeBanner"
+                    :store-name="form.store_name || seller.store_name"
+                    :photo-url="seller.profile_photo_url"
+                    :banner-url="seller.banner_url"
+                    :fallback-photo-url="seller.profile_photo_url ? null : seller.owner_photo_url"
+                    :fallback-banner-url="seller.banner_url ? null : seller.owner_banner_url"
+                    :errors="errors"
+                />
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="phone">Phone number</Label>
                         <Input id="phone" v-model="form.phone" type="text" placeholder="03-55123456" />
                         <InputError :message="errors.phone" />
                     </div>
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="whatsapp">WhatsApp</Label>
                         <Input id="whatsapp" v-model="form.whatsapp" type="text" placeholder="60123456789" />
                         <InputError :message="errors.whatsapp" />
                     </div>
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="store_location">Store location</Label>
                     <textarea id="store_location" v-model="form.store_location" rows="2"
                         placeholder="No. 12, Jalan Meru, Klang, Selangor"
@@ -256,7 +225,7 @@ async function save(): Promise<void> {
                     <InputError :message="errors.store_location" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="bank_account">Bank account</Label>
                     <Input id="bank_account" v-model="form.bank_account" type="text"
                         placeholder="Maybank a.n. Nama Pemilik Rekening 1234567890" />
@@ -267,7 +236,7 @@ async function save(): Promise<void> {
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="state">State</Label>
                         <select id="state" v-model="form.state"
                             class="border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm">
@@ -278,7 +247,7 @@ async function save(): Promise<void> {
                         </select>
                         <InputError :message="errors.state" />
                     </div>
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="city">City</Label>
                         <select id="city" v-model="form.city" :disabled="form.state === '' || cityOptions.length === 0
                             "

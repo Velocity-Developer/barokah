@@ -10,6 +10,9 @@ import { getMalaysiaCities } from '@/composables/useMalaysiaCities';
 import { index, show } from '@/routes/admin/sellers';
 import malaysiaStates from '@/data/malaysia-states.json';
 import RichTextEditor from '@/components/RichTextEditor.vue';
+import StoreMediaFields from '@/components/marketplace/StoreMediaFields.vue';
+import { ArrowLeft } from '@lucide/vue';
+import { toast } from 'vue-sonner';
 
 type AdminSellerDetail = {
     id: number;
@@ -18,6 +21,9 @@ type AdminSellerDetail = {
     status: string;
     description?: string | null;
     profile_photo_url?: string | null;
+    banner_url?: string | null;
+    display_photo_url?: string | null;
+    display_banner_url?: string | null;
     phone?: string | null;
     whatsapp?: string | null;
     store_location?: string | null;
@@ -41,7 +47,13 @@ defineOptions({
     },
 });
 
-const statuses = ['active', 'pending', 'suspended'];
+const statuses = [
+    { value: 'active', label: 'Active', hint: 'Store page is live and the owner can sell.' },
+    { value: 'pending', label: 'Pending', hint: 'Waiting for approval; no seller access yet.' },
+    { value: 'suspended', label: 'Suspended', hint: 'Store page and products hidden; the owner loses seller access.' },
+];
+
+const statusHint = computed(() => statuses.find((status) => status.value === form.status)?.hint ?? '');
 
 const malaysiaStateOptions: string[] = (malaysiaStates as { name: string }[]).map(
     (stateOption) => stateOption.name,
@@ -75,17 +87,10 @@ watch(
 
 const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
-const notice = ref<string | null>(null);
 const newPhoto = ref<File | null>(null);
 const removePhoto = ref(false);
-
-const newPhotoPreview = computed(() =>
-    newPhoto.value ? URL.createObjectURL(newPhoto.value) : null,
-);
-
-const visiblePhotoUrl = computed(() =>
-    removePhoto.value ? null : (newPhotoPreview.value ?? props.seller.profile_photo_url ?? null),
-);
+const newBanner = ref<File | null>(null);
+const removeBanner = ref(false);
 
 function csrfToken(): string {
     return (
@@ -94,31 +99,9 @@ function csrfToken(): string {
     );
 }
 
-function onPhotoChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    newPhoto.value = file;
-    if (file) {
-        removePhoto.value = false;
-    }
-    input.value = '';
-}
-
-function clearNewPhoto(): void {
-    newPhoto.value = null;
-}
-
-function toggleRemovePhoto(): void {
-    removePhoto.value = !removePhoto.value;
-    if (removePhoto.value) {
-        newPhoto.value = null;
-    }
-}
-
 async function save(): Promise<void> {
     isSaving.value = true;
     errors.value = {};
-    notice.value = null;
 
     const formData = new FormData();
     formData.append('_method', 'PUT');
@@ -139,6 +122,14 @@ async function save(): Promise<void> {
 
     if (removePhoto.value) {
         formData.append('remove_profile_photo', '1');
+    }
+
+    if (newBanner.value) {
+        formData.append('banner', newBanner.value);
+    }
+
+    if (removeBanner.value) {
+        formData.append('remove_banner', '1');
     }
 
     try {
@@ -167,17 +158,19 @@ async function save(): Promise<void> {
                 first[field] = messages[0] ?? 'Invalid value.';
             }
             errors.value = first;
-            notice.value = data.message ?? 'Store could not be saved.';
+            toast.error(data.message ?? 'Store could not be saved.');
             return;
         }
 
-        notice.value = 'Store saved.';
+        toast.success('Store saved.');
         newPhoto.value = null;
         removePhoto.value = false;
+        newBanner.value = null;
+        removeBanner.value = false;
 
         router.reload({ only: ['seller'] });
     } catch {
-        notice.value = 'Stores are temporarily unavailable.';
+        toast.error('Stores are temporarily unavailable.');
     } finally {
         isSaving.value = false;
     }
@@ -187,237 +180,114 @@ async function save(): Promise<void> {
 <template>
     <Head :title="`Edit ${seller.store_name}`" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
-        <Link
-            :href="index()"
-            class="text-muted-foreground w-fit text-sm hover:underline"
-        >
-            ← Back to Stores
+    <form class="flex h-full flex-1 flex-col gap-4 p-4 md:p-6" @submit.prevent="save">
+        <Link :href="show(seller.id)" class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft class="size-4" aria-hidden="true" /> Back to store
         </Link>
-        <Heading
-            variant="small"
-            :title="`Edit ${seller.store_name}`"
-            :description="`${seller.slug} · ${seller.status}`"
-        />
 
-        <div
-            class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"
-        >
-            <p v-if="notice" class="mb-4 text-sm text-amber-600">{{ notice }}</p>
-
-            <form class="space-y-5" @submit.prevent="save">
-                <div class="grid gap-2">
-                    <Label for="store_name">Store name</Label>
-                    <Input
-                        id="store_name"
-                        v-model="form.store_name"
-                        type="text"
-                    />
-                    <InputError :message="errors.store_name" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="slug">Slug (optional)</Label>
-                    <Input
-                        id="slug"
-                        v-model="form.slug"
-                        type="text"
-                        placeholder="auto-generated"
-                    />
-                    <p class="text-muted-foreground text-xs">
-                        Leave blank to auto-generate from the store name.
-                    </p>
-                    <InputError :message="errors.slug" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="description">Description</Label>
-                    <RichTextEditor
-                        v-model="form.description"
-                    />
-                    <InputError :message="errors.description" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label>Profile photo</Label>
-                    <img
-                        v-if="visiblePhotoUrl"
-                        :src="visiblePhotoUrl"
-                        :alt="seller.store_name"
-                        class="h-20 w-20 rounded border object-cover"
-                    />
-                    <p v-else class="text-muted-foreground text-xs">
-                        No profile photo.
-                    </p>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Input
-                            id="profile_photo"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            @change="onPhotoChange"
-                        />
-                        <Button
-                            v-if="newPhoto"
-                            type="button"
-                            variant="outline"
-                            @click="clearNewPhoto"
-                        >
-                            Clear new photo
-                        </Button>
-                        <Button
-                            v-if="
-                                !newPhoto &&
-                                (props.seller.profile_photo_url || removePhoto)
-                            "
-                            type="button"
-                            variant="outline"
-                            @click="toggleRemovePhoto"
-                        >
-                            {{ removePhoto ? 'Undo remove' : 'Remove photo' }}
-                        </Button>
-                    </div>
-                    <p class="text-muted-foreground text-xs">
-                        JPG, PNG, or WebP. Max 2MB.
-                    </p>
-                    <InputError
-                        :message="
-                            errors['profile_photo'] ??
-                            errors.profile_photo ??
-                            errors.remove_profile_photo
-                        "
-                    />
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="grid gap-2">
-                        <Label for="phone">Phone number</Label>
-                        <Input
-                            id="phone"
-                            v-model="form.phone"
-                            type="text"
-                            placeholder="03-55123456"
-                        />
-                        <InputError :message="errors.phone" />
-                    </div>
-                    <div class="grid gap-2">
-                        <Label for="whatsapp">WhatsApp</Label>
-                        <Input
-                            id="whatsapp"
-                            v-model="form.whatsapp"
-                            type="text"
-                            placeholder="60123456789"
-                        />
-                        <InputError :message="errors.whatsapp" />
-                    </div>
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="store_location">Store location</Label>
-                    <textarea
-                        id="store_location"
-                        v-model="form.store_location"
-                        rows="2"
-                        placeholder="No. 12, Jalan Meru, Klang, Selangor"
-                        class="border-input min-h-9 w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-                    />
-                    <InputError :message="errors.store_location" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="bank_account">Bank account</Label>
-                    <Input
-                        id="bank_account"
-                        v-model="form.bank_account"
-                        type="text"
-                        placeholder="Maybank a.n. Nama Pemilik Rekening 1234567890"
-                    />
-                    <p class="text-muted-foreground text-xs">
-                        Example: Maybank a.n. Nama Pemilik Rekening 1234567890
-                    </p>
-                    <InputError :message="errors.bank_account" />
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="grid gap-2">
-                        <Label for="state">State</Label>
-                        <select
-                            id="state"
-                            v-model="form.state"
-                            class="border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm"
-                        >
-                            <option value="">No state</option>
-                            <option
-                                v-for="stateOption in malaysiaStateOptions"
-                                :key="stateOption"
-                                :value="stateOption"
-                            >
-                                {{ stateOption }}
-                            </option>
-                        </select>
-                        <InputError :message="errors.state" />
-                    </div>
-                    <div class="grid gap-2">
-                        <Label for="city">City</Label>
-                        <select
-                            id="city"
-                            v-model="form.city"
-                            :disabled="
-                                form.state === '' || cityOptions.length === 0
-                            "
-                            class="border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm disabled:opacity-50"
-                        >
-                            <option value="">
-                                {{
-                                    form.state === ''
-                                        ? 'Select state first'
-                                        : cityOptions.length === 0
-                                          ? 'No cities available'
-                                          : 'No city'
-                                }}
-                            </option>
-                            <option
-                                v-for="cityOption in cityOptions"
-                                :key="cityOption"
-                                :value="cityOption"
-                            >
-                                {{ cityOption }}
-                            </option>
-                        </select>
-                        <InputError :message="errors.city" />
-                    </div>
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="status">Status</Label>
-                    <select
-                        id="status"
-                        v-model="form.status"
-                        class="border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm"
-                    >
-                        <option
-                            v-for="status in statuses"
-                            :key="status"
-                            :value="status"
-                        >
-                            {{ status }}
-                        </option>
-                    </select>
-                    <InputError :message="errors.status" />
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <Button :disabled="isSaving" type="submit">
-                        {{ isSaving ? 'Saving…' : 'Save store' }}
-                    </Button>
-                    <a
-                        :href="show(seller.id).url"
-                        rel="noopener"
-                        class="text-muted-foreground text-sm hover:underline"
-                    >
-                        View detail
-                    </a>
-                </div>
-            </form>
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Heading variant="small" :title="`Edit ${seller.store_name}`" :description="`/${seller.slug}`" />
+            <div class="flex shrink-0 gap-2">
+                <Link :href="show(seller.id)" class="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Cancel</Link>
+                <Button :disabled="isSaving" type="submit">{{ isSaving ? 'Saving…' : 'Save store' }}</Button>
+            </div>
         </div>
-    </div>
+
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div class="grid content-start gap-4">
+                <section class="grid content-start gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                    <h2 class="text-base font-medium">Store profile</h2>
+                    <StoreMediaFields
+                        v-model:photo="newPhoto"
+                        v-model:remove-photo="removePhoto"
+                        v-model:banner="newBanner"
+                        v-model:remove-banner="removeBanner"
+                        :store-name="form.store_name || seller.store_name"
+                        :photo-url="seller.profile_photo_url"
+                        :banner-url="seller.banner_url"
+                        :fallback-photo-url="seller.profile_photo_url ? null : seller.display_photo_url"
+                        :fallback-banner-url="seller.banner_url ? null : seller.display_banner_url"
+                        :errors="errors"
+                    />
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="grid content-start gap-2">
+                            <Label for="store_name">Store name</Label>
+                            <Input id="store_name" v-model="form.store_name" type="text" required maxlength="255" />
+                            <InputError :message="errors.store_name" />
+                        </div>
+                        <div class="grid content-start gap-2">
+                            <Label for="slug">Store URL</Label>
+                            <div class="flex h-9 items-center overflow-hidden rounded-md border border-input shadow-xs focus-within:ring-2 focus-within:ring-ring/30">
+                                <span class="shrink-0 pl-3 text-sm text-muted-foreground">/sellers/</span>
+                                <input id="slug" v-model="form.slug" maxlength="255" class="h-full min-w-0 flex-1 bg-transparent pr-3 text-sm outline-none" />
+                            </div>
+                            <p class="text-xs text-muted-foreground">Leave empty to generate it from the store name.</p>
+                            <InputError :message="errors.slug" />
+                        </div>
+                    </div>
+                    <div class="grid content-start gap-2">
+                        <Label for="description">Description</Label>
+                        <RichTextEditor v-model="form.description" />
+                        <InputError :message="errors.description" />
+                    </div>
+                </section>
+
+                <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                    <h2 class="text-base font-medium">Contact &amp; location</h2>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="grid content-start gap-2">
+                            <Label for="phone">Phone number</Label>
+                            <Input id="phone" v-model="form.phone" type="tel" maxlength="30" />
+                            <InputError :message="errors.phone" />
+                        </div>
+                        <div class="grid content-start gap-2">
+                            <Label for="whatsapp">WhatsApp</Label>
+                            <Input id="whatsapp" v-model="form.whatsapp" type="tel" maxlength="30" placeholder="e.g. 60123456789" />
+                            <p class="text-xs text-muted-foreground">Include the country code so the Chat link works.</p>
+                            <InputError :message="errors.whatsapp" />
+                        </div>
+                        <div class="grid content-start gap-2">
+                            <Label for="state">State</Label>
+                            <select id="state" v-model="form.state" class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
+                                <option value="">Select state</option>
+                                <option v-for="stateOption in malaysiaStateOptions" :key="stateOption" :value="stateOption">{{ stateOption }}</option>
+                            </select>
+                            <InputError :message="errors.state" />
+                        </div>
+                        <div class="grid content-start gap-2">
+                            <Label for="city">City</Label>
+                            <select id="city" v-model="form.city" :disabled="form.state === ''" class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm disabled:opacity-50">
+                                <option value="">{{ form.state === '' ? 'Select a state first' : 'Select city' }}</option>
+                                <option v-for="cityOption in cityOptions" :key="cityOption" :value="cityOption">{{ cityOption }}</option>
+                            </select>
+                            <InputError :message="errors.city" />
+                        </div>
+                    </div>
+                    <div class="grid content-start gap-2">
+                        <Label for="store_location">Address</Label>
+                        <textarea id="store_location" v-model="form.store_location" rows="2" maxlength="500" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" />
+                        <InputError :message="errors.store_location" />
+                    </div>
+                </section>
+            </div>
+
+            <aside class="grid content-start gap-4">
+                <section class="grid content-start gap-2 rounded-xl border bg-card p-4 shadow-sm">
+                    <Label for="status" class="text-base font-medium">Status</Label>
+                    <select id="status" v-model="form.status" class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
+                        <option v-for="status in statuses" :key="status.value" :value="status.value">{{ status.label }}</option>
+                    </select>
+                    <p class="text-xs text-muted-foreground">{{ statusHint }}</p>
+                    <InputError :message="errors.status" />
+                </section>
+
+                <section class="grid content-start gap-2 rounded-xl border bg-card p-4 shadow-sm">
+                    <Label for="bank_account" class="text-base font-medium">Payout account</Label>
+                    <Input id="bank_account" v-model="form.bank_account" type="text" maxlength="255" placeholder="e.g. Maybank · Account name · 1234567890" />
+                    <p class="text-xs text-muted-foreground">Where the marketplace pays this store. Only admins and the owner can see it.</p>
+                    <InputError :message="errors.bank_account" />
+                </section>
+            </aside>
+        </div>
+    </form>
 </template>

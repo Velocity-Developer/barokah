@@ -21,14 +21,10 @@ class SellerResource extends JsonResource
             'store_name' => $this->store_name,
             'slug' => $this->slug,
             'description' => $this->description,
-            // Falls back to the owner's profile photo / banner when the owner is
-            // loaded; only these two URLs are taken from the user record.
-            'profile_photo_url' => $this->profile_photo_url
-                ?? ($this->relationLoaded('user') ? $this->user?->profile_photo_url : null),
-            'banner_url' => $this->when(
-                $this->relationLoaded('user'),
-                fn (): ?string => $this->user?->banner_url,
-            ),
+            // The store's own photo / banner, falling back to the owner's when the
+            // owner is loaded; only these two URLs are taken from the user record.
+            'profile_photo_url' => $this->relationLoaded('user') ? $this->displayPhotoUrl() : $this->profile_photo_url,
+            'banner_url' => $this->relationLoaded('user') ? $this->displayBannerUrl() : $this->banner_url,
             'phone' => $this->phone,
             'whatsapp' => $this->whatsapp,
             'store_location' => $this->store_location,
@@ -40,6 +36,11 @@ class SellerResource extends JsonResource
             'ratings_count' => $this->ratings_count ?? 0,
             'followers_count' => $this->whenCounted('followers'),
             'products_count' => $this->whenCounted('products'),
+            'active_products_count' => $this->whenHas('active_products_count', fn () => (int) $this->active_products_count),
+            'owner' => $this->when(
+                $this->relationLoaded('user') && $this->canViewPrivateDetails($request),
+                fn (): ?array => $this->user ? ['name' => $this->user->name, 'email' => $this->user->email] : null,
+            ),
             'joined_at' => $this->created_at?->toIso8601String(),
             'is_followed' => $this->whenHas('is_followed'),
         ];

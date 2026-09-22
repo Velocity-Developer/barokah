@@ -153,25 +153,25 @@ async function save(): Promise<void> {
             <p v-if="notice" class="mb-4 text-sm text-amber-600">{{ notice }}</p>
 
             <form class="space-y-5" @submit.prevent="save">
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="name">Name</Label>
                     <Input id="name" v-model="form.name" type="text" />
                     <InputError :message="errors.name" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="email">Email</Label>
                     <Input id="email" v-model="form.email" type="email" />
                     <InputError :message="errors.email" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="phone">Phone</Label>
                     <Input id="phone" v-model="form.phone" type="text" />
                     <InputError :message="errors.phone" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="address">Address</Label>
                     <RichTextEditor
                         v-model="form.address"
@@ -179,7 +179,7 @@ async function save(): Promise<void> {
                     <InputError :message="errors.address" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="state">State</Label>
                     <select
                         id="state"
@@ -198,7 +198,7 @@ async function save(): Promise<void> {
                     <InputError :message="errors.state" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="city">City</Label>
                     <select
                         id="city"
@@ -226,7 +226,7 @@ async function save(): Promise<void> {
                     <InputError :message="errors.city" />
                 </div>
 
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="post_code">Post code</Label>
                     <Input id="post_code" v-model="form.post_code" type="text" />
                     <InputError :message="errors.post_code" />

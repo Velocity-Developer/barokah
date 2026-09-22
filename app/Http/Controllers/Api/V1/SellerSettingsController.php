@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Concerns\UpdatesSellerMedia;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\SellerResource;
 use App\Models\Seller;
@@ -9,7 +10,6 @@ use App\Rules\CityInState;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -22,6 +22,8 @@ use Illuminate\Validation\Rule;
  */
 class SellerSettingsController extends Controller
 {
+    use UpdatesSellerMedia;
+
     /**
      * Show the current seller's own store profile.
      */
@@ -72,8 +74,7 @@ class SellerSettingsController extends Controller
             'bank_account' => ['sometimes', 'nullable', 'string', 'max:255'],
             'state' => ['sometimes', 'nullable', 'string', Rule::in(config('malaysia.states', []))],
             'city' => ['sometimes', 'nullable', 'string', 'max:100', new CityInState('state')],
-            'profile_photo' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'remove_profile_photo' => ['sometimes', 'nullable', 'boolean'],
+            ...$this->sellerMediaRules(),
         ]);
 
         if (array_key_exists('slug', $validated)) {
@@ -87,26 +88,8 @@ class SellerSettingsController extends Controller
         }
 
         $seller = DB::transaction(function () use ($request, $seller, $validated) {
-            $removePhoto = $request->boolean('remove_profile_photo', false);
-            $photo = $request->file('profile_photo');
-
-            unset($validated['profile_photo'], $validated['remove_profile_photo']);
-
-            $seller->fill($validated);
-
-            if ($photo !== null) {
-                if ($seller->profile_photo_path !== null && $seller->profile_photo_path !== '') {
-                    Storage::disk('public')->delete($seller->profile_photo_path);
-                }
-
-                $seller->profile_photo_path = $photo->store('sellers', 'public');
-            } elseif ($removePhoto) {
-                if ($seller->profile_photo_path !== null && $seller->profile_photo_path !== '') {
-                    Storage::disk('public')->delete($seller->profile_photo_path);
-                }
-
-                $seller->profile_photo_path = null;
-            }
+            $seller->fill($this->withoutSellerMedia($validated));
+            $this->applySellerMedia($request, $seller);
 
             $seller->save();
 

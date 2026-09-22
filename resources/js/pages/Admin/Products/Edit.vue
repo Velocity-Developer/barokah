@@ -269,14 +269,14 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div class="grid content-start gap-4">
                 <!-- Basic info -->
-                <section class="grid gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                <section class="grid content-start gap-4 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Product information</h2>
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="name">Name</Label>
                         <Input id="name" v-model="form.name" type="text" required maxlength="255" />
                         <InputError :message="errors.name" />
                     </div>
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="description">Description</Label>
                         <RichTextEditor v-model="form.description" />
                         <InputError :message="errors.description" />
@@ -284,7 +284,7 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                 </section>
 
                 <!-- Images -->
-                <section class="grid gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <div class="flex items-baseline justify-between gap-2">
                         <h2 class="text-base font-medium">Images</h2>
                         <p class="text-xs text-muted-foreground">JPG, PNG or WebP · max 2 MB each · up to {{ MAX_NEW_IMAGES }} new per save</p>
@@ -357,7 +357,7 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
 
             <aside class="grid content-start gap-4">
                 <!-- Status -->
-                <section class="grid gap-2 rounded-xl border bg-card p-4 shadow-sm">
+                <section class="grid content-start gap-2 rounded-xl border bg-card p-4 shadow-sm">
                     <Label for="status" class="text-base font-medium">Status</Label>
                     <select id="status" v-model="form.status" class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
                         <option v-for="status in statuses" :key="status.value" :value="status.value">{{ status.label }}</option>
@@ -367,13 +367,13 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                 </section>
 
                 <!-- Organization -->
-                <section class="grid gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Organization</h2>
-                    <div class="grid gap-1">
+                    <div class="grid content-start gap-1">
                         <p class="text-sm font-medium">Store</p>
                         <p class="text-sm text-muted-foreground">{{ product.seller?.store_name ?? '—' }}</p>
                     </div>
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="category_id">Category</Label>
                         <select id="category_id" v-model="form.category_id" class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
                             <option v-if="!categories.length && product.category" :value="String(product.category.id)">{{ product.category.name }}</option>
@@ -384,9 +384,9 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                 </section>
 
                 <!-- Pricing & inventory -->
-                <section class="grid gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Pricing &amp; inventory</h2>
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="price">Price</Label>
                         <div class="relative">
                             <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">{{ currencySymbol() }}</span>
@@ -395,12 +395,12 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                         <InputError :message="errors.price" />
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="grid gap-2">
+                        <div class="grid content-start gap-2">
                             <Label for="stock">Stock</Label>
                             <Input id="stock" v-model="form.stock" type="number" min="0" required />
                             <InputError :message="errors.stock" />
                         </div>
-                        <div class="grid gap-2">
+                        <div class="grid content-start gap-2">
                             <Label for="weight_grams">Weight (g)</Label>
                             <Input id="weight_grams" v-model="form.weight_grams" type="number" min="0" required />
                             <InputError :message="errors.weight_grams" />
@@ -409,7 +409,7 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                 </section>
 
                 <!-- Danger zone -->
-                <section class="grid gap-2 rounded-xl border border-red-200 bg-card p-4 shadow-sm dark:border-red-900">
+                <section class="grid content-start gap-2 rounded-xl border border-red-200 bg-card p-4 shadow-sm dark:border-red-900">
                     <h2 class="text-base font-medium text-red-700 dark:text-red-400">Delete product</h2>
                     <p class="text-xs text-muted-foreground">Removes the product and its images. This cannot be undone.</p>
                     <Button type="button" variant="destructive" class="w-fit" :disabled="isSaving" @click="removeProduct">Delete product</Button>

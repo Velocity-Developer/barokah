@@ -503,7 +503,7 @@ function savePassword(): void {
                                 @submit.prevent="saveProfile"
                                 class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2"
                             >
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="name" class="text-sm font-medium text-gray-700">
                                         Full Name
                                     </label>
@@ -521,7 +521,7 @@ function savePassword(): void {
                                     </p>
                                 </div>
 
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="email" class="text-sm font-medium text-gray-700">
                                         Email Address
                                     </label>
@@ -560,7 +560,7 @@ function savePassword(): void {
                                     </div>
                                 </div>
 
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="phone" class="text-sm font-medium text-gray-700">
                                         Phone Number
                                     </label>
@@ -577,7 +577,7 @@ function savePassword(): void {
                                     </p>
                                 </div>
 
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="post_code" class="text-sm font-medium text-gray-700">
                                         Postcode
                                     </label>
@@ -594,7 +594,7 @@ function savePassword(): void {
                                     </p>
                                 </div>
 
-                                <div class="grid gap-1.5 md:col-span-2">
+                                <div class="grid content-start gap-1.5 md:col-span-2">
                                     <label for="address" class="text-sm font-medium text-gray-700">
                                         Address
                                     </label>
@@ -611,7 +611,7 @@ function savePassword(): void {
                                     </p>
                                 </div>
 
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="city" class="text-sm font-medium text-gray-700">
                                         City
                                     </label>
@@ -628,7 +628,7 @@ function savePassword(): void {
                                     </p>
                                 </div>
 
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="state" class="text-sm font-medium text-gray-700">
                                         State / Region
                                     </label>
@@ -661,8 +661,8 @@ function savePassword(): void {
                         </div>
 
                         <div v-show="activeTab === 'media'" class="px-6 py-5">
-                            <form class="grid gap-6" @submit.prevent="saveMedia">
-                                <div class="grid gap-2">
+                            <form class="grid content-start gap-6" @submit.prevent="saveMedia">
+                                <div class="grid content-start gap-2">
                                     <p class="text-sm font-medium text-gray-700">Banner</p>
                                     <div
                                         class="flex h-32 w-full items-center justify-center overflow-hidden rounded-md bg-cover bg-center text-sm text-white/90 ring-1 ring-gray-100 md:h-40"
@@ -704,7 +704,7 @@ function savePassword(): void {
                                     </p>
                                 </div>
 
-                                <div class="grid gap-2">
+                                <div class="grid content-start gap-2">
                                     <p class="text-sm font-medium text-gray-700">Profile photo</p>
                                     <div class="flex flex-wrap items-center gap-4">
                                         <img
@@ -817,12 +817,12 @@ function savePassword(): void {
                                 </p>
                             </div>
 
-                            <form v-else class="grid gap-5" @submit.prevent="submitSellerApplication">
+                            <form v-else class="grid content-start gap-5" @submit.prevent="submitSellerApplication">
                                 <p class="text-sm text-gray-600">
                                     Apply to become a seller. Once an admin approves your application, you can manage
                                     your products, orders and store settings in the Seller Dashboard.
                                 </p>
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="store_name" class="text-sm font-medium text-gray-700">
                                         Store name
                                     </label>
@@ -839,7 +839,7 @@ function savePassword(): void {
                                         {{ sellerForm.errors.store_name }}
                                     </p>
                                 </div>
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="store_description" class="text-sm font-medium text-gray-700">
                                         Store description <span class="font-normal text-gray-400">(optional)</span>
                                     </label>
@@ -873,7 +873,7 @@ function savePassword(): void {
                                 @submit.prevent="savePassword"
                                 class="grid grid-cols-1 gap-y-5 md:max-w-2xl"
                             >
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label
                                         for="current_password"
                                         class="text-sm font-medium text-gray-700"
@@ -892,7 +892,7 @@ function savePassword(): void {
                                     </p>
                                 </div>
 
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label for="password" class="text-sm font-medium text-gray-700">
                                         New Password
                                     </label>
@@ -908,7 +908,7 @@ function savePassword(): void {
                                     </p>
                                 </div>
 
-                                <div class="grid gap-1.5">
+                                <div class="grid content-start gap-1.5">
                                     <label
                                         for="password_confirmation"
                                         class="text-sm font-medium text-gray-700"

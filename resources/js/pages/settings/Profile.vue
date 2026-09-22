@@ -136,7 +136,7 @@ async function activateAsSeller(): Promise<void> {
             class="space-y-6"
             v-slot="{ errors, processing }"
         >
-            <div class="grid gap-2">
+            <div class="grid content-start gap-2">
                 <Label for="name">Name</Label>
                 <Input
                     id="name"
@@ -150,7 +150,7 @@ async function activateAsSeller(): Promise<void> {
                 <InputError class="mt-2" :message="errors.name" />
             </div>
 
-            <div class="grid gap-2">
+            <div class="grid content-start gap-2">
                 <Label for="email">Email address</Label>
                 <Input
                     id="email"
@@ -217,7 +217,7 @@ async function activateAsSeller(): Promise<void> {
         </div>
 
         <form v-else class="space-y-4" @submit.prevent="activateAsSeller">
-            <div class="grid gap-2">
+            <div class="grid content-start gap-2">
                 <Label for="store-name">Store name</Label>
                 <Input
                     id="store-name"
@@ -230,7 +230,7 @@ async function activateAsSeller(): Promise<void> {
                 <InputError class="mt-2" :message="fieldErrors.store_name" />
             </div>
 
-            <div class="grid gap-2">
+            <div class="grid content-start gap-2">
                 <Label for="store-description">Description (optional)</Label>
                 <Input
                     id="store-description"

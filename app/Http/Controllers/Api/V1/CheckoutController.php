@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
-use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BuyerInformationRequest;
 use App\Http\Resources\Api\V1\OrderResource;
@@ -66,7 +65,7 @@ class CheckoutController extends Controller
                 /** @var Product|null $product */
                 $product = Product::query()->whereKey($line['product_id'])->lockForUpdate()->first();
 
-                if ($product === null || $product->status !== ProductStatus::Active) {
+                if ($product === null || ! $product->isAvailable()) {
                     abort(409, 'Selected product is not available.');
                 }
 

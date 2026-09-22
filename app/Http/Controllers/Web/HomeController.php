@@ -32,7 +32,7 @@ class HomeController extends Controller
         // Closures keep the "Load more" partial reload from re-running these queries.
         $categories = fn () => Category::query()
             ->active()
-            ->withCount(['products' => fn (Builder $query) => $query->where('status', ProductStatus::Active)])
+            ->withCount(['products' => fn (Builder $query) => $query->active()])
             // The most reviewed active product in each category supplies the card image.
             ->with(['products' => fn ($query) => $query
                 ->active()

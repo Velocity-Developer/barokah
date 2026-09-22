@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string $slug
  * @property string|null $description
  * @property string|null $profile_photo_path
+ * @property string|null $banner_path
  * @property string|null $phone
  * @property string|null $whatsapp
  * @property string|null $store_location
@@ -41,7 +42,7 @@ class Seller extends Model
     /**
      * @var list<string>
      */
-    protected $appends = ['profile_photo_url'];
+    protected $appends = ['profile_photo_url', 'banner_url'];
 
     /**
      * Get the attributes that should be cast.
@@ -62,11 +63,38 @@ class Seller extends Model
      */
     protected function profilePhotoUrl(): Attribute
     {
-        return Attribute::make(
-            get: fn (): ?string => $this->profile_photo_path !== null && $this->profile_photo_path !== ''
-                ? Storage::disk('public')->url($this->profile_photo_path)
-                : null,
-        );
+        return Attribute::make(get: fn (): ?string => $this->publicUrl($this->profile_photo_path));
+    }
+
+    /**
+     * Public URL for the store's own banner.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function bannerUrl(): Attribute
+    {
+        return Attribute::make(get: fn (): ?string => $this->publicUrl($this->banner_path));
+    }
+
+    /**
+     * Store photo shown to shoppers: the store's own, else the owner's photo.
+     */
+    public function displayPhotoUrl(): ?string
+    {
+        return $this->profile_photo_url ?? $this->user?->profile_photo_url;
+    }
+
+    /**
+     * Store banner shown to shoppers: the store's own, else the owner's banner.
+     */
+    public function displayBannerUrl(): ?string
+    {
+        return $this->banner_url ?? $this->user?->banner_url;
+    }
+
+    private function publicUrl(?string $path): ?string
+    {
+        return $path !== null && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /**

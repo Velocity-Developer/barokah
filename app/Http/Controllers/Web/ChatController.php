@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Enums\ProductStatus;
 use App\Enums\SellerStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\SendChatMessageRequest;
@@ -119,8 +118,8 @@ class ChatController extends Controller
         if ($productId !== null) {
             $productId = Product::query()
                 ->whereKey($productId)
+                ->active()
                 ->where('seller_id', $conversation->seller_id)
-                ->where('status', ProductStatus::Active)
                 ->value('id');
         }
 

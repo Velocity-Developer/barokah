@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
@@ -16,7 +15,7 @@ class FavoriteProductController extends Controller
      */
     public function toggle(Request $request, Product $product): RedirectResponse
     {
-        abort_unless($product->status === ProductStatus::Active, 404);
+        abort_unless($product->isAvailable(), 404);
 
         $changes = $request->user()->favoriteProducts()->toggle([$product->getKey()]);
 

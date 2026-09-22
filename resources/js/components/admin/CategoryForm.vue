@@ -159,12 +159,12 @@ async function remove(): Promise<void> {
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             <section class="grid content-start gap-4 rounded-xl border bg-card p-4 shadow-sm">
                 <h2 class="text-base font-medium">Category details</h2>
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="name">Name</Label>
                     <Input id="name" v-model="form.name" required maxlength="255" placeholder="e.g. Keripik" @input="onNameInput" />
                     <InputError :message="errors.name" />
                 </div>
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="slug">URL slug</Label>
                     <div class="flex items-center rounded-md border border-input focus-within:ring-2 focus-within:ring-ring/30">
                         <span class="shrink-0 pl-3 text-sm text-muted-foreground">/products?category=</span>
@@ -173,7 +173,7 @@ async function remove(): Promise<void> {
                     <p class="text-xs text-muted-foreground">Lowercase letters, numbers and dashes. Leave empty to generate it from the name.</p>
                     <InputError :message="errors.slug" />
                 </div>
-                <div class="grid gap-2">
+                <div class="grid content-start gap-2">
                     <Label for="description">Description <span class="font-normal text-muted-foreground">(optional)</span></Label>
                     <textarea id="description" v-model="form.description" rows="4" maxlength="2000" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" />
                     <InputError :message="errors.description" />
@@ -181,7 +181,7 @@ async function remove(): Promise<void> {
             </section>
 
             <aside class="grid content-start gap-4">
-                <section class="grid gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Visibility</h2>
                     <label class="flex cursor-pointer items-start gap-3">
                         <input v-model="form.is_active" type="checkbox" class="mt-0.5 size-4 cursor-pointer accent-[var(--brand-primary,#ee4d2d)]" />
@@ -190,7 +190,7 @@ async function remove(): Promise<void> {
                             <span class="block text-xs text-muted-foreground">Hidden categories disappear from the menu, filters and homepage. Their products stay untouched.</span>
                         </span>
                     </label>
-                    <div class="grid gap-2">
+                    <div class="grid content-start gap-2">
                         <Label for="sort_order">Display order</Label>
                         <Input id="sort_order" v-model="form.sort_order" type="number" min="0" class="w-28" />
                         <p class="text-xs text-muted-foreground">Lower numbers appear first.</p>
@@ -198,7 +198,7 @@ async function remove(): Promise<void> {
                     </div>
                 </section>
 
-                <section v-if="isEdit" class="grid gap-2 rounded-xl border bg-card p-4 shadow-sm">
+                <section v-if="isEdit" class="grid content-start gap-2 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Products</h2>
                     <p class="text-sm">
                         <span class="font-semibold">{{ productCount }}</span> {{ productCount === 1 ? 'product' : 'products' }}
@@ -207,7 +207,7 @@ async function remove(): Promise<void> {
                     <Link :href="productsIndex({ query: { category_id: category!.id } })" class="text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">View products in this category</Link>
                 </section>
 
-                <section v-if="isEdit" class="grid gap-2 rounded-xl border border-red-200 bg-card p-4 shadow-sm dark:border-red-900">
+                <section v-if="isEdit" class="grid content-start gap-2 rounded-xl border border-red-200 bg-card p-4 shadow-sm dark:border-red-900">
                     <h2 class="text-base font-medium text-red-700 dark:text-red-400">Delete category</h2>
                     <p class="text-xs text-muted-foreground">
                         <template v-if="productCount > 0">Move its {{ productCount }} {{ productCount === 1 ? 'product' : 'products' }} to another category first, or hide the category instead.</template>

@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\ProductStatus;
 use App\Enums\SellerStatus;
+use App\Http\Controllers\Concerns\UpdatesSellerMedia;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\SellerResource;
 use App\Models\Seller;
 use App\Rules\CityInState;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -23,24 +25,72 @@ use Illuminate\Validation\Rule;
  */
 class AdminSellerController extends Controller
 {
+    use UpdatesSellerMedia;
+
+    /** @var array<string, array{0: string, 1: string}> */
+    private const SORTS = [
+        'newest' => ['created_at', 'desc'],
+        'oldest' => ['created_at', 'asc'],
+        'name_asc' => ['store_name', 'asc'],
+        'products_desc' => ['products_count', 'desc'],
+        'followers_desc' => ['followers_count', 'desc'],
+    ];
+
     /**
-     * Paginated store list with status filter.
+     * Paginated store list with search, status tabs, sorting and counts.
      */
     public function index(Request $request): AnonymousResourceCollection
     {
         $validated = $request->validate([
             'status' => ['nullable', Rule::enum(SellerStatus::class)],
             'search' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'max:100'],
+            'sort' => ['nullable', Rule::in(array_keys(self::SORTS))],
+            'per_page' => ['nullable', 'integer', Rule::in([15, 25, 50, 100])],
         ]);
 
-        $sellers = Seller::query()
-            ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status instanceof \BackedEnum ? $status->value : $status))
-            ->when($validated['search'] ?? null, fn ($query, $search) => $query->where('store_name', 'like', "%{$search}%"))
-            ->with('user')
-            ->latest()
-            ->paginate(15);
+        $search = trim((string) ($validated['search'] ?? ''));
 
-        return SellerResource::collection($sellers);
+        $filtered = Seller::query()
+            ->when($search !== '', function (Builder $query) use ($search): void {
+                $like = '%'.addcslashes($search, '%_\\').'%';
+
+                $query->where(fn (Builder $inner) => $inner
+                    ->where('store_name', 'like', $like)
+                    ->orWhere('slug', 'like', $like)
+                    ->orWhere('city', 'like', $like)
+                    ->orWhere('phone', 'like', $like)
+                    ->orWhereHas('user', fn (Builder $user) => $user->where('name', 'like', $like)->orWhere('email', 'like', $like)));
+            })
+            ->when($validated['state'] ?? null, fn (Builder $query, string $state) => $query->where('state', $state));
+
+        $statusCounts = (clone $filtered)
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($count): int => (int) $count);
+
+        [$column, $direction] = self::SORTS[$validated['sort'] ?? 'newest'];
+
+        $sellers = $filtered
+            ->when($validated['status'] ?? null, fn (Builder $query, SellerStatus|string $status) => $query->where('status', $status instanceof \BackedEnum ? $status->value : $status))
+            ->with('user')
+            ->withCount([
+                'products',
+                'products as active_products_count' => fn (Builder $query) => $query->where('status', ProductStatus::Active),
+                'followers',
+                'productReviews as ratings_count',
+            ])
+            ->withAvg('productReviews as average_rating', 'rating')
+            ->orderBy($column, $direction)
+            ->orderBy('id', $direction)
+            ->paginate((int) ($validated['per_page'] ?? 15))
+            ->withQueryString();
+
+        return SellerResource::collection($sellers)->additional([
+            'status_counts' => $statusCounts,
+            'status_counts_total' => $statusCounts->sum(),
+        ]);
     }
 
     /**
@@ -88,8 +138,7 @@ class AdminSellerController extends Controller
             'bank_account' => ['sometimes', 'nullable', 'string', 'max:255'],
             'state' => ['sometimes', 'nullable', 'string', Rule::in(config('malaysia.states', []))],
             'city' => ['sometimes', 'nullable', 'string', 'max:100', new CityInState('state')],
-            'profile_photo' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'remove_profile_photo' => ['sometimes', 'nullable', 'boolean'],
+            ...$this->sellerMediaRules(),
         ]);
 
         if (array_key_exists('slug', $validated)) {
@@ -103,26 +152,8 @@ class AdminSellerController extends Controller
         }
 
         $seller = DB::transaction(function () use ($request, $seller, $validated) {
-            $removePhoto = $request->boolean('remove_profile_photo', false);
-            $photo = $request->file('profile_photo');
-
-            unset($validated['profile_photo'], $validated['remove_profile_photo']);
-
-            $seller->fill($validated);
-
-            if ($photo !== null) {
-                if ($seller->profile_photo_path !== null && $seller->profile_photo_path !== '') {
-                    Storage::disk('public')->delete($seller->profile_photo_path);
-                }
-
-                $seller->profile_photo_path = $photo->store('sellers', 'public');
-            } elseif ($removePhoto) {
-                if ($seller->profile_photo_path !== null && $seller->profile_photo_path !== '') {
-                    Storage::disk('public')->delete($seller->profile_photo_path);
-                }
-
-                $seller->profile_photo_path = null;
-            }
+            $seller->fill($this->withoutSellerMedia($validated));
+            $this->applySellerMedia($request, $seller);
 
             $seller->save();
 

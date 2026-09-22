@@ -685,35 +685,35 @@ async function save(): Promise<void> {
                 <div class="mb-6 rounded-lg border p-4">
                     <h4 class="mb-4 font-medium">Add New Shipping Rate</h4>
                     <div class="grid gap-4 md:grid-cols-4">
-                        <div class="grid gap-2">
+                        <div class="grid content-start gap-2">
                             <Label for="shipping-rate-from-state">From State</Label>
                             <select id="shipping-rate-from-state" v-model="newRate.from_state" class="h-10 rounded-md border bg-background px-3 text-sm">
                                 <option value="">Select state</option>
                                 <option v-for="state in stateOptions" :key="state" :value="state">{{ state }}</option>
                             </select>
                         </div>
-                        <div class="grid gap-2">
+                        <div class="grid content-start gap-2">
                             <Label for="shipping-rate-from-city">From City</Label>
                             <select id="shipping-rate-from-city" v-model="newRate.from_city" :disabled="!newRate.from_state" class="h-10 rounded-md border bg-background px-3 text-sm">
                                 <option value="">Select city</option>
                                 <option v-for="city in fromCityOptions" :key="city" :value="city">{{ city }}</option>
                             </select>
                         </div>
-                        <div class="grid gap-2">
+                        <div class="grid content-start gap-2">
                             <Label for="shipping-rate-to-state">To State</Label>
                             <select id="shipping-rate-to-state" v-model="newRate.to_state" class="h-10 rounded-md border bg-background px-3 text-sm">
                                 <option value="">Select state</option>
                                 <option v-for="state in stateOptions" :key="state" :value="state">{{ state }}</option>
                             </select>
                         </div>
-                        <div class="grid gap-2">
+                        <div class="grid content-start gap-2">
                             <Label for="shipping-rate-to-city">To City</Label>
                             <select id="shipping-rate-to-city" v-model="newRate.to_city" :disabled="!newRate.to_state" class="h-10 rounded-md border bg-background px-3 text-sm">
                                 <option value="">Select city</option>
                                 <option v-for="city in toCityOptions" :key="city" :value="city">{{ city }}</option>
                             </select>
                         </div>
-                        <div class="grid gap-2">
+                        <div class="grid content-start gap-2">
                             <Label for="shipping-rate-amount">Rate</Label>
                             <Input id="shipping-rate-amount" v-model="newRate.rate" type="number" min="0" step="0.01" placeholder="5.00" />
                         </div>
@@ -768,7 +768,7 @@ async function save(): Promise<void> {
                 </div>
 
                 <template v-if="activeGroup === 'homepage'">
-                    <div class="grid gap-4 rounded-lg border p-4">
+                    <div class="grid content-start gap-4 rounded-lg border p-4">
                         <div>
                             <h4 class="font-medium">Primary banners</h4>
                             <p class="text-sm text-muted-foreground">Main slider banners on the Home page.</p>
@@ -777,7 +777,7 @@ async function save(): Promise<void> {
                             v-for="setting in settings.filter((setting) => /^homepage\.banner_\d+_url$/.test(setting.key))"
                             v-show="bannerIndex(setting.key) <= bannerCount && !closedBannerIndexes.has(bannerIndex(setting.key))"
                             :key="setting.key"
-                            class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
+                            class="grid content-start gap-2 rounded-lg border-b pb-5 last:border-b-0"
                         >
                             <Label :for="setting.key">{{ settingLabel(setting.key) }}</Label>
                             <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Homepage banner preview" class="h-24 w-full rounded border object-cover" />
@@ -800,7 +800,7 @@ async function save(): Promise<void> {
                         </div>
                     </div>
 
-                    <div class="grid gap-2 rounded-lg border p-4">
+                    <div class="grid content-start gap-2 rounded-lg border p-4">
                         <Label for="homepage.banner_speed">{{ settingLabel('homepage.banner_speed') }}</Label>
                         <Input
                             id="homepage.banner_speed"
@@ -813,7 +813,7 @@ async function save(): Promise<void> {
                         <InputError class="mt-2" :message="errors['settings.homepage.banner_speed']" />
                     </div>
 
-                    <div class="grid gap-4 rounded-lg border p-4">
+                    <div class="grid content-start gap-4 rounded-lg border p-4">
                         <div>
                             <h4 class="font-medium">Right banners</h4>
                             <p class="text-sm text-muted-foreground">Banners on the right side of the Home page slider.</p>
@@ -821,7 +821,7 @@ async function save(): Promise<void> {
                         <div
                             v-for="setting in settings.filter((setting) => setting.key === 'homepage.right_top_banner_url' || setting.key === 'homepage.right_bottom_banner_url')"
                             :key="setting.key"
-                            class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
+                            class="grid content-start gap-2 rounded-lg border-b pb-5 last:border-b-0"
                         >
                             <Label :for="setting.key">{{ settingLabel(setting.key) }}</Label>
                             <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Homepage side banner preview" class="h-24 w-full rounded border object-cover" />
@@ -857,7 +857,7 @@ async function save(): Promise<void> {
                             </p>
                         </div>
 
-                        <div class="grid gap-2">
+                        <div class="grid content-start gap-2">
                             <!-- Masked values arrive as a placeholder; an untouched field keeps the stored value. -->
                             <Input
                                 v-if="setting.masked"
