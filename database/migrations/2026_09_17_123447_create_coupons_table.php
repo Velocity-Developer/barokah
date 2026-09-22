@@ -22,8 +22,8 @@ return new class extends Migration
             $table->unsignedInteger('usage_limit')->nullable();
             $table->unsignedInteger('usage_count')->default(0);
             $table->unsignedInteger('per_user_limit')->nullable();
-            $table->timestamp('starts_at');
-            $table->timestamp('ends_at');
+            $table->timestamp('starts_at')->useCurrent();
+            $table->timestamp('ends_at')->useCurrent();
             $table->boolean('allow_flash_sale')->default(false);
             $table->boolean('status')->default(true);
             $table->timestamps();
