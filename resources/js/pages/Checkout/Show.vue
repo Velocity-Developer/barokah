@@ -155,16 +155,16 @@ async function applyCoupon(): Promise<void> {
             body: JSON.stringify({ coupon_code: couponCode.value, items: props.cartCheckout ? cartItems.value.map((item) => ({ product_id: item.productId, quantity: item.quantity })) : [{ product_id: product.value?.id, quantity: quantity.value }], shipping_fee: shippingFee.value ?? 0 }),
         });
         const payload = await response.json() as { discount?: number; message?: string; errors?: Record<string, string[]> };
-        if (!response.ok) throw new Error(payload.errors?.coupon_code?.[0] ?? payload.message ?? 'Coupon tidak valid.');
+        if (!response.ok) throw new Error(payload.errors?.coupon_code?.[0] ?? payload.message ?? 'Invalid coupon.');
         couponDiscount.value = Number(payload.discount ?? 0);
         couponShippingDiscount.value = Number(payload.shipping_discount ?? 0);
         if (couponDiscount.value === 0 && couponShippingDiscount.value === 0) {
-            couponNotice.value = 'Coupon valid, tetapi tidak memberi potongan pada pesanan ini.';
+            couponNotice.value = 'Coupon is valid, but it gives no discount on this order.';
         }
     } catch (error) {
         couponDiscount.value = 0;
         couponShippingDiscount.value = 0;
-        couponError.value = error instanceof Error ? error.message : 'Coupon tidak valid.';
+        couponError.value = error instanceof Error ? error.message : 'Invalid coupon.';
     } finally {
         isApplyingCoupon.value = false;
     }

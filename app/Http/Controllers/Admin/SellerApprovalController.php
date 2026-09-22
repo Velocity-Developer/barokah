@@ -49,7 +49,7 @@ class SellerApprovalController extends Controller
             $seller->user?->forceFill(['is_active_as_seller' => true])->save();
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Toko :store disetujui.', ['store' => $seller->store_name])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':store has been approved.', ['store' => $seller->store_name])]);
 
         return back();
     }
@@ -66,7 +66,7 @@ class SellerApprovalController extends Controller
             $seller->delete();
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Pengajuan :store ditolak.', ['store' => $seller->store_name])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('The application for :store was rejected.', ['store' => $seller->store_name])]);
 
         return back();
     }

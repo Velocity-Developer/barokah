@@ -29,6 +29,7 @@ class ProfileController extends Controller
         // reappear once they are active again.
         $followedSellers = $user->followedSellers()
             ->where('status', SellerStatus::Active)
+            ->with('user')
             ->withCount('followers')
             ->orderByPivot('created_at', 'desc')
             ->get()
@@ -83,15 +84,17 @@ class ProfileController extends Controller
 
     public function applyAsSeller(ActivateSellerRequest $request, SubmitSellerApplication $submit): RedirectResponse
     {
+        abort_if($request->user()->can('admin'), 403);
+
         if ($request->user()->seller()->exists()) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('Anda sudah memiliki pengajuan atau toko.')]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('You already have a store or a pending application.')]);
 
             return to_route('profile.show', ['tab' => 'seller']);
         }
 
         $submit->handle($request->user(), $request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Pengajuan seller terkirim. Menunggu persetujuan admin.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Seller application submitted. Waiting for admin approval.')]);
 
         return to_route('profile.show', ['tab' => 'seller']);
     }
@@ -121,7 +124,7 @@ class ProfileController extends Controller
 
         $user->save();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Foto profil & banner diperbarui.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile photo and banner updated.')]);
 
         return back();
     }

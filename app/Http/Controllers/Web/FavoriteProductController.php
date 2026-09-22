@@ -23,8 +23,8 @@ class FavoriteProductController extends Controller
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => $changes['attached'] !== []
-                ? __('Ditambahkan ke produk favorit.')
-                : __('Dihapus dari produk favorit.'),
+                ? __('Added to your favorites.')
+                : __('Removed from your favorites.'),
         ]);
 
         return back();

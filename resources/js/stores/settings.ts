@@ -25,13 +25,17 @@ function applyBrandColors(values: PublicSettings): void {
 
     const favicon = values['branding.favicon_url'];
     if (typeof favicon === 'string' && favicon !== '') {
-        let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-        if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
+        // Browsers prefer an SVG icon over others, so every icon link has to be
+        // replaced, not just the first one.
+        const iconLinks = document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]');
+        iconLinks.forEach((link) => link.remove());
+
+        for (const rel of ['icon', 'apple-touch-icon']) {
+            const link = document.createElement('link');
+            link.rel = rel;
+            link.href = favicon;
             document.head.appendChild(link);
         }
-        link.href = favicon;
     }
 
     const primary = values['branding.primary_color'];

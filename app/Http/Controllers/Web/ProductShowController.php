@@ -20,7 +20,7 @@ class ProductShowController extends Controller
         $product = Product::query()
             ->active()
             ->where('slug', $slug)
-            ->with(['seller', 'category', 'images', 'latestReviews.user'])
+            ->with(['seller.user', 'category', 'images', 'latestReviews.user'])
             ->withAvg('reviews', 'rating')
             ->withCount('reviews')
             ->firstOrFail();

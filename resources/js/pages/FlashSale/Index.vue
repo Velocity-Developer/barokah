@@ -25,10 +25,10 @@ const { formatAmount } = useSettingsStore();
         <main class="mx-auto w-full max-w-[1200px] px-4 py-6">
             <div class="mb-6">
                 <h1 class="text-2xl font-bold text-[var(--brand-primary)]">Flash Sale</h1>
-                <p class="mt-1 text-sm text-muted-foreground">Promo aktif dengan harga terbatas.</p>
+                <p class="mt-1 text-sm text-muted-foreground">Limited-time deals on selected products.</p>
             </div>
             <p v-if="products.data.length === 0" class="rounded border p-8 text-center text-sm text-muted-foreground">
-                Belum ada flash sale aktif.
+                No active flash sales right now.
             </p>
             <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 <Link

@@ -31,9 +31,22 @@
             }
         </style>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        @php
+            // Favicon uploaded in Admin → Settings → Branding; the bundled icons are only a fallback.
+            $brandFavicon = rescue(
+                fn () => app(\App\Services\SettingsService::class)->allPublic()['branding.favicon_url'] ?? null,
+                null,
+                false,
+            );
+        @endphp
+        @if (is_string($brandFavicon) && $brandFavicon !== '')
+            <link rel="icon" href="{{ $brandFavicon }}">
+            <link rel="apple-touch-icon" href="{{ $brandFavicon }}">
+        @else
+            <link rel="icon" href="/favicon.ico" sizes="any">
+            <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+            <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        @endif
 
         @fonts
 

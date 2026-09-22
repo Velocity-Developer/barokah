@@ -20,7 +20,7 @@ class SellerShowController extends Controller
         $seller = Seller::query()
             ->where('status', SellerStatus::Active)
             ->where('slug', $slug)
-            ->with(['products' => fn ($query) => $query
+            ->with(['user', 'products' => fn ($query) => $query
                 ->active()
                 ->with(['images', 'category'])
                 ->withAvg('reviews', 'rating')

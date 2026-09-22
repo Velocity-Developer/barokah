@@ -137,3 +137,13 @@ it('only decides pending applications and only as admin', function () {
     $this->actingAs(User::factory()->create())->post(route('admin.sellers.approve', $application))->assertForbidden();
     expect($application->refresh()->status)->toBe(SellerStatus::Pending);
 });
+
+it('does not let admins apply as seller', function () {
+    $admin = makeAdmin();
+
+    $this->actingAs($admin)
+        ->post(route('my.profile.seller-application.store'), ['store_name' => 'Toko Admin'])
+        ->assertForbidden();
+
+    expect($admin->refresh()->seller)->toBeNull();
+});

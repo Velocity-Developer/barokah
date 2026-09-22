@@ -21,7 +21,14 @@ class SellerResource extends JsonResource
             'store_name' => $this->store_name,
             'slug' => $this->slug,
             'description' => $this->description,
-            'profile_photo_url' => $this->profile_photo_url,
+            // Falls back to the owner's profile photo / banner when the owner is
+            // loaded; only these two URLs are taken from the user record.
+            'profile_photo_url' => $this->profile_photo_url
+                ?? ($this->relationLoaded('user') ? $this->user?->profile_photo_url : null),
+            'banner_url' => $this->when(
+                $this->relationLoaded('user'),
+                fn (): ?string => $this->user?->banner_url,
+            ),
             'phone' => $this->phone,
             'whatsapp' => $this->whatsapp,
             'store_location' => $this->store_location,

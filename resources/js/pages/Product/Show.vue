@@ -44,7 +44,7 @@ type DetailProduct = {
     stock: number;
     weight_grams?: number;
     status: string;
-    seller: { store_name: string; slug: string } | null;
+    seller: { store_name: string; slug: string; profile_photo_url?: string | null } | null;
     category: { name: string; slug: string } | null;
     images: DetailImage[] | { data: DetailImage[] };
     primary_image: string | null;
@@ -473,8 +473,8 @@ function addToCart(): void {
                             type="button"
                             :disabled="favoriteProcessing"
                             :aria-pressed="isFavorited"
-                            :aria-label="isFavorited ? 'Hapus dari favorit' : 'Tambah ke favorit'"
-                            :title="isFavorited ? 'Hapus dari favorit' : 'Tambah ke favorit'"
+                            :aria-label="isFavorited ? 'Remove from favorites' : 'Add to favorites'"
+                            :title="isFavorited ? 'Remove from favorites' : 'Add to favorites'"
                             class="flex h-12 items-center justify-center gap-2 rounded-sm border-2 border-[var(--border-default)] bg-white px-4 font-semibold text-[var(--text-secondary)] transition hover:border-[var(--brand-primary)] disabled:opacity-70 sm:w-12 sm:px-0"
                             @click="toggleFavorite"
                         >
@@ -483,17 +483,17 @@ function addToCart(): void {
                                 :class="isFavorited ? 'fill-[var(--brand-primary)] text-[var(--brand-primary)]' : ''"
                                 aria-hidden="true"
                             />
-                            <span class="sm:sr-only">Favorit</span>
+                            <span class="sm:sr-only">Favorite</span>
                         </button>
                         <Link
                             v-else
                             :href="login()"
-                            aria-label="Login untuk menambah favorit"
-                            title="Login untuk menambah favorit"
+                            aria-label="Log in to add favorites"
+                            title="Log in to add favorites"
                             class="flex h-12 items-center justify-center gap-2 rounded-sm border-2 border-[var(--border-default)] bg-white px-4 font-semibold text-[var(--text-secondary)] transition hover:border-[var(--brand-primary)] sm:w-12 sm:px-0"
                         >
                             <Heart class="h-5 w-5" aria-hidden="true" />
-                            <span class="sm:sr-only">Favorit</span>
+                            <span class="sm:sr-only">Favorite</span>
                         </Link>
                     </div>
                     <p class="mt-2 text-xs text-[var(--text-muted)]">
@@ -508,7 +508,14 @@ function addToCart(): void {
                 class="mt-4 flex flex-col gap-3 rounded-sm border border-[var(--border-default)] bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
             >
                 <div class="flex items-center gap-3">
+                    <img
+                        v-if="product.seller.profile_photo_url"
+                        :src="product.seller.profile_photo_url"
+                        alt=""
+                        class="size-12 shrink-0 rounded-full object-cover"
+                    />
                     <div
+                        v-else
                         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-navy)] text-lg font-semibold text-white"
                         aria-hidden="true"
                     >
@@ -521,7 +528,7 @@ function addToCart(): void {
                             {{ product.seller.store_name }}
                         </h2>
                         <p class="text-xs text-[var(--text-muted)]">
-                            Lihat semua produk toko ini
+                            See all products from this store
                         </p>
                     </div>
                 </div>
@@ -529,7 +536,7 @@ function addToCart(): void {
                     :href="sellerShow.url(product.seller.slug)"
                     class="inline-flex h-10 items-center justify-center rounded-sm border border-[var(--brand-primary)] px-4 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary-soft)]"
                 >
-                    Kunjungi toko
+                    Visit store
                 </Link>
             </section>
 

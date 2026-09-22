@@ -51,12 +51,12 @@ const navigation = {
             v-else-if="cards.length === 0"
             class="mt-3 rounded-sm bg-[var(--bg-muted)] p-6 text-center text-xs text-[var(--text-muted)]"
         >
-            Belum ada data penjualan. Produk terlaris akan muncul setelah ada transaksi.
+            No sales yet. Best sellers will appear once orders come in.
         </p>
         <div v-else class="relative mt-3">
             <button
                 type="button"
-                aria-label="Produk sebelumnya"
+                aria-label="Previous products"
                 class="best-seller-prev absolute top-1/2 left-0 z-10 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-xl leading-none text-[var(--text-secondary)] shadow-md transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
             >
                 ‹
@@ -106,7 +106,7 @@ const navigation = {
                                 v-if="card.soldCount !== undefined"
                                 class="mt-1 text-[11px] text-[var(--text-muted)]"
                             >
-                                {{ card.soldCount }} terjual
+                                {{ card.soldCount }} sold
                             </p>
                         </div>
                     </Link>
@@ -114,7 +114,7 @@ const navigation = {
             </Swiper>
             <button
                 type="button"
-                aria-label="Produk berikutnya"
+                aria-label="Next products"
                 class="best-seller-next absolute top-1/2 right-0 z-10 flex h-9 w-9 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-xl leading-none text-[var(--text-secondary)] shadow-md transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
             >
                 ›

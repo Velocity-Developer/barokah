@@ -77,7 +77,7 @@ function progressPercent(card: ProductCardData): number {
         <div v-else class="relative mt-3">
             <button
                 type="button"
-                aria-label="Produk sebelumnya"
+                aria-label="Previous products"
                 class="flash-sale-prev absolute top-1/2 left-0 z-10 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-xl leading-none text-[var(--text-secondary)] shadow-md transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
             >
                 ‹
@@ -142,7 +142,7 @@ function progressPercent(card: ProductCardData): number {
             </Swiper>
             <button
                 type="button"
-                aria-label="Produk berikutnya"
+                aria-label="Next products"
                 class="flash-sale-next absolute top-1/2 right-0 z-10 flex h-9 w-9 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-xl leading-none text-[var(--text-secondary)] shadow-md transition hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)]"
             >
                 ›

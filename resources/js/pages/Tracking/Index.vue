@@ -112,7 +112,7 @@ function orderTimeline(
                     >
                         <p class="text-sm font-semibold text-red-700">Pemesanan telah expired</p>
                         <p class="mt-1 text-sm text-red-600">
-                            Jangka waktu pembayaran telah habis. Silakan buat pesanan baru untuk melanjutkan belanja.
+                            The payment window has expired. Please place a new order to continue shopping.
                         </p>
                     </div>
 

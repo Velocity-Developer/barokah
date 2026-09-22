@@ -38,14 +38,14 @@ const processingId = ref<number | null>(null);
 
 function formatDate(value: string | null): string {
     return value
-        ? new Date(value).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+        ? new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
         : '-';
 }
 
 function decide(application: SellerApplication, decision: 'approve' | 'reject'): void {
     if (
         decision === 'reject' &&
-        !window.confirm(`Tolak pengajuan toko "${application.store_name}"? Pengguna dapat mengajukan lagi.`)
+        !window.confirm(`Reject the application for "${application.store_name}"? The user can apply again.`)
     ) {
         return;
     }
@@ -71,22 +71,22 @@ function decide(application: SellerApplication, decision: 'approve' | 'reject'):
         <Heading
             variant="small"
             title="Seller approvals"
-            description="Pengajuan toko dari pengguna. Toko baru bisa berjualan setelah disetujui."
+            description="Store applications from users. A store can sell only after it is approved."
         />
 
         <div class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4">
             <p v-if="applications.length === 0" class="text-muted-foreground text-sm">
-                Tidak ada pengajuan yang menunggu persetujuan.
+                No applications waiting for approval.
             </p>
 
             <div v-else class="overflow-x-auto">
                 <table class="w-full min-w-[720px] text-left text-sm">
                     <thead>
                         <tr class="text-muted-foreground border-b font-medium">
-                            <th class="px-3 py-2 font-medium">Toko</th>
-                            <th class="px-3 py-2 font-medium">Pemilik</th>
-                            <th class="px-3 py-2 font-medium">Diajukan</th>
-                            <th class="px-3 py-2 text-right font-medium">Tindakan</th>
+                            <th class="px-3 py-2 font-medium">Store</th>
+                            <th class="px-3 py-2 font-medium">Owner</th>
+                            <th class="px-3 py-2 font-medium">Submitted</th>
+                            <th class="px-3 py-2 text-right font-medium">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -121,14 +121,14 @@ function decide(application: SellerApplication, decision: 'approve' | 'reject'):
                                         :disabled="processingId === application.id"
                                         @click="decide(application, 'reject')"
                                     >
-                                        Tolak
+                                        Reject
                                     </Button>
                                     <Button
                                         size="sm"
                                         :disabled="processingId === application.id"
                                         @click="decide(application, 'approve')"
                                     >
-                                        Setujui
+                                        Approve
                                     </Button>
                                 </div>
                             </td>

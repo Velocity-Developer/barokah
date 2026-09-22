@@ -68,6 +68,7 @@ watch(
 const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
 const notice = ref<string | null>(null);
+const noticeIsSuccess = ref(false);
 
 onMounted(() => {
     const bannerIndexes = props.settings
@@ -260,6 +261,7 @@ const groupLabels: Record<string, string> = {
     contact: 'Contact',
     seo: 'SEO',
     email: 'Email',
+    homepage: 'Homepage',
 };
 
 const settingLabels: Record<string, string> = {
@@ -275,7 +277,7 @@ const settingLabels: Record<string, string> = {
     'homepage.banner_speed': 'Banner Slider Speed (milliseconds)',
     'homepage.right_top_banner_link': 'Right Top Banner Promo Link',
     'homepage.right_bottom_banner_link': 'Right Bottom Banner Promo Link',
-    'homepage.right_top_banner_url': 'Rigth Top Banner',
+    'homepage.right_top_banner_url': 'Right Top Banner',
     'homepage.right_bottom_banner_url': 'Right Bottom Banner',
     'branding.site_name': 'Website Name',
     'branding.primary_color': 'Primary Color',
@@ -342,12 +344,35 @@ const settingLabels: Record<string, string> = {
 
 const groupLabel = computed(() => groupLabels[props.activeGroup] ?? props.activeGroup);
 
-const visibleSettings = computed(() => {
-    if (props.activeGroup !== 'payment') {
-        return props.settings;
-    }
+type SettingRow = { setting: AdminSettingEntry; depth: 0 | 1 };
 
-    const paymentOrder = [
+/**
+ * Fields that only matter when another setting enables them. They are hidden
+ * (but keep their saved value) until the parent is switched on.
+ */
+const dependentSettings: Record<string, { parent: string; visible: () => boolean }> = {
+    'payment.bank_name': { parent: 'payment.bank_transfer_enabled', visible: () => Boolean(values['payment.bank_transfer_enabled']) },
+    'payment.bank_account_name': { parent: 'payment.bank_transfer_enabled', visible: () => Boolean(values['payment.bank_transfer_enabled']) },
+    'payment.bank_account_number': { parent: 'payment.bank_transfer_enabled', visible: () => Boolean(values['payment.bank_transfer_enabled']) },
+    'payment.qr_code_url': { parent: 'payment.qr_code_enabled', visible: () => Boolean(values['payment.qr_code_enabled']) },
+    ...Object.fromEntries(
+        ['payment.gateway', 'payment.api_base', 'payment.merchant_id', 'payment.secret_key', 'payment.sandbox_enabled', 'payment.fpx_enabled', 'payment.duitnow_enabled'].map((key) => [
+            key,
+            { parent: 'payment.paynet_enabled', visible: () => Boolean(values['payment.paynet_enabled']) },
+        ]),
+    ),
+    'shipping.fixed_rate': { parent: 'shipping.method', visible: () => values['shipping.method'] === 'fixed' },
+    'shipping.free_shipping_threshold': { parent: 'shipping.free_shipping_enabled', visible: () => Boolean(values['shipping.free_shipping_enabled']) },
+    ...Object.fromEntries(
+        ['shipping.provider_name', 'shipping.api_base_url', 'shipping.api_key', 'shipping.api_secret'].map((key) => [
+            key,
+            { parent: 'shipping.api_enabled', visible: () => Boolean(values['shipping.api_enabled']) },
+        ]),
+    ),
+};
+
+const groupOrder: Record<string, string[]> = {
+    payment: [
         'payment.bank_transfer_enabled',
         'payment.bank_name',
         'payment.bank_account_name',
@@ -356,45 +381,146 @@ const visibleSettings = computed(() => {
         'payment.qr_code_url',
         'payment.paynet_enabled',
         'payment.gateway',
+        'payment.api_base',
         'payment.merchant_id',
         'payment.secret_key',
         'payment.sandbox_enabled',
-        'payment.api_base',
         'payment.fpx_enabled',
         'payment.duitnow_enabled',
-    ];
+    ],
+    localization: [
+        'localization.default_language',
+        'localization.available_languages',
+        'localization.timezone',
+        'localization.date_format',
+        'localization.time_format',
+        'localization.gtranslate_enabled',
+    ],
+    email: [
+        'email.from_name',
+        'email.from_address',
+        'email.smtp_host',
+        'email.smtp_port',
+        'email.smtp_encryption',
+        'email.smtp_username',
+        'email.smtp_password',
+    ],
+    shipping: [
+        'shipping.method',
+        'shipping.fixed_rate',
+        'shipping.free_shipping_enabled',
+        'shipping.free_shipping_threshold',
+        'shipping.api_enabled',
+        'shipping.provider_name',
+        'shipping.api_base_url',
+        'shipping.api_key',
+        'shipping.api_secret',
+    ],
+};
 
-    return props.settings
-        .filter((setting) => {
-            if (setting.key === 'payment.bank_transfer_enabled') {
-                return true;
+const settingRows = computed<SettingRow[]>(() => {
+    const order = groupOrder[props.activeGroup] ?? [];
+    const rank = (key: string): number => (order.includes(key) ? order.indexOf(key) : order.length);
+    const sorted = [...props.settings].sort((first, second) => rank(first.key) - rank(second.key));
+    const keys = new Set(sorted.map((setting) => setting.key));
+    const rows: SettingRow[] = [];
+
+    for (const setting of sorted) {
+        const dependency = dependentSettings[setting.key];
+
+        if (dependency && keys.has(dependency.parent)) {
+            continue;
+        }
+
+        rows.push({ setting, depth: 0 });
+
+        for (const child of sorted) {
+            const childDependency = dependentSettings[child.key];
+
+            if (childDependency?.parent === setting.key && childDependency.visible()) {
+                rows.push({ setting: child, depth: 1 });
             }
+        }
+    }
 
-            if (setting.key === 'payment.qr_code_enabled') {
-                return true;
-            }
-
-            if (setting.key === 'payment.paynet_enabled') {
-                return true;
-            }
-
-            if (setting.key.startsWith('payment.bank_')) {
-                return Boolean(values['payment.bank_transfer_enabled']);
-            }
-
-            if (setting.key === 'payment.qr_code_url') {
-                return Boolean(values['payment.qr_code_enabled']);
-            }
-
-            return Boolean(values['payment.paynet_enabled']);
-        })
-        .sort((first, second) => paymentOrder.indexOf(first.key) - paymentOrder.indexOf(second.key));
+    return rows;
 });
 
-function isHomepageImageSetting(key: string): boolean {
-    return key.startsWith('homepage.banner_') && key.endsWith('_url')
-        || key === 'homepage.right_top_banner_url'
-        || key === 'homepage.right_bottom_banner_url';
+const selectOptions: Record<string, { value: string; label: string }[]> = {
+    'marketplace.status': [
+        { value: 'open', label: 'Open' },
+        { value: 'closed', label: 'Closed' },
+        { value: 'maintenance', label: 'Maintenance' },
+    ],
+    'shipping.method': [
+        { value: 'fixed', label: 'Fixed rate' },
+        { value: 'external', label: 'External provider (API)' },
+    ],
+    'localization.default_language': [
+        { value: 'en', label: 'English' },
+        { value: 'ms', label: 'Malay' },
+    ],
+    'email.smtp_encryption': [
+        { value: '', label: 'None' },
+        { value: 'tls', label: 'TLS' },
+        { value: 'ssl', label: 'SSL' },
+        { value: 'starttls', label: 'STARTTLS' },
+    ],
+};
+
+const languageOptions = [
+    { value: 'en', label: 'English' },
+    { value: 'ms', label: 'Malay' },
+];
+
+const numberRules: Record<string, { min: number; max?: number; step: number }> = {
+    'currency.decimals': { min: 0, max: 4, step: 1 },
+    'checkout.order_expiration_minutes': { min: 1, max: 1440, step: 1 },
+    'email.smtp_port': { min: 1, max: 65535, step: 1 },
+};
+
+/** Amounts are stored as strings ("5.00") but edited as numbers. */
+const amountKeys = new Set([
+    'checkout.min_order_amount',
+    'checkout.max_order_amount',
+    'shipping.fixed_rate',
+    'shipping.free_shipping_threshold',
+]);
+
+const secretKeys = new Set(['payment.secret_key', 'shipping.api_key', 'shipping.api_secret', 'email.smtp_password']);
+
+const longTextKeys = new Set(['marketplace.description', 'seo.meta_description', 'contact.address']);
+
+const settingHints: Record<string, string> = {
+    'shipping.fixed_rate': 'Charged per order when the shipping method is Fixed rate.',
+    'shipping.free_shipping_threshold': 'Orders at or above this amount ship for free.',
+    'checkout.max_order_amount': 'Leave empty for no maximum.',
+    'payment.sandbox_enabled': 'Use the PayNet test environment instead of live payments.',
+    'general.maintenance_mode': 'Visitors see a maintenance page while this is on.',
+    'localization.available_languages': 'Languages visitors can switch to.',
+};
+
+function clearMaskedValue(setting: AdminSettingEntry): void {
+    if (setting.masked && values[setting.key] === MASKED_SENTINEL) {
+        values[setting.key] = '';
+    }
+}
+
+function restoreMaskedValue(setting: AdminSettingEntry): void {
+    if (setting.masked && values[setting.key] === '') {
+        values[setting.key] = MASKED_SENTINEL;
+    }
+}
+
+function languageSelected(key: string, language: string): boolean {
+    const current = values[key];
+
+    return Array.isArray(current) && current.includes(language);
+}
+
+function toggleLanguage(key: string, language: string, checked: boolean): void {
+    const current = Array.isArray(values[key]) ? [...(values[key] as string[])] : [];
+    values[key] = checked ? [...new Set([...current, language])] : current.filter((item) => item !== language);
 }
 
 function settingLabel(key: string): string {
@@ -434,6 +560,7 @@ async function save(): Promise<void> {
     isSaving.value = true;
     errors.value = {};
     notice.value = null;
+    noticeIsSuccess.value = false;
 
     try {
         const formData = new FormData();
@@ -486,6 +613,7 @@ async function save(): Promise<void> {
         }
 
         notice.value = 'Settings saved.';
+        noticeIsSuccess.value = true;
         router.reload({ only: ['settings'] });
     } catch {
         notice.value = 'Settings are temporarily unavailable.';
@@ -528,7 +656,13 @@ async function save(): Promise<void> {
         >
             <h3 class="mb-4 text-base font-medium capitalize">{{ groupLabel }}</h3>
 
-            <p v-if="notice" class="mb-4 text-sm text-amber-600">{{ notice }}</p>
+            <p
+                v-if="notice"
+                class="mb-4 rounded-md border px-3 py-2 text-sm"
+                :class="noticeIsSuccess ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700'"
+            >
+                {{ notice }}
+            </p>
 
             <p
                 v-if="settings.length === 0"
@@ -620,17 +754,17 @@ async function save(): Promise<void> {
             <form v-if="settings.length > 0" class="space-y-6" @submit.prevent="onSettingsSubmit">
                 <div v-if="activeGroup === 'homepage'" class="rounded border p-4">
                     <p class="font-medium">Homepage banners</p>
-                    <p class="text-sm text-muted-foreground">Atur banner yang tampil di halaman Home.</p>
+                    <p class="text-sm text-muted-foreground">Manage the banners shown on the Home page.</p>
                 </div>
 
                 <template v-if="activeGroup === 'homepage'">
                     <div class="grid gap-4 rounded-lg border p-4">
                         <div>
                             <h4 class="font-medium">Primary banners</h4>
-                            <p class="text-sm text-muted-foreground">Atur banner utama yang tampil di halaman Home.</p>
+                            <p class="text-sm text-muted-foreground">Main slider banners on the Home page.</p>
                         </div>
                         <div
-                            v-for="setting in visibleSettings.filter((setting) => /^homepage\.banner_\d+_url$/.test(setting.key))"
+                            v-for="setting in settings.filter((setting) => /^homepage\.banner_\d+_url$/.test(setting.key))"
                             v-show="bannerIndex(setting.key) <= bannerCount && !closedBannerIndexes.has(bannerIndex(setting.key))"
                             :key="setting.key"
                             class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
@@ -639,10 +773,10 @@ async function save(): Promise<void> {
                             <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Homepage banner preview" class="h-24 w-full rounded border object-cover" />
                             <Input :id="setting.key" :key="`${setting.key}-${closedBannerIndexes.has(bannerIndex(setting.key))}`" type="file" accept="image/png,image/jpeg,image/webp" @change="onHomepageBannerFile(setting.key, $event)" />
                             <div class="flex gap-2">
-                                <Button type="button" variant="destructive" size="sm" @click="removeHomepageBanner(setting.key)">Hapus banner</Button>
+                                <Button type="button" variant="destructive" size="sm" @click="removeHomepageBanner(setting.key)">Remove banner</Button>
                                 <Button v-if="bannerIndex(setting.key) > 1" type="button" variant="outline" size="sm" @click="closeHomepageBanner(setting.key)">Close</Button>
                             </div>
-                            <p class="text-muted-foreground text-xs">PNG, JPG, atau WebP. Max 4MB.</p>
+                            <p class="text-muted-foreground text-xs">PNG, JPG or WebP. Max 4 MB.</p>
                             <Input
                                 :id="`${setting.key}-link`"
                                 :model-value="String(values[`homepage.banner_${bannerIndex(setting.key)}_link`] ?? '')"
@@ -652,7 +786,7 @@ async function save(): Promise<void> {
                             <InputError class="mt-2" :message="errors[`settings.${setting.key}`]" />
                         </div>
                         <div class="flex justify-center border-t pt-4">
-                            <Button type="button" variant="outline" :disabled="bannerCount >= 10" @click="addHomepageBanner">Tambah banner</Button>
+                            <Button type="button" variant="outline" :disabled="bannerCount >= 10" @click="addHomepageBanner">Add banner</Button>
                         </div>
                     </div>
 
@@ -672,17 +806,17 @@ async function save(): Promise<void> {
                     <div class="grid gap-4 rounded-lg border p-4">
                         <div>
                             <h4 class="font-medium">Right banners</h4>
-                            <p class="text-sm text-muted-foreground">Atur banner sisi kanan halaman Home.</p>
+                            <p class="text-sm text-muted-foreground">Banners on the right side of the Home page slider.</p>
                         </div>
                         <div
-                            v-for="setting in visibleSettings.filter((setting) => setting.key === 'homepage.right_top_banner_url' || setting.key === 'homepage.right_bottom_banner_url')"
+                            v-for="setting in settings.filter((setting) => setting.key === 'homepage.right_top_banner_url' || setting.key === 'homepage.right_bottom_banner_url')"
                             :key="setting.key"
                             class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
                         >
                             <Label :for="setting.key">{{ settingLabel(setting.key) }}</Label>
                             <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Homepage side banner preview" class="h-24 w-full rounded border object-cover" />
                             <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp" @change="onHomepageSideBannerFile(setting.key, $event)" />
-                            <p class="text-muted-foreground text-xs">PNG, JPG, atau WebP. Max 4MB.</p>
+                            <p class="text-muted-foreground text-xs">PNG, JPG or WebP. Max 4 MB.</p>
                             <Input
                                 :id="`${setting.key}-link`"
                                 :model-value="String(values[setting.key.replace('_url', '_link')] ?? '')"
@@ -694,91 +828,169 @@ async function save(): Promise<void> {
                     </div>
                 </template>
 
-                <div
-                    v-else
-                    v-for="setting in visibleSettings"
-                    :key="setting.key"
-                    class="grid gap-2 rounded-lg border-b pb-5 last:border-b-0"
-                >
-                    <Label :for="setting.key">
-                        {{ settingLabel(setting.key) }}
-                        <span v-if="setting.masked" class="text-muted-foreground">
-                            (secret value hidden as {{ MASKED_SENTINEL }})
-                        </span>
-                    </Label>
-
-                    <div v-if="inputKind(setting.type) === 'checkbox'" class="flex items-center gap-3">
-                        <Input
-                            :id="setting.key"
-                            type="checkbox"
-                            class="h-5 w-5"
-                            :checked="Boolean(values[setting.key])"
-                            @change="
-                                values[setting.key] = (
-                                    $event.target as HTMLInputElement
-                                ).checked
-                            "
-                        />
-                        <span class="text-sm">Enable {{ settingLabel(setting.key) }}</span>
-                    </div>
-                    <Input
-                        v-else-if="inputKind(setting.type) === 'color'"
-                        :id="setting.key"
-                        type="color"
-                        class="h-10 w-20"
-                        :model-value="String(values[setting.key] ?? '#000000')"
-                        @update:model-value="values[setting.key] = $event"
-                    />
-                    <template v-else-if="activeGroup === 'homepage' && isHomepageImageSetting(setting.key)">
-                        <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Homepage banner preview" class="h-24 w-full rounded border object-cover" />
-                        <Input v-if="setting.key.startsWith('homepage.banner_')" :id="setting.key" :key="`${setting.key}-${closedBannerIndexes.has(bannerIndex(setting.key))}`" type="file" accept="image/png,image/jpeg,image/webp" @change="onHomepageBannerFile(setting.key, $event)" />
-                        <Input v-else :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp" @change="onHomepageSideBannerFile(setting.key, $event)" />
-                        <div class="flex gap-2">
-                            <Button type="button" variant="destructive" size="sm" @click="removeHomepageBanner(setting.key)">Hapus banner</Button>
-                            <Button v-if="bannerIndex(setting.key) > 1" type="button" variant="outline" size="sm" @click="closeHomepageBanner(setting.key)">Close</Button>
+                <div v-else class="divide-y rounded-lg border">
+                    <div
+                        v-for="{ setting, depth } in settingRows"
+                        :key="setting.key"
+                        class="grid gap-2 px-4 py-4 md:grid-cols-[260px_1fr] md:gap-6"
+                        :class="depth === 1 ? 'bg-muted/30 md:pl-10' : ''"
+                    >
+                        <div class="md:pt-2">
+                            <Label
+                                :for="setting.key"
+                                :class="depth === 1 ? 'border-l-2 pl-3' : ''"
+                            >
+                                {{ settingLabel(setting.key) }}
+                            </Label>
+                            <p v-if="settingHints[setting.key]" class="text-muted-foreground mt-1 text-xs" :class="depth === 1 ? 'pl-3.5' : ''">
+                                {{ settingHints[setting.key] }}
+                            </p>
                         </div>
-                        <p class="text-muted-foreground text-xs">PNG, JPG, atau WebP. Max 4MB.</p>
-                    </template>
-                    <template v-else-if="activeGroup === 'branding' && setting.key === 'branding.logo_url'">
-                        <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Logo preview" class="h-16 max-w-48 rounded border object-contain p-2" />
-                        <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="onBrandingFile('logo', $event)" />
-                        <p class="text-muted-foreground text-xs">PNG, JPG, WebP, or SVG. Max 2MB.</p>
-                    </template>
-                    <template v-else-if="activeGroup === 'branding' && setting.key === 'branding.favicon_url'">
-                        <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Favicon preview" class="h-12 w-12 rounded border object-contain p-2" />
-                        <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/svg+xml" @change="onBrandingFile('favicon', $event)" />
-                        <p class="text-muted-foreground text-xs">PNG, JPG, WebP, ICO, or SVG. Max 1MB.</p>
-                    </template>
-                    <template v-else-if="activeGroup === 'payment' && setting.key === 'payment.qr_code_url'">
-                        <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="QR code preview" class="h-48 w-48 rounded border object-contain p-2" />
-                        <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp" @change="onQrCodeFile" />
-                        <p class="text-muted-foreground text-xs">PNG, JPG, or WebP. Max 2MB.</p>
-                    </template>
-                    <Input
-                        v-else-if="inputKind(setting.type) === 'number'"
-                        :id="setting.key"
-                        type="number"
-                        min="1000"
-                        step="100"
-                        :model-value="String(values[setting.key] ?? '')"
-                        @update:model-value="values[setting.key] = Number($event)"
-                    />
-                    <Input
-                        v-else
-                        :id="setting.key"
-                        type="text"
-                        class="block w-full"
-                        :model-value="
-                            Array.isArray(values[setting.key])
-                                ? (values[setting.key] as string[]).join(',')
-                                : String(values[setting.key] ?? '')
-                        "
-                        @update:model-value="values[setting.key] = $event"
-                    />
-                    <InputError
-                        class="mt-2"
-                        :message="errors[`settings.${setting.key}`]"
-                    />
+
+                        <div class="grid gap-2">
+                            <!-- Masked values arrive as a placeholder; an untouched field keeps the stored value. -->
+                            <Input
+                                v-if="setting.masked"
+                                :id="setting.key"
+                                :type="secretKeys.has(setting.key) ? 'password' : 'text'"
+                                autocomplete="new-password"
+                                :model-value="String(values[setting.key] ?? '')"
+                                @focus="clearMaskedValue(setting)"
+                                @blur="restoreMaskedValue(setting)"
+                                @update:model-value="values[setting.key] = $event"
+                            />
+
+                            <label
+                                v-else-if="inputKind(setting.type) === 'checkbox'"
+                                :for="setting.key"
+                                class="flex w-fit cursor-pointer items-center gap-3 md:pt-2"
+                            >
+                                <input
+                                    :id="setting.key"
+                                    type="checkbox"
+                                    class="h-5 w-5 cursor-pointer accent-[var(--brand-primary,#ee4d2d)]"
+                                    :checked="Boolean(values[setting.key])"
+                                    @change="values[setting.key] = ($event.target as HTMLInputElement).checked"
+                                />
+                                <span class="text-sm">{{ values[setting.key] ? 'Enabled' : 'Disabled' }}</span>
+                            </label>
+
+                            <div v-else-if="inputKind(setting.type) === 'color'" class="flex items-center gap-3">
+                                <Input
+                                    :id="setting.key"
+                                    type="color"
+                                    class="h-10 w-16 cursor-pointer p-1"
+                                    :model-value="String(values[setting.key] ?? '#000000')"
+                                    @update:model-value="values[setting.key] = $event"
+                                />
+                                <Input
+                                    class="w-32 font-mono"
+                                    :model-value="String(values[setting.key] ?? '')"
+                                    aria-label="Hex color"
+                                    @update:model-value="values[setting.key] = $event"
+                                />
+                            </div>
+
+                            <template v-else-if="setting.key === 'branding.logo_url'">
+                                <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Logo preview" class="h-16 max-w-48 rounded border object-contain p-2" />
+                                <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="onBrandingFile('logo', $event)" />
+                                <p class="text-muted-foreground text-xs">PNG, JPG, WebP or SVG. Max 2 MB.</p>
+                            </template>
+                            <template v-else-if="setting.key === 'branding.favicon_url'">
+                                <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="Favicon preview" class="h-12 w-12 rounded border object-contain p-2" />
+                                <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/svg+xml" @change="onBrandingFile('favicon', $event)" />
+                                <p class="text-muted-foreground text-xs">PNG, JPG, WebP, ICO or SVG. Max 1 MB.</p>
+                            </template>
+                            <template v-else-if="setting.key === 'payment.qr_code_url'">
+                                <img v-if="values[setting.key]" :src="String(values[setting.key])" alt="QR code preview" class="h-48 w-48 rounded border object-contain p-2" />
+                                <Input :id="setting.key" type="file" accept="image/png,image/jpeg,image/webp" @change="onQrCodeFile" />
+                                <p class="text-muted-foreground text-xs">PNG, JPG or WebP. Max 2 MB.</p>
+                            </template>
+
+                            <select
+                                v-else-if="selectOptions[setting.key]"
+                                :id="setting.key"
+                                class="h-10 w-full max-w-sm rounded-md border bg-background px-3 text-sm"
+                                :value="String(values[setting.key] ?? '')"
+                                @change="values[setting.key] = ($event.target as HTMLSelectElement).value || null"
+                            >
+                                <option v-for="option in selectOptions[setting.key]" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </option>
+                            </select>
+
+                            <div v-else-if="setting.key === 'localization.available_languages'" :id="setting.key" class="flex flex-wrap gap-4 md:pt-2">
+                                <label v-for="language in languageOptions" :key="language.value" class="flex cursor-pointer items-center gap-2 text-sm">
+                                    <input
+                                        type="checkbox"
+                                        class="h-4 w-4 cursor-pointer"
+                                        :checked="languageSelected(setting.key, language.value)"
+                                        @change="toggleLanguage(setting.key, language.value, ($event.target as HTMLInputElement).checked)"
+                                    />
+                                    {{ language.label }}
+                                </label>
+                            </div>
+
+                            <Input
+                                v-else-if="amountKeys.has(setting.key)"
+                                :id="setting.key"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="max-w-xs"
+                                :model-value="String(values[setting.key] ?? '')"
+                                @update:model-value="values[setting.key] = String($event)"
+                            />
+
+                            <Input
+                                v-else-if="inputKind(setting.type) === 'number'"
+                                :id="setting.key"
+                                type="number"
+                                class="max-w-xs"
+                                :min="numberRules[setting.key]?.min ?? 0"
+                                :max="numberRules[setting.key]?.max"
+                                :step="numberRules[setting.key]?.step ?? 1"
+                                :model-value="String(values[setting.key] ?? '')"
+                                @update:model-value="values[setting.key] = $event === '' ? null : Number($event)"
+                            />
+
+                            <Input
+                                v-else-if="secretKeys.has(setting.key)"
+                                :id="setting.key"
+                                type="password"
+                                autocomplete="new-password"
+                                :model-value="String(values[setting.key] ?? '')"
+                                @update:model-value="values[setting.key] = $event"
+                            />
+
+                            <textarea
+                                v-else-if="longTextKeys.has(setting.key)"
+                                :id="setting.key"
+                                rows="3"
+                                class="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                                :value="String(values[setting.key] ?? '')"
+                                @input="values[setting.key] = ($event.target as HTMLTextAreaElement).value"
+                            ></textarea>
+
+                            <Input
+                                v-else
+                                :id="setting.key"
+                                type="text"
+                                class="block w-full"
+                                :model-value="String(values[setting.key] ?? '')"
+                                @update:model-value="values[setting.key] = $event"
+                            />
+
+                            <p
+                                v-if="setting.masked"
+                                class="text-muted-foreground text-xs"
+                            >
+                                The saved value is hidden. Leave it as is to keep it, or type a new one to replace it.
+                            </p>
+
+                            <InputError :message="errors[`settings.${setting.key}`]" />
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-4">

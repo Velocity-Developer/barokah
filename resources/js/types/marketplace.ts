@@ -60,6 +60,7 @@ export type HomeSellerItem = {
     slug: string;
     description: string | null;
     profile_photo_url: string | null;
+    banner_url?: string | null;
     city: string | null;
     state: string | null;
     store_location?: string | null;

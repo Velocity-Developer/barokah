@@ -174,6 +174,13 @@ const productCards = computed(() =>
                 class="overflow-hidden rounded-sm bg-[var(--bg-surface)] shadow-[var(--shadow-card)]"
             >
                 <div
+                    v-if="seller.banner_url"
+                    class="h-32 w-full bg-cover bg-center md:h-48"
+                    :style="{ backgroundImage: `url('${seller.banner_url}')` }"
+                    aria-hidden="true"
+                />
+                <div
+                    v-else
                     class="h-32 w-full bg-gradient-to-r from-[var(--brand-primary)] via-[var(--accent-red)] to-[var(--accent-navy)] md:h-40"
                     aria-hidden="true"
                 />
@@ -206,7 +213,7 @@ const productCards = computed(() =>
                                 <span
                                     class="rounded-sm bg-[var(--brand-primary-soft)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--brand-primary)]"
                                 >
-                                    Aktif
+                                    Active
                                 </span>
                             </div>
                             <p
@@ -259,12 +266,12 @@ const productCards = computed(() =>
                                 ]"
                                 @click="toggleFollow"
                             >
-                                {{ isFollowed ? 'Mengikuti' : 'Follow' }}
+                                {{ isFollowed ? 'Following' : 'Follow' }}
                             </button>
                             <Link
                                 v-else
                                 :href="login()"
-                                title="Login untuk follow"
+                                title="Log in to follow"
                                 class="rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-primary-hover)]"
                             >
                                 Follow
@@ -277,7 +284,7 @@ const productCards = computed(() =>
                     >
                         <div class="text-center">
                             <dt class="text-xs text-[var(--text-muted)]">
-                                Produk
+                                Products
                             </dt>
                             <dd
                                 class="mt-1 text-lg font-semibold text-[var(--brand-primary)]"
@@ -298,7 +305,7 @@ const productCards = computed(() =>
                         </div>
                         <div class="text-center">
                             <dt class="text-xs text-[var(--text-muted)]">
-                                Pengikut
+                                Followers
                             </dt>
                             <dd
                                 class="mt-1 text-lg font-semibold text-[var(--brand-primary)]"
@@ -326,7 +333,7 @@ const productCards = computed(() =>
                         "
                         @click="activeTab = 'products'"
                     >
-                        Produk
+                        Products
                     </button>
                     <button
                         type="button"
@@ -348,7 +355,7 @@ const productCards = computed(() =>
                             v-if="productCards.length === 0"
                             class="py-8 text-center text-sm text-[var(--text-muted)]"
                         >
-                            Belum ada produk aktif.
+                            No active products yet.
                         </p>
                         <div
                             v-else
@@ -458,7 +465,7 @@ const productCards = computed(() =>
                                     v-else
                                     class="py-6 text-sm text-[var(--text-muted)]"
                                 >
-                                    Tidak ada review yang sesuai dengan filter ini.
+                                    No reviews match this filter.
                                 </p>
                             </div>
                         </div>
@@ -466,7 +473,7 @@ const productCards = computed(() =>
                             v-else
                             class="py-8 text-center text-sm text-[var(--text-muted)]"
                         >
-                            Belum ada rating untuk toko ini.
+                            This store has no ratings yet.
                         </p>
                     </template>
                 </div>

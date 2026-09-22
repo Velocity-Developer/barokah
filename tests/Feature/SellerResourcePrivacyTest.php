@@ -48,3 +48,29 @@ it('still returns the bank account to the store owner', function () {
         ->assertOk()
         ->assertJsonPath('data.bank_account', 'Maybank 1234567890');
 });
+
+it('uses the owner photo and banner on the store page without exposing the owner', function () {
+    $seller = sellerWithBankAccount();
+    $seller->user->forceFill([
+        'profile_photo_path' => 'users/photos/owner.jpg',
+        'banner_path' => 'users/banners/owner.jpg',
+    ])->save();
+
+    $this->get(route('sellers.show', $seller->slug))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('seller.data.profile_photo_url', fn (string $url) => str_ends_with($url, 'users/photos/owner.jpg'))
+            ->where('seller.data.banner_url', fn (string $url) => str_ends_with($url, 'users/banners/owner.jpg'))
+            ->missing('seller.data.user')
+            ->missing('seller.data.email'));
+});
+
+it('prefers the store photo over the owner photo', function () {
+    $seller = sellerWithBankAccount();
+    $seller->update(['profile_photo_path' => 'sellers/store.jpg']);
+    $seller->user->forceFill(['profile_photo_path' => 'users/photos/owner.jpg'])->save();
+
+    $this->get(route('sellers.show', $seller->slug))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('seller.data.profile_photo_url', fn (string $url) => str_ends_with($url, 'sellers/store.jpg'))
+            ->where('seller.data.banner_url', null));
+});

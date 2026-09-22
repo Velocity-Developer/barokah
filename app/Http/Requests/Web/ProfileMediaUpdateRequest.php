@@ -26,7 +26,7 @@ class ProfileMediaUpdateRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'profile_photo' => 'foto profil',
+            'profile_photo' => 'profile photo',
             'banner' => 'banner',
         ];
     }

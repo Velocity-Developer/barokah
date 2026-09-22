@@ -33,7 +33,7 @@ function discountLabel(coupon: Coupon): string {
         <main class="mx-auto w-full max-w-[1200px] px-4 py-6">
             <div class="mb-6">
                 <h1 class="text-2xl font-bold text-[var(--brand-primary)]">Coupon</h1>
-                <p class="mt-1 text-sm text-muted-foreground">Gunakan coupon untuk mendapat harga lebih hemat.</p>
+                <p class="mt-1 text-sm text-muted-foreground">Use a coupon to get a better price.</p>
             </div>
             <div v-if="coupons.length" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <article v-for="coupon in coupons" :key="coupon.id" class="flex flex-col justify-between rounded-xl border border-[var(--border-soft)] bg-white p-5 shadow-sm">
@@ -46,14 +46,14 @@ function discountLabel(coupon: Coupon): string {
                             <span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700">{{ discountLabel(coupon) }}</span>
                         </div>
                         <p v-if="coupon.description" class="mt-3 text-sm text-muted-foreground">{{ coupon.description }}</p>
-                        <p class="mt-3 text-sm">Minimum belanja: <strong>{{ formatAmount(Number(coupon.minimum_spend)) }}</strong></p>
-                        <p v-if="coupon.maximum_discount" class="text-sm">Maksimal diskon: {{ formatAmount(Number(coupon.maximum_discount)) }}</p>
+                        <p class="mt-3 text-sm">Minimum spend: <strong>{{ formatAmount(Number(coupon.minimum_spend)) }}</strong></p>
+                        <p v-if="coupon.maximum_discount" class="text-sm">Maximum discount: {{ formatAmount(Number(coupon.maximum_discount)) }}</p>
                         <p class="mt-1 text-xs text-muted-foreground">Berlaku sampai {{ coupon.ends_at }}</p>
                     </div>
-                    <Link href="/checkout/cart" class="mt-4 inline-flex w-full justify-center rounded-md bg-[var(--brand-primary)] px-4 py-2 text-sm font-semibold text-white">Belanja sekarang</Link>
+                    <Link href="/checkout/cart" class="mt-4 inline-flex w-full justify-center rounded-md bg-[var(--brand-primary)] px-4 py-2 text-sm font-semibold text-white">Shop now</Link>
                 </article>
             </div>
-            <p v-else class="rounded-xl border p-8 text-center text-sm text-muted-foreground">Belum ada coupon aktif.</p>
+            <p v-else class="rounded-xl border p-8 text-center text-sm text-muted-foreground">No active coupons yet.</p>
         </main>
     </MarketplaceLayout>
 </template>

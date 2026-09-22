@@ -62,10 +62,10 @@ const sort = ref(props.filters.sort);
 const selectedCategory = ref(props.filters.category);
 
 const sortOptions = [
-    { value: 'latest', label: 'Terbaru' },
-    { value: 'price_asc', label: 'Harga: rendah ke tinggi' },
-    { value: 'price_desc', label: 'Harga: tinggi ke rendah' },
-    { value: 'name', label: 'Nama' },
+    { value: 'latest', label: 'Newest' },
+    { value: 'price_asc', label: 'Price: low to high' },
+    { value: 'price_desc', label: 'Price: high to low' },
+    { value: 'name', label: 'Name' },
 ];
 
 function unwrapCategories(value: ProductCategory[] | { data: ProductCategory[] }): ProductCategory[] {
@@ -128,14 +128,14 @@ function resetFilters(): void {
 </script>
 
 <template>
-    <Head title="Semua Produk" />
+    <Head title="All Products" />
 
     <MarketplaceLayout>
         <div class="mx-auto w-full max-w-[1200px] px-4 py-6 pb-24 md:pb-6">
             <nav class="mb-4 text-xs text-[var(--text-muted)]">
                 <Link href="/" class="hover:underline">Home</Link>
                 <span class="mx-1">/</span>
-                <span class="text-[var(--text-primary)]">Semua Produk</span>
+                <span class="text-[var(--text-primary)]">All Products</span>
             </nav>
 
             <div class="mt-5 flex flex-col gap-6 md:flex-row">
@@ -143,7 +143,7 @@ function resetFilters(): void {
                     <div class="rounded-sm bg-white p-4 shadow-[var(--shadow-card)]">
                         <div class="mb-3 flex items-center justify-between">
                             <h2 class="text-sm font-semibold text-[var(--text-primary)]">
-                                Kategori
+                                Categories
                             </h2>
                             <button
                                 v-if="selectedCategory !== ''"
@@ -171,7 +171,7 @@ function resetFilters(): void {
                                         selectCategory('')
                                     "
                                 >
-                                    Semua produk
+                                    All products
                                 </button>
                             </li>
                             <li
@@ -198,7 +198,7 @@ function resetFilters(): void {
                             v-if="categoriesList.length === 0"
                             class="py-2 text-xs text-[var(--text-muted)]"
                         >
-                            Belum ada kategori.
+                            No categories yet.
                         </p>
                     </div>
                 </aside>
@@ -210,7 +210,7 @@ function resetFilters(): void {
                         <input
                             v-model="search"
                             type="search"
-                            placeholder="Cari produk..."
+                            placeholder="Search products..."
                             class="h-10 flex-1 rounded-sm border border-[var(--border-default)] px-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-faint)] focus:border-[var(--brand-primary)] focus:outline-none"
                             @keyup.enter="applyFilters"
                         />
@@ -224,7 +224,7 @@ function resetFilters(): void {
                                 :key="option.value"
                                 :value="option.value"
                             >
-                                Urut: {{ option.label }}
+                                Sort: {{ option.label }}
                             </option>
                         </select>
                     </div>
@@ -235,12 +235,12 @@ function resetFilters(): void {
                         <span>
                             <span v-if="totalProducts > 0">{{ totalProducts }}</span>
                             <span v-else>{{ props.products.data.length }}</span>
-                            <span class="ml-1">produk ditemukan</span>
+                            <span class="ml-1">products found</span>
                             <span
                                 v-if="hasAnyFilter"
                                 class="ml-1 text-[var(--text-secondary)]"
                             >
-                                (difilter)
+                                (filtered)
                             </span>
                         </span>
                         <button
@@ -249,7 +249,7 @@ function resetFilters(): void {
                             class="font-medium text-[var(--brand-primary)] hover:underline"
                             @click="resetFilters"
                         >
-                            Hapus filter
+                            Clear filters
                         </button>
                     </div>
 
@@ -264,10 +264,10 @@ function resetFilters(): void {
                             📦
                         </div>
                         <p class="text-sm font-medium text-[var(--text-primary)]">
-                            Tidak ada produk yang ditemukan
+                            No products found
                         </p>
                         <p class="mt-1 text-xs text-[var(--text-muted)]">
-                            Coba ubah kata kunci pencarian atau hapus filter.
+                            Try a different search term or clear the filters.
                         </p>
                         <button
                             v-if="hasAnyFilter"
@@ -275,7 +275,7 @@ function resetFilters(): void {
                             class="mt-4 inline-flex h-10 items-center justify-center rounded-sm border border-[var(--brand-primary)] bg-white px-4 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary-soft)]"
                             @click="resetFilters"
                         >
-                            Reset semua filter
+                            Reset all filters
                         </button>
                     </div>
 

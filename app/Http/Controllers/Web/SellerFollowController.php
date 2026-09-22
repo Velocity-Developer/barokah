@@ -23,8 +23,8 @@ class SellerFollowController extends Controller
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => $changes['attached'] !== []
-                ? __('Berhasil mengikuti :store.', ['store' => $seller->store_name])
-                : __('Berhenti mengikuti :store.', ['store' => $seller->store_name]),
+                ? __('You are now following :store.', ['store' => $seller->store_name])
+                : __('You unfollowed :store.', ['store' => $seller->store_name]),
         ]);
 
         return back();

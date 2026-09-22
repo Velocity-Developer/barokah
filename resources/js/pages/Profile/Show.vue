@@ -23,12 +23,19 @@ const authUser = computed(() => page.props.auth.user as Record<string, unknown> 
 
 type ProfileTab = 'profile' | 'media' | 'password' | 'seller' | 'following_sellers' | 'favorite_products';
 
-const profileTabs: ProfileTab[] = ['profile', 'media', 'password', 'seller', 'following_sellers', 'favorite_products'];
+// Admins manage sellers from the admin area and do not apply as sellers.
+const showSellerTab = computed<boolean>(() => page.props.auth?.can?.admin !== true);
+
+const profileTabs = computed<ProfileTab[]>(() =>
+    (['profile', 'media', 'password', 'seller', 'following_sellers', 'favorite_products'] as ProfileTab[]).filter(
+        (tab) => tab !== 'seller' || showSellerTab.value,
+    ),
+);
 
 function tabFromUrl(): ProfileTab {
     const requested = new URLSearchParams(page.url.split('?')[1] ?? '').get('tab');
 
-    return profileTabs.includes(requested as ProfileTab) ? (requested as ProfileTab) : 'profile';
+    return profileTabs.value.includes(requested as ProfileTab) ? (requested as ProfileTab) : 'profile';
 }
 
 const activeTab = ref<ProfileTab>(tabFromUrl());
@@ -42,11 +49,11 @@ watch(
 
 const tabHeadings: Record<ProfileTab, { title: string; subtitle: string }> = {
     profile: { title: 'Account Info', subtitle: 'Update your profile and delivery information.' },
-    media: { title: 'Foto Profil & Banner', subtitle: 'Atur foto profil dan gambar latar kartu profil Anda.' },
-    seller: { title: 'Seller', subtitle: 'Buka toko Anda sendiri di marketplace.' },
+    media: { title: 'Photo & Banner', subtitle: 'Set your profile photo and the banner behind your profile card.' },
+    seller: { title: 'Seller', subtitle: 'Open your own store on the marketplace.' },
     password: { title: 'Change Password', subtitle: 'Keep your account secure with a strong password.' },
-    following_sellers: { title: 'Toko Diikuti', subtitle: 'Toko yang Anda ikuti.' },
-    favorite_products: { title: 'Produk Favorit', subtitle: 'Produk yang Anda simpan sebagai favorit.' },
+    following_sellers: { title: 'Followed Stores', subtitle: 'Stores you follow.' },
+    favorite_products: { title: 'Favorite Products', subtitle: 'Products you saved as favorites.' },
 };
 const toast = computed(() => (page.props.toast as { type: string; message: string } | null) ?? null);
 
@@ -250,7 +257,7 @@ function submitSellerApplication(): void {
 
 function formatDate(value: string | null): string {
     return value
-        ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+        ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         : '-';
 }
 
@@ -368,7 +375,7 @@ function savePassword(): void {
                                 @click="activeTab = 'media'"
                             >
                                 <ImageIcon class="h-4 w-4 shrink-0" />
-                                <span>Foto &amp; Banner</span>
+                                <span>Photo &amp; Banner</span>
                             </button>
                             <button
                                 type="button"
@@ -384,6 +391,7 @@ function savePassword(): void {
                                 <span>Password</span>
                             </button>
                             <button
+                                v-if="showSellerTab"
                                 type="button"
                                 class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition"
                                 :class="
@@ -399,7 +407,7 @@ function savePassword(): void {
                                     v-if="sellerApplication?.status === 'pending'"
                                     class="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"
                                 >
-                                    Menunggu
+                                    Pending
                                 </span>
                             </button>
                             <button
@@ -413,7 +421,7 @@ function savePassword(): void {
                                 @click="activeTab = 'following_sellers'"
                             >
                                 <Store class="h-4 w-4 shrink-0" />
-                                <span>Toko Diikuti</span>
+                                <span>Followed Stores</span>
                                 <span class="ml-auto text-xs text-gray-400">{{ followedSellerList.length }}</span>
                             </button>
                             <button
@@ -427,7 +435,7 @@ function savePassword(): void {
                                 @click="activeTab = 'favorite_products'"
                             >
                                 <Heart class="h-4 w-4 shrink-0" />
-                                <span>Produk Favorit</span>
+                                <span>Favorite Products</span>
                                 <span class="ml-auto text-xs text-gray-400">{{ favoriteProductCards.length }}</span>
                             </button>
                             <hr class="my-1 border-gray-100" />
@@ -640,14 +648,14 @@ function savePassword(): void {
                                                 : { backgroundColor: 'var(--brand-primary)' }
                                         "
                                     >
-                                        <span v-if="!shownBannerUrl">Belum ada banner</span>
+                                        <span v-if="!shownBannerUrl">No banner yet</span>
                                     </div>
                                     <div class="flex flex-wrap items-center gap-2">
                                         <label
                                             for="banner"
                                             class="inline-flex h-9 cursor-pointer items-center rounded-md border border-gray-200 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                                         >
-                                            Pilih gambar
+                                            Choose image
                                         </label>
                                         <input
                                             id="banner"
@@ -663,9 +671,9 @@ function savePassword(): void {
                                             class="h-9 rounded-md px-3 text-sm text-red-600 transition hover:bg-red-50"
                                             @click="removeBanner"
                                         >
-                                            Hapus banner
+                                            Remove banner
                                         </button>
-                                        <span class="text-xs text-gray-500">JPG, PNG, atau WEBP, maks. 4 MB. Disarankan rasio lebar ±4:1.</span>
+                                        <span class="text-xs text-gray-500">JPG, PNG or WEBP, max 4 MB. A wide image (about 4:1) works best.</span>
                                     </div>
                                     <p v-if="media.errors.banner" class="text-xs text-red-600">
                                         {{ media.errors.banner }}
@@ -673,12 +681,12 @@ function savePassword(): void {
                                 </div>
 
                                 <div class="grid gap-2">
-                                    <p class="text-sm font-medium text-gray-700">Foto profil</p>
+                                    <p class="text-sm font-medium text-gray-700">Profile photo</p>
                                     <div class="flex flex-wrap items-center gap-4">
                                         <img
                                             v-if="shownPhotoUrl"
                                             :src="shownPhotoUrl"
-                                            alt="Pratinjau foto profil"
+                                            alt="Profile photo preview"
                                             class="h-20 w-20 rounded-full object-cover ring-1 ring-gray-100"
                                         />
                                         <div
@@ -693,7 +701,7 @@ function savePassword(): void {
                                                 for="profile_photo"
                                                 class="inline-flex h-9 cursor-pointer items-center rounded-md border border-gray-200 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                                             >
-                                                Pilih foto
+                                                Choose photo
                                             </label>
                                             <input
                                                 id="profile_photo"
@@ -709,9 +717,9 @@ function savePassword(): void {
                                                 class="h-9 rounded-md px-3 text-sm text-red-600 transition hover:bg-red-50"
                                                 @click="removePhoto"
                                             >
-                                                Hapus foto
+                                                Remove photo
                                             </button>
-                                            <span class="text-xs text-gray-500">JPG, PNG, atau WEBP, maks. 2 MB.</span>
+                                            <span class="text-xs text-gray-500">JPG, PNG or WEBP, max 2 MB.</span>
                                         </div>
                                     </div>
                                     <p v-if="media.errors.profile_photo" class="text-xs text-red-600">
@@ -726,7 +734,7 @@ function savePassword(): void {
                                         class="inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                                         style="background-color: var(--brand-primary)"
                                     >
-                                        {{ media.processing ? 'Menyimpan...' : 'Simpan' }}
+                                        {{ media.processing ? 'Saving...' : 'Save' }}
                                     </button>
                                     <button
                                         v-if="mediaDirty && !media.processing"
@@ -734,22 +742,22 @@ function savePassword(): void {
                                         class="h-11 rounded-md px-4 text-sm text-gray-600 transition hover:bg-gray-50"
                                         @click="resetMedia"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                 </div>
                             </form>
                         </div>
 
-                        <div v-show="activeTab === 'seller'" class="px-6 py-5">
+                        <div v-if="showSellerTab" v-show="activeTab === 'seller'" class="px-6 py-5">
                             <div
                                 v-if="sellerApplication?.status === 'pending'"
                                 class="rounded-md border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800"
                             >
-                                <p class="font-semibold">Menunggu persetujuan admin</p>
+                                <p class="font-semibold">Waiting for admin approval</p>
                                 <p class="mt-1">
-                                    Pengajuan toko <strong>{{ sellerApplication.store_name }}</strong>
-                                    dikirim {{ formatDate(sellerApplication.submitted_at) }}. Anda akan bisa membuka
-                                    Dashboard Seller setelah admin menyetujuinya.
+                                    Your application for <strong>{{ sellerApplication.store_name }}</strong> was
+                                    submitted on {{ formatDate(sellerApplication.submitted_at) }}. You can open the
+                                    Seller Dashboard once an admin approves it.
                                 </p>
                             </div>
 
@@ -758,15 +766,15 @@ function savePassword(): void {
                                 class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-green-200 bg-green-50 px-4 py-4 text-sm text-green-800"
                             >
                                 <div>
-                                    <p class="font-semibold">Toko aktif</p>
-                                    <p class="mt-1">{{ sellerApplication.store_name }} sudah aktif sebagai seller.</p>
+                                    <p class="font-semibold">Store active</p>
+                                    <p class="mt-1">{{ sellerApplication.store_name }} is active on the marketplace.</p>
                                 </div>
                                 <Link
                                     :href="sellerDashboard()"
                                     class="inline-flex h-10 items-center rounded-md px-4 text-sm font-semibold text-white"
                                     style="background-color: var(--brand-primary)"
                                 >
-                                    Buka Dashboard Seller
+                                    Open Seller Dashboard
                                 </Link>
                             </div>
 
@@ -774,21 +782,21 @@ function savePassword(): void {
                                 v-else-if="sellerApplication?.status === 'suspended'"
                                 class="rounded-md border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700"
                             >
-                                <p class="font-semibold">Toko ditangguhkan</p>
+                                <p class="font-semibold">Store suspended</p>
                                 <p class="mt-1">
-                                    Toko {{ sellerApplication.store_name }} sedang ditangguhkan. Hubungi admin untuk
-                                    informasi lebih lanjut.
+                                    {{ sellerApplication.store_name }} is currently suspended. Please contact an admin
+                                    for more information.
                                 </p>
                             </div>
 
                             <form v-else class="grid gap-5" @submit.prevent="submitSellerApplication">
                                 <p class="text-sm text-gray-600">
-                                    Ajukan akun Anda menjadi seller. Setelah admin menyetujui, Anda bisa mengelola
-                                    produk, pesanan, dan pengaturan toko di Dashboard Seller.
+                                    Apply to become a seller. Once an admin approves your application, you can manage
+                                    your products, orders and store settings in the Seller Dashboard.
                                 </p>
                                 <div class="grid gap-1.5">
                                     <label for="store_name" class="text-sm font-medium text-gray-700">
-                                        Nama toko
+                                        Store name
                                     </label>
                                     <input
                                         id="store_name"
@@ -797,7 +805,7 @@ function savePassword(): void {
                                         required
                                         maxlength="255"
                                         class="h-11 w-full rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                                        placeholder="mis. Keripik Barokah"
+                                        placeholder="e.g. Barokah Snacks"
                                     />
                                     <p v-if="sellerForm.errors.store_name" class="text-xs text-red-600">
                                         {{ sellerForm.errors.store_name }}
@@ -805,7 +813,7 @@ function savePassword(): void {
                                 </div>
                                 <div class="grid gap-1.5">
                                     <label for="store_description" class="text-sm font-medium text-gray-700">
-                                        Deskripsi toko <span class="font-normal text-gray-400">(opsional)</span>
+                                        Store description <span class="font-normal text-gray-400">(optional)</span>
                                     </label>
                                     <textarea
                                         id="store_description"
@@ -813,7 +821,7 @@ function savePassword(): void {
                                         rows="4"
                                         maxlength="2000"
                                         class="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
-                                        placeholder="Produk apa yang akan Anda jual?"
+                                        placeholder="What will you sell?"
                                     ></textarea>
                                     <p v-if="sellerForm.errors.description" class="text-xs text-red-600">
                                         {{ sellerForm.errors.description }}
@@ -826,7 +834,7 @@ function savePassword(): void {
                                         class="inline-flex h-11 items-center justify-center rounded-md px-6 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                                         style="background-color: var(--brand-primary)"
                                     >
-                                        {{ sellerForm.processing ? 'Mengirim...' : 'Aktifkan Seller' }}
+                                        {{ sellerForm.processing ? 'Submitting...' : 'Become a Seller' }}
                                     </button>
                                 </div>
                             </form>
@@ -911,7 +919,7 @@ function savePassword(): void {
                                 v-if="followedSellerList.length === 0"
                                 class="py-10 text-center text-sm text-gray-500"
                             >
-                                Belum mengikuti toko manapun.
+                                You're not following any stores yet.
                             </p>
                             <ul v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <li
@@ -938,7 +946,7 @@ function savePassword(): void {
                                         </p>
                                         <p class="truncate text-xs text-gray-500">
                                             {{ seller.city || seller.state || 'Marketplace seller' }}
-                                            · {{ seller.followers_count ?? 0 }} pengikut
+                                            · {{ seller.followers_count ?? 0 }} followers
                                         </p>
                                     </div>
                                     <Link
@@ -946,7 +954,7 @@ function savePassword(): void {
                                         class="shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium transition hover:bg-gray-50"
                                         style="border-color: var(--brand-primary); color: var(--brand-primary)"
                                     >
-                                        Lihat Toko
+                                        View store
                                     </Link>
                                 </li>
                             </ul>
@@ -957,7 +965,7 @@ function savePassword(): void {
                                 v-if="favoriteProductCards.length === 0"
                                 class="py-10 text-center text-sm text-gray-500"
                             >
-                                Produk favorit masih kosong.
+                                No favorite products yet.
                             </p>
                             <div
                                 v-else

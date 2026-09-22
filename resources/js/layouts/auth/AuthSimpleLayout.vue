@@ -26,7 +26,7 @@ defineProps<{
                 <div class="hidden flex-col items-center justify-center bg-[#fff4f0] p-12 text-center md:flex">
                     <div class="mb-6 flex size-24 items-center justify-center rounded-full bg-[#ee4d2d] text-4xl font-bold text-white">B</div>
                     <h2 class="text-3xl font-semibold text-[#ee4d2d]">Barokah Marketplace</h2>
-                    <p class="mt-3 max-w-sm text-sm text-gray-500">Belanja kebutuhan pilihan dari toko terpercaya.</p>
+                    <p class="mt-3 max-w-sm text-sm text-gray-500">Shop everyday essentials from trusted stores.</p>
                 </div>
                 <div class="p-6 text-gray-900 [&_label]:text-gray-700 [&_input]:text-gray-900 [&_input]:placeholder:text-gray-400 sm:p-10">
                     <div class="mb-6 space-y-1">

@@ -10,7 +10,7 @@
                 Live Shopping
             </h2>
             <span class="text-xs text-[var(--text-secondary)]">
-                Lihat Semua &gt;
+                See All &gt;
             </span>
         </div>
         <p class="mt-2 text-[11px] text-[var(--text-muted)]">
