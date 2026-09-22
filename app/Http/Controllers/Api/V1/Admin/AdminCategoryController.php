@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\CategoryResource;
 use App\Models\Category;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -20,20 +22,61 @@ use Illuminate\Validation\Rule;
  */
 class AdminCategoryController extends Controller
 {
+    /** @var array<string, list<array{0: string, 1: string}>> */
+    private const SORTS = [
+        'position' => [['sort_order', 'asc'], ['name', 'asc']],
+        'name_asc' => [['name', 'asc']],
+        'name_desc' => [['name', 'desc']],
+        'products_desc' => [['products_count', 'desc'], ['name', 'asc']],
+        'newest' => [['created_at', 'desc']],
+    ];
+
     /**
-     * List all categories with product counts.
+     * Categories with product counts, search, status filter and sorting.
      */
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', Category::class);
 
-        $categories = Category::query()
-            ->withCount('products')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->paginate(15);
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'sort' => ['nullable', Rule::in(array_keys(self::SORTS))],
+            'per_page' => ['nullable', 'integer', Rule::in([15, 25, 50, 100])],
+        ]);
 
-        return CategoryResource::collection($categories);
+        $search = trim((string) ($validated['search'] ?? ''));
+
+        $filtered = Category::query()->when($search !== '', function (Builder $query) use ($search): void {
+            $like = '%'.addcslashes($search, '%_\\').'%';
+
+            $query->where(fn (Builder $inner) => $inner
+                ->where('name', 'like', $like)
+                ->orWhere('slug', 'like', $like)
+                ->orWhere('description', 'like', $like));
+        });
+
+        $statusCounts = [
+            'active' => (clone $filtered)->where('is_active', true)->count(),
+            'inactive' => (clone $filtered)->where('is_active', false)->count(),
+        ];
+
+        $categories = $filtered
+            ->when($validated['status'] ?? null, fn (Builder $query, string $status) => $query->where('is_active', $status === 'active'))
+            ->withCount([
+                'products',
+                'products as active_products_count' => fn (Builder $query) => $query->where('status', ProductStatus::Active),
+            ]);
+
+        foreach (self::SORTS[$validated['sort'] ?? 'position'] as [$column, $direction]) {
+            $categories->orderBy($column, $direction);
+        }
+
+        return CategoryResource::collection($categories->orderBy('id')->paginate((int) ($validated['per_page'] ?? 15))->withQueryString())
+            ->additional([
+                'status_counts' => $statusCounts,
+                'status_counts_total' => array_sum($statusCounts),
+            ]);
     }
 
     /**
@@ -92,9 +135,18 @@ class AdminCategoryController extends Controller
     /**
      * Remove a category.
      */
-    public function destroy(Category $category): Response
+    public function destroy(Category $category): Response|JsonResponse
     {
         Gate::authorize('delete', $category);
+
+        // Products must always belong to a category (restrict on delete).
+        $productCount = $category->products()->count();
+
+        if ($productCount > 0) {
+            return response()->json([
+                'message' => "This category still has {$productCount} ".str('product')->plural($productCount).'. Move them to another category or deactivate it instead.',
+            ], 422);
+        }
 
         $category->delete();
 

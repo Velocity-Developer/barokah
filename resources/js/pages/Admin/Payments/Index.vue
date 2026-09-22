@@ -20,7 +20,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'PayNet transactions',
+                title: 'Payments',
                 href: index(),
             },
         ],
@@ -41,7 +41,7 @@ onMounted(async () => {
     try {
         payments.value = await fetchAdminList<AdminPayment>('/api/v1/admin/payments');
     } catch {
-        error.value = 'PayNet transactions are temporarily unavailable.';
+        error.value = 'Payments are temporarily unavailable.';
     } finally {
         isLoading.value = false;
     }
@@ -49,12 +49,12 @@ onMounted(async () => {
 </script>
 
 <template>
-    <Head title="PayNet transactions" />
+    <Head title="Payments" />
 
     <div class="flex h-full flex-1 flex-col gap-4 p-4">
         <Heading
             variant="small"
-            title="PayNet transactions"
+            title="Payments"
             description="List and detail only. Refunds are TBC."
         />
 
@@ -73,7 +73,7 @@ onMounted(async () => {
                 v-else-if="payments.length === 0"
                 class="text-muted-foreground text-sm"
             >
-                No PayNet transactions yet.
+                No payments yet.
             </p>
 
             <div v-else class="overflow-x-auto">

@@ -4,6 +4,7 @@ import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
@@ -36,6 +37,12 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                         <span>{{ item.title }}</span>
                     </Link>
                 </SidebarMenuButton>
+                <SidebarMenuBadge
+                    v-if="item.badge"
+                    class="rounded-full bg-[var(--brand-primary,#ee4d2d)] px-1.5 text-[11px] text-white peer-hover/menu-button:text-white peer-data-[active=true]/menu-button:text-white"
+                >
+                    {{ item.badge > 99 ? '99+' : item.badge }}
+                </SidebarMenuBadge>
             </SidebarMenuItem>
         </SidebarMenu>
     </SidebarGroup>

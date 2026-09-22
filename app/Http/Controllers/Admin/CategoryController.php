@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Inertia\Inertia;
@@ -25,6 +26,11 @@ class CategoryController extends Controller
 
     public function edit(Category $category): Response
     {
+        $category->loadCount([
+            'products',
+            'products as active_products_count' => fn ($query) => $query->where('status', ProductStatus::Active),
+        ]);
+
         return Inertia::render('Admin/Categories/Edit', [
             'category' => $category,
         ]);

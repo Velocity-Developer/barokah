@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\SellerStatus;
 use App\Models\Conversation;
+use App\Models\Seller;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,6 +45,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
                 // Same gates as the admin / seller route groups, so the header
                 // only offers dashboards the user can actually open.
+                'pending_seller_approvals' => fn () => $request->user()?->can('admin')
+                    ? Seller::query()->where('status', SellerStatus::Pending)->count()
+                    : 0,
                 'unread_messages' => fn () => $request->user() !== null
                     ? Conversation::unreadTotalFor($request->user())
                     : 0,

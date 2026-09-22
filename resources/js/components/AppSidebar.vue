@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
-    BookOpen,
     CreditCard,
-    FolderGit2,
-    House,
+    FolderTree,
     LayoutGrid,
+    MessageCircle,
     Package,
     Settings,
     ShoppingBag,
     Store,
     Tags,
+    Ticket,
+    UserCheck,
     Users,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -27,162 +28,90 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard, home } from '@/routes';
+import { home } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as adminCategoriesIndex } from '@/routes/admin/categories';
+import { index as adminCouponsIndex } from '@/routes/admin/coupons';
+import { index as adminFlashSalesIndex } from '@/routes/admin/flash-sales';
 import { index as adminOrdersIndex } from '@/routes/admin/orders';
 import { index as adminPaymentsIndex } from '@/routes/admin/payments';
 import { index as adminProductsIndex } from '@/routes/admin/products';
-import { index as sellerFlashSalesIndex } from '@/routes/seller/flash-sales';
-import { MessageCircle, Ticket, UserCheck } from '@lucide/vue';
-import { index as adminSellersIndex } from '@/routes/admin/sellers';
 import { index as adminSellerApprovalsIndex } from '@/routes/admin/seller-approvals';
+import { index as adminSellersIndex } from '@/routes/admin/sellers';
 import { show as adminSettingsShow } from '@/routes/admin/settings';
 import { index as adminUsersIndex } from '@/routes/admin/users';
-import { index as adminFlashSalesIndex } from '@/routes/admin/flash-sales';
-import { index as productsIndex } from '@/routes/products';
+import { show as profileShow } from '@/routes/profile';
 import {
     dashboard as sellerDashboard,
     settings as sellerSettings,
 } from '@/routes/seller';
-import { index as sellerProductsIndex } from '@/routes/seller/products';
+import { index as sellerCouponsIndex } from '@/routes/seller/coupons';
+import { index as sellerFlashSalesIndex } from '@/routes/seller/flash-sales';
 import { index as sellerOrdersIndex } from '@/routes/seller/orders';
+import { index as sellerProductsIndex } from '@/routes/seller/products';
 import type { NavItem } from '@/types';
 
-type SidebarUser = {
-    is_admin?: boolean;
-    is_active_as_seller?: boolean;
-};
+type NavGroup = { label: string; items: NavItem[] };
 
 const page = usePage();
-const authUser = computed(
-    () =>
-        (page.props as unknown as { auth?: { user?: SidebarUser } }).auth
-            ?.user,
-);
-const isAdmin = computed(() => authUser.value?.is_admin === true);
-// Uses the same gate as the seller routes, so a pending application does not
-// show seller links that would return 403.
-const isSeller = computed(
-    () =>
-        (page.props as unknown as { auth?: { can?: { seller?: boolean } } }).auth
-            ?.can?.seller === true,
-);
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Marketplace',
-        href: home(),
-        icon: House,
-    },
-    {
-        title: 'Products',
-        href: productsIndex(),
-        icon: ShoppingBag,
-    },
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+// Same gates as the admin/seller route groups, so every link here opens.
+const isAdmin = computed(() => page.props.auth?.can?.admin === true);
+const isSeller = computed(() => page.props.auth?.can?.seller === true);
+const pendingApprovals = computed(() => Number(page.props.auth?.pending_seller_approvals ?? 0));
+const unreadMessages = computed(() => Number(page.props.auth?.unread_messages ?? 0));
 
-const sellerNavItems: NavItem[] = [
-    {
-        title: 'Seller dashboard',
-        href: sellerDashboard(),
-        icon: Store,
-    },
-    {
-        title: 'Seller products',
-        href: sellerProductsIndex(),
-        icon: Package,
-    },
-    {
-        title: 'Flash sales',
-        href: sellerFlashSalesIndex(),
-        icon: Tags,
-    },
-    { title: 'Coupons', href: '/seller/coupons', icon: Ticket },
-    { title: 'Messages', href: '/profile?tab=messages', icon: MessageCircle },
-    {
-        title: 'Customer orders',
-        href: sellerOrdersIndex(),
-        icon: ShoppingBag,
-    },
-    {
-        title: 'Store settings',
-        href: sellerSettings(),
-        icon: Settings,
-    },
-];
+const homeHref = computed(() => (isAdmin.value ? adminDashboard() : isSeller.value ? sellerDashboard() : home()));
 
-const adminNavItems: NavItem[] = [
+const adminGroups = computed<NavGroup[]>(() => [
     {
-        title: 'Admin dashboard',
-        href: adminDashboard(),
-        icon: LayoutGrid,
+        label: 'Overview',
+        items: [{ title: 'Dashboard', href: adminDashboard(), icon: LayoutGrid }],
     },
     {
-        title: 'Customers',
-        href: adminUsersIndex(),
-        icon: Users,
+        label: 'Sales',
+        items: [
+            { title: 'Orders', href: adminOrdersIndex(), icon: ShoppingBag },
+            { title: 'Payments', href: adminPaymentsIndex(), icon: CreditCard },
+        ],
     },
     {
-        title: 'Stores',
-        href: adminSellersIndex(),
-        icon: Store,
+        label: 'Catalog',
+        items: [
+            { title: 'Products', href: adminProductsIndex(), icon: Package },
+            { title: 'Categories', href: adminCategoriesIndex(), icon: FolderTree },
+            { title: 'Flash sales', href: adminFlashSalesIndex(), icon: Tags },
+            { title: 'Coupons', href: adminCouponsIndex(), icon: Ticket },
+        ],
     },
     {
-        title: 'Seller approvals',
-        href: adminSellerApprovalsIndex(),
-        icon: UserCheck,
+        label: 'Stores & customers',
+        items: [
+            { title: 'Stores', href: adminSellersIndex(), icon: Store },
+            { title: 'Seller approvals', href: adminSellerApprovalsIndex(), icon: UserCheck, badge: pendingApprovals.value },
+            { title: 'Customers', href: adminUsersIndex(), icon: Users },
+        ],
     },
     {
-        title: 'Products',
-        href: adminProductsIndex(),
-        icon: Package,
+        label: 'System',
+        items: [{ title: 'Settings', href: adminSettingsShow(), icon: Settings }],
     },
-    {
-        title: 'Flash sales',
-        href: adminFlashSalesIndex(),
-        icon: Tags,
-    },
-    { title: 'Coupons', href: '/admin/coupons', icon: Ticket },
-    {
-        title: 'Categories',
-        href: adminCategoriesIndex(),
-        icon: Tags,
-    },
-    {
-        title: 'Customer orders',
-        href: adminOrdersIndex(),
-        icon: ShoppingBag,
-    },
-    {
-        title: 'PayNet transactions',
-        href: adminPaymentsIndex(),
-        icon: CreditCard,
-    },
-    {
-        title: 'Settings',
-        href: adminSettingsShow(),
-        icon: Settings,
-    },
-];
+]);
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+const sellerGroup = computed<NavGroup>(() => ({
+    label: isAdmin.value ? 'My store' : 'Store',
+    items: [
+        { title: isAdmin.value ? 'Store dashboard' : 'Dashboard', href: sellerDashboard(), icon: LayoutGrid },
+        { title: 'Orders', href: sellerOrdersIndex(), icon: ShoppingBag },
+        { title: 'Products', href: sellerProductsIndex(), icon: Package },
+        { title: 'Flash sales', href: sellerFlashSalesIndex(), icon: Tags },
+        { title: 'Coupons', href: sellerCouponsIndex(), icon: Ticket },
+        { title: 'Messages', href: profileShow({ query: { tab: 'messages' } }), icon: MessageCircle, badge: unreadMessages.value },
+        { title: 'Store settings', href: sellerSettings(), icon: Settings },
+    ],
+}));
+
+const footerNavItems: NavItem[] = [{ title: 'View storefront', href: home(), icon: Store }];
 </script>
 
 <template>
@@ -191,7 +120,7 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="homeHref">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -200,13 +129,10 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" label="Platform" />
-            <NavMain
-                v-if="isSeller"
-                :items="sellerNavItems"
-                label="Seller"
-            />
-            <NavMain v-if="isAdmin" :items="adminNavItems" label="Admin" />
+            <template v-if="isAdmin">
+                <NavMain v-for="group in adminGroups" :key="group.label" :items="group.items" :label="group.label" />
+            </template>
+            <NavMain v-if="isSeller" :items="sellerGroup.items" :label="sellerGroup.label" />
         </SidebarContent>
 
         <SidebarFooter>
@@ -214,5 +140,4 @@ const footerNavItems: NavItem[] = [
             <NavUser />
         </SidebarFooter>
     </Sidebar>
-    <slot />
 </template>

@@ -22,6 +22,9 @@ class CategoryResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'products_count' => $this->whenCounted('products'),
+            'active_products_count' => $this->whenHas('active_products_count', fn () => (int) $this->active_products_count),
+            'is_active' => (bool) $this->is_active,
+            'sort_order' => (int) $this->sort_order,
             'image_url' => $this->whenLoaded('products', function (): ?string {
                 $images = $this->products->first()?->images;
 
