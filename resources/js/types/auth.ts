@@ -14,6 +14,7 @@ export type User = {
 
 export type Auth = {
     user: User;
+    unread_messages?: number;
     can?: {
         admin: boolean;
         seller: boolean;

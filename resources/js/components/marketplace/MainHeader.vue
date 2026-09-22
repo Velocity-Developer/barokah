@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Search, ShoppingCart, UserRound, ChevronDown, LogOut, Settings2, Home as HomeIcon, ShieldCheck, Store } from '@lucide/vue';
+import { Search, ShoppingCart, UserRound, ChevronDown, LogOut, Settings2, Home as HomeIcon, ShieldCheck, Store, MessageCircle } from '@lucide/vue';
 import { useCartStore } from '@/stores/cart';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
@@ -31,6 +31,7 @@ const quickCategories = [
 ];
 const page = usePage();
 const authUser = computed(() => (page.props.auth?.user as Record<string, unknown> | null) ?? null);
+const unreadMessages = computed<number>(() => Number(page.props.auth?.unread_messages ?? 0));
 const canOpenAdmin = computed<boolean>(() => page.props.auth?.can?.admin === true);
 const canOpenSeller = computed<boolean>(() => page.props.auth?.can?.seller === true);
 const userMenuOpen = ref(false);
@@ -171,6 +172,7 @@ function submitSearch(): void {
                         :aria-expanded="userMenuOpen"
                         @click="userMenuOpen = !userMenuOpen"
                     >
+                        <span class="relative inline-flex">
                         <img
                             v-if="authUser.profile_photo_url"
                             :src="String(authUser.profile_photo_url)"
@@ -184,6 +186,15 @@ function submitSearch(): void {
                             aria-hidden="true"
                         >
                             {{ userInitials() }}
+                        </span>
+                        <span
+                            v-if="unreadMessages"
+                            class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold"
+                            style="color: var(--brand-primary)"
+                            :aria-label="`${unreadMessages} unread messages`"
+                        >
+                            {{ unreadMessages > 99 ? '99+' : unreadMessages }}
+                        </span>
                         </span>
                         <span
                             class="hidden max-w-[110px] truncate text-sm font-medium text-white sm:block"
@@ -218,6 +229,22 @@ function submitSearch(): void {
                         >
                             <UserRound class="h-4 w-4 shrink-0 text-gray-400" />
                             <span>My Profile</span>
+                        </Link>
+                        <Link
+                            :href="profileShow({ query: { tab: 'messages' } })"
+                            role="menuitem"
+                            class="flex items-center gap-2.5 rounded-md px-3 py-2 text-gray-700 transition hover:bg-gray-50 hover:text-gray-900"
+                            @click="userMenuOpen = false"
+                        >
+                            <MessageCircle class="h-4 w-4 shrink-0 text-gray-400" />
+                            <span>Messages</span>
+                            <span
+                                v-if="unreadMessages"
+                                class="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
+                                style="background-color: var(--brand-primary)"
+                            >
+                                {{ unreadMessages }}
+                            </span>
                         </Link>
                         <Link
                             v-if="canOpenAdmin"

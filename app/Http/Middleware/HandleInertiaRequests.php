@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Conversation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,6 +43,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
                 // Same gates as the admin / seller route groups, so the header
                 // only offers dashboards the user can actually open.
+                'unread_messages' => fn () => $request->user() !== null
+                    ? Conversation::unreadTotalFor($request->user())
+                    : 0,
                 'can' => [
                     'admin' => $request->user()?->can('admin') ?? false,
                     'seller' => $request->user()?->can('seller') ?? false,

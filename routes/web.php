@@ -7,6 +7,7 @@ use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\SellerProductController;
 use App\Http\Controllers\SellerSettingsController;
 use App\Http\Controllers\Web\CartController;
+use App\Http\Controllers\Web\ChatController;
 use App\Http\Controllers\Web\CheckoutController;
 use App\Http\Controllers\Web\CouponController;
 use App\Http\Controllers\Web\FavoriteProductController;
@@ -47,6 +48,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('rating/order-items/{orderItem}', ProductRatingController::class)->name('rating.show');
     Route::post('sellers/{seller:slug}/follow', [SellerFollowController::class, 'toggle'])->name('sellers.follow');
     Route::post('products/{product:slug}/favorite', [FavoriteProductController::class, 'toggle'])->name('products.favorite');
+    Route::post('sellers/{seller:slug}/chat', [ChatController::class, 'start'])->name('sellers.chat');
+    Route::get('chat/conversations', [ChatController::class, 'index'])->name('chat.conversations.index');
+    Route::get('chat/conversations/{conversation}/messages', [ChatController::class, 'messages'])->name('chat.messages.index');
+    Route::post('chat/conversations/{conversation}/messages', [ChatController::class, 'send'])
+        ->middleware('throttle:30,1')
+        ->name('chat.messages.store');
     Route::patch('profile', [WebProfileController::class, 'update'])->name('my.profile.update');
     Route::post('profile/media', [WebProfileController::class, 'updateMedia'])->name('my.profile.media.update');
     Route::post('profile/seller-application', [WebProfileController::class, 'applyAsSeller'])->name('my.profile.seller-application.store');

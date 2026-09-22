@@ -554,6 +554,13 @@ return [
             'group' => 'email',
             'is_public' => false,
         ],
+        // Off: mail goes through the MAIL_MAILER in .env. On: the SMTP fields below are used.
+        'email.smtp_enabled' => [
+            'value' => false,
+            'type' => SettingType::Boolean,
+            'group' => 'email',
+            'is_public' => false,
+        ],
         'email.smtp_host' => [
             'value' => env('MAIL_HOST', ''),
             'type' => SettingType::String,

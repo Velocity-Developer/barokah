@@ -14,7 +14,8 @@ import {
 import { useCheckoutStore } from '@/stores/checkout';
 import { useCartStore } from '@/stores/cart';
 import { useSettingsStore } from '@/stores/settings';
-import { sellerWhatsappLink, useSellerFollow } from '@/composables/useSellerFollow';
+import { openStoreChat } from '@/composables/useChatApi';
+import { useSellerFollow } from '@/composables/useSellerFollow';
 
 type DetailImage = {
     id: number;
@@ -222,7 +223,6 @@ const {
 const storeLocation = computed<string>(
     () => product.value.seller?.city || product.value.seller?.state || 'Marketplace seller',
 );
-const storeWhatsapp = computed<string | null>(() => sellerWhatsappLink(product.value.seller));
 const storeJoined = computed<string>(() => {
     const joined = product.value.seller?.joined_at;
 
@@ -576,16 +576,24 @@ function addToCart(): void {
                             {{ storeLocation }}
                         </p>
                         <div class="mt-3 flex flex-wrap gap-2">
-                            <a
-                                v-if="storeWhatsapp"
-                                :href="storeWhatsapp"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <button
+                                v-if="isLoggedIn"
+                                type="button"
+                                class="inline-flex h-9 items-center gap-1.5 rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary-soft)] px-3 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white"
+                                @click="openStoreChat(product.seller.slug, product.slug)"
+                            >
+                                <MessageCircle class="h-4 w-4" aria-hidden="true" />
+                                Chat
+                            </button>
+                            <Link
+                                v-else
+                                :href="login()"
+                                title="Log in to chat"
                                 class="inline-flex h-9 items-center gap-1.5 rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary-soft)] px-3 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white"
                             >
                                 <MessageCircle class="h-4 w-4" aria-hidden="true" />
                                 Chat
-                            </a>
+                            </Link>
                             <button
                                 v-if="isLoggedIn"
                                 type="button"

@@ -8,6 +8,8 @@ use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\BuyerInformationRequest;
 use App\Http\Resources\Api\V1\OrderResource;
+use App\Jobs\SendOrderPlacedEmail;
+use App\Mail\OrderPlacedMail;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\CouponService;
@@ -210,6 +212,9 @@ class CheckoutController extends Controller
             $order,
             PaymentMethod::from($validated['payment_method']),
         );
+
+        SendOrderPlacedEmail::dispatch($order->id, OrderPlacedMail::AUDIENCE_CUSTOMER);
+        SendOrderPlacedEmail::dispatch($order->id, OrderPlacedMail::AUDIENCE_ADMIN);
 
         return (new OrderResource($order->load('payment')))->response()->setStatusCode(201);
     }

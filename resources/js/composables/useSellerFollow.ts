@@ -60,9 +60,3 @@ export function useSellerFollow(seller: Ref<FollowableSeller | null | undefined>
     return { isLoggedIn, isFollowed, followersCount, followProcessing, toggleFollow };
 }
 
-/** WhatsApp link for a store, using its WhatsApp number or phone. */
-export function sellerWhatsappLink(seller: { whatsapp?: string | null; phone?: string | null } | null | undefined): string | null {
-    const number = (seller?.whatsapp || seller?.phone || '').replace(/\D/g, '');
-
-    return number ? `https://wa.me/${number}` : null;
-}

@@ -5,7 +5,8 @@ import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
 import ProfileController from '@/actions/App/Http/Controllers/Web/ProfileController';
-import { UserRound, KeyRound, Home, LogOut, Store, Heart, ImageIcon, BadgeCheck } from '@lucide/vue';
+import { UserRound, KeyRound, Home, LogOut, Store, Heart, ImageIcon, BadgeCheck, MessageCircle } from '@lucide/vue';
+import ChatPanel from '@/components/chat/ChatPanel.vue';
 import { send } from '@/routes/verification';
 import { home } from '@/routes';
 import { store as loginStore } from '@/routes/login';
@@ -21,13 +22,15 @@ import {
 const page = usePage();
 const authUser = computed(() => page.props.auth.user as Record<string, unknown> | null);
 
-type ProfileTab = 'profile' | 'media' | 'password' | 'seller' | 'following_sellers' | 'favorite_products';
+type ProfileTab = 'profile' | 'media' | 'password' | 'messages' | 'seller' | 'following_sellers' | 'favorite_products';
+
+const unreadMessages = computed<number>(() => Number(page.props.auth?.unread_messages ?? 0));
 
 // Admins manage sellers from the admin area and do not apply as sellers.
 const showSellerTab = computed<boolean>(() => page.props.auth?.can?.admin !== true);
 
 const profileTabs = computed<ProfileTab[]>(() =>
-    (['profile', 'media', 'password', 'seller', 'following_sellers', 'favorite_products'] as ProfileTab[]).filter(
+    (['profile', 'media', 'password', 'messages', 'seller', 'following_sellers', 'favorite_products'] as ProfileTab[]).filter(
         (tab) => tab !== 'seller' || showSellerTab.value,
     ),
 );
@@ -50,6 +53,7 @@ watch(
 const tabHeadings: Record<ProfileTab, { title: string; subtitle: string }> = {
     profile: { title: 'Account Info', subtitle: 'Update your profile and delivery information.' },
     media: { title: 'Photo & Banner', subtitle: 'Set your profile photo and the banner behind your profile card.' },
+    messages: { title: 'Messages', subtitle: 'Your chats with stores and customers.' },
     seller: { title: 'Seller', subtitle: 'Open your own store on the marketplace.' },
     password: { title: 'Change Password', subtitle: 'Keep your account secure with a strong password.' },
     following_sellers: { title: 'Followed Stores', subtitle: 'Stores you follow.' },
@@ -391,6 +395,26 @@ function savePassword(): void {
                                 <span>Password</span>
                             </button>
                             <button
+                                type="button"
+                                class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition"
+                                :class="
+                                    activeTab === 'messages'
+                                        ? 'bg-gray-50 font-medium text-gray-900'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                "
+                                @click="activeTab = 'messages'"
+                            >
+                                <MessageCircle class="h-4 w-4 shrink-0" />
+                                <span>Messages</span>
+                                <span
+                                    v-if="unreadMessages"
+                                    class="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
+                                    style="background-color: var(--brand-primary)"
+                                >
+                                    {{ unreadMessages }}
+                                </span>
+                            </button>
+                            <button
                                 v-if="showSellerTab"
                                 type="button"
                                 class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition"
@@ -459,7 +483,7 @@ function savePassword(): void {
                     </aside>
 
                     <section
-                        class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-100"
+                        class="min-w-0 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-gray-100"
                     >
                         <header
                             class="flex items-center justify-between border-b border-gray-100 px-6 py-4"
@@ -746,6 +770,10 @@ function savePassword(): void {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+
+                        <div v-if="activeTab === 'messages'" class="min-w-0 px-4 py-4 md:px-6 md:py-5">
+                            <ChatPanel :active="activeTab === 'messages'" />
                         </div>
 
                         <div v-if="showSellerTab" v-show="activeTab === 'seller'" class="px-6 py-5">

@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { login } from '@/routes';
-import { sellerWhatsappLink, useSellerFollow } from '@/composables/useSellerFollow';
+import { openStoreChat } from '@/composables/useChatApi';
+import { useSellerFollow } from '@/composables/useSellerFollow';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
 import {
@@ -116,7 +117,6 @@ const location = computed(
     () => seller.value.city || seller.value.state || null,
 );
 
-const whatsappLink = computed<string | null>(() => sellerWhatsappLink(seller.value));
 
 const productCards = computed(() =>
     productList.value.map((product) => ({
@@ -196,23 +196,22 @@ const productCards = computed(() =>
                         </div>
 
                         <div class="flex shrink-0 gap-2 pt-1">
-                            <a
-                                v-if="whatsappLink"
-                                :href="whatsappLink"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary-soft)] px-4 py-2 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white"
-                            >
-                                Chat
-                            </a>
                             <button
-                                v-else
+                                v-if="isLoggedIn"
                                 type="button"
-                                disabled
-                                class="cursor-not-allowed rounded-sm border border-[var(--border-default)] px-4 py-2 text-sm text-[var(--text-faint)]"
+                                class="rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary-soft)] px-4 py-2 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white"
+                                @click="openStoreChat(seller.slug)"
                             >
                                 Chat
                             </button>
+                            <Link
+                                v-else
+                                :href="login()"
+                                title="Log in to chat"
+                                class="rounded-sm border border-[var(--brand-primary)] bg-[var(--brand-primary-soft)] px-4 py-2 text-sm font-medium text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white"
+                            >
+                                Chat
+                            </Link>
                             <button
                                 v-if="isLoggedIn"
                                 type="button"

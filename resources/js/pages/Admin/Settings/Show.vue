@@ -340,6 +340,7 @@ const settingLabels: Record<string, string> = {
     'email.smtp_username': 'SMTP Username',
     'email.smtp_password': 'SMTP Password',
     'email.smtp_encryption': 'SMTP Encryption',
+    'email.smtp_enabled': 'Use SMTP Server',
 };
 
 const groupLabel = computed(() => groupLabels[props.activeGroup] ?? props.activeGroup);
@@ -363,6 +364,12 @@ const dependentSettings: Record<string, { parent: string; visible: () => boolean
     ),
     'shipping.fixed_rate': { parent: 'shipping.method', visible: () => values['shipping.method'] === 'fixed' },
     'shipping.free_shipping_threshold': { parent: 'shipping.free_shipping_enabled', visible: () => Boolean(values['shipping.free_shipping_enabled']) },
+    ...Object.fromEntries(
+        ['email.smtp_host', 'email.smtp_port', 'email.smtp_encryption', 'email.smtp_username', 'email.smtp_password'].map((key) => [
+            key,
+            { parent: 'email.smtp_enabled', visible: () => Boolean(values['email.smtp_enabled']) },
+        ]),
+    ),
     ...Object.fromEntries(
         ['shipping.provider_name', 'shipping.api_base_url', 'shipping.api_key', 'shipping.api_secret'].map((key) => [
             key,
@@ -399,6 +406,7 @@ const groupOrder: Record<string, string[]> = {
     email: [
         'email.from_name',
         'email.from_address',
+        'email.smtp_enabled',
         'email.smtp_host',
         'email.smtp_port',
         'email.smtp_encryption',
@@ -498,6 +506,8 @@ const settingHints: Record<string, string> = {
     'payment.sandbox_enabled': 'Use the PayNet test environment instead of live payments.',
     'general.maintenance_mode': 'Visitors see a maintenance page while this is on.',
     'localization.available_languages': 'Languages visitors can switch to.',
+    'email.from_address': 'Order emails are sent from this address.',
+    'email.smtp_enabled': 'Send email through the SMTP server below. When off, the server\'s default mailer is used.',
 };
 
 function clearMaskedValue(setting: AdminSettingEntry): void {

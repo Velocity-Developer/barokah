@@ -34,7 +34,7 @@ import { index as adminOrdersIndex } from '@/routes/admin/orders';
 import { index as adminPaymentsIndex } from '@/routes/admin/payments';
 import { index as adminProductsIndex } from '@/routes/admin/products';
 import { index as sellerFlashSalesIndex } from '@/routes/seller/flash-sales';
-import { Ticket, UserCheck } from '@lucide/vue';
+import { MessageCircle, Ticket, UserCheck } from '@lucide/vue';
 import { index as adminSellersIndex } from '@/routes/admin/sellers';
 import { index as adminSellerApprovalsIndex } from '@/routes/admin/seller-approvals';
 import { show as adminSettingsShow } from '@/routes/admin/settings';
@@ -104,6 +104,7 @@ const sellerNavItems: NavItem[] = [
         icon: Tags,
     },
     { title: 'Coupons', href: '/seller/coupons', icon: Ticket },
+    { title: 'Messages', href: '/profile?tab=messages', icon: MessageCircle },
     {
         title: 'Customer orders',
         href: sellerOrdersIndex(),
