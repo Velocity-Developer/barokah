@@ -614,6 +614,12 @@ return [
             'group' => 'email',
             'is_public' => false,
         ],
+        'email.seller_notifications_enabled' => [
+            'value' => true,
+            'type' => SettingType::Boolean,
+            'group' => 'email',
+            'is_public' => false,
+        ],
         'email.customer_notifications_enabled' => [
             'value' => true,
             'type' => SettingType::Boolean,

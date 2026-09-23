@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Jobs\SendSellerOrderPaidEmail;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
@@ -248,6 +249,7 @@ class PaymentService
             // keeps the order pending_payment for retry or expiry.
             if ($status === PaymentStatus::Paid && $order->status === OrderStatus::PendingPayment) {
                 $order->update(['status' => OrderStatus::Paid]);
+                $this->notifySellers($order);
             }
 
             if ($status === PaymentStatus::Expired && $order->status === OrderStatus::PendingPayment) {
@@ -389,10 +391,24 @@ class PaymentService
 
             if ($order->status === OrderStatus::PendingPayment) {
                 $order->update(['status' => OrderStatus::Paid]);
+                $this->notifySellers($order);
             }
 
             return $locked->refresh();
         });
+    }
+
+    /**
+     * Tell each store in the order that it has been paid. Queued after the
+     * transaction commits, so a rolled-back payment sends nothing.
+     */
+    private function notifySellers(Order $order): void
+    {
+        $sellerIds = $order->items()->distinct()->pluck('seller_id')->filter();
+
+        foreach ($sellerIds as $sellerId) {
+            SendSellerOrderPaidEmail::dispatch($order->id, (int) $sellerId)->afterCommit();
+        }
     }
 
     /**
