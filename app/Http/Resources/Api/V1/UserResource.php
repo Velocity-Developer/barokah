@@ -29,6 +29,11 @@ class UserResource extends JsonResource
             'is_admin' => $this->isAdmin(),
             'is_active_as_seller' => (bool) $this->is_active_as_seller,
             'is_seller' => $this->isSeller(),
+            'email_verified_at' => $this->email_verified_at?->toIso8601String(),
+            'joined_at' => $this->created_at?->toIso8601String(),
+            // Present on the admin list, which counts orders and paid spend.
+            'orders_count' => $this->whenHas('orders_count'),
+            'total_spent' => $this->whenHas('total_spent', fn (mixed $total): float => (float) $total),
             'seller' => SellerResource::make($this->whenLoaded('seller')),
         ];
     }

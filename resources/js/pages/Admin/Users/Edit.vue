@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -8,8 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getMalaysiaCities } from '@/composables/useMalaysiaCities';
 import { index, show } from '@/routes/admin/users';
+import { show as sellerShow } from '@/routes/admin/sellers';
 import malaysiaStates from '@/data/malaysia-states.json';
-import RichTextEditor from '@/components/RichTextEditor.vue';
 
 type AdminUserDetail = {
     id: number;
@@ -20,8 +22,10 @@ type AdminUserDetail = {
     state?: string | null;
     city?: string | null;
     post_code?: string | null;
+    email_verified_at?: string | null;
     is_admin: boolean;
     is_active_as_seller: boolean;
+    seller?: { id: number; store_name: string; status: string } | null;
 };
 
 const props = defineProps<{
@@ -70,7 +74,11 @@ watch(
 
 const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
-const notice = ref<string | null>(null);
+
+const page = usePage();
+// Admins can edit themselves; warn before they drop their own admin access.
+const isSelf = computed(() => (page.props.auth as { user?: { id?: number } } | undefined)?.user?.id === props.user.id);
+const losesOwnAdmin = computed(() => isSelf.value && props.user.is_admin && !form.is_admin);
 
 function csrfToken(): string {
     return (
@@ -80,9 +88,12 @@ function csrfToken(): string {
 }
 
 async function save(): Promise<void> {
+    if (losesOwnAdmin.value && !window.confirm('Remove your own admin access? You will lose the admin area straight away.')) {
+        return;
+    }
+
     isSaving.value = true;
     errors.value = {};
-    notice.value = null;
 
     try {
         const response = await fetch(`/api/v1/admin/users/${props.user.id}`, {
@@ -118,13 +129,19 @@ async function save(): Promise<void> {
                 first[field] = messages[0] ?? 'Invalid value.';
             }
             errors.value = first;
-            notice.value = data.message ?? 'Customer could not be saved.';
+            toast.error(data.message ?? 'Customer could not be saved.');
             return;
         }
 
-        notice.value = 'Customer saved.';
+        toast.success('Customer saved.');
+
+        if (losesOwnAdmin.value) {
+            window.location.href = '/';
+
+            return;
+        }
     } catch {
-        notice.value = 'Customers are temporarily unavailable.';
+        toast.error('Customers are temporarily unavailable.');
     } finally {
         isSaving.value = false;
     }
@@ -134,147 +151,137 @@ async function save(): Promise<void> {
 <template>
     <Head :title="`Edit ${user.name}`" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
-        <Link
-            :href="index()"
-            class="text-muted-foreground w-fit text-sm hover:underline"
-        >
-            ← Back to Customers
+    <form class="flex h-full flex-1 flex-col gap-4 p-4 md:p-6" @submit.prevent="save">
+        <Link :href="show(user.id)" class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft class="size-4" aria-hidden="true" /> Back to customer
         </Link>
-        <Heading
-            variant="small"
-            :title="`Edit ${user.name}`"
-            :description="user.email"
-        />
 
-        <div
-            class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border p-4"
-        >
-            <p v-if="notice" class="mb-4 text-sm text-amber-600">{{ notice }}</p>
-
-            <form class="space-y-5" @submit.prevent="save">
-                <div class="grid content-start gap-2">
-                    <Label for="name">Name</Label>
-                    <Input id="name" v-model="form.name" type="text" />
-                    <InputError :message="errors.name" />
-                </div>
-
-                <div class="grid content-start gap-2">
-                    <Label for="email">Email</Label>
-                    <Input id="email" v-model="form.email" type="email" />
-                    <InputError :message="errors.email" />
-                </div>
-
-                <div class="grid content-start gap-2">
-                    <Label for="phone">Phone</Label>
-                    <Input id="phone" v-model="form.phone" type="text" />
-                    <InputError :message="errors.phone" />
-                </div>
-
-                <div class="grid content-start gap-2">
-                    <Label for="address">Address</Label>
-                    <RichTextEditor
-                        v-model="form.address"
-                    />
-                    <InputError :message="errors.address" />
-                </div>
-
-                <div class="grid content-start gap-2">
-                    <Label for="state">State</Label>
-                    <select
-                        id="state"
-                        v-model="form.state"
-                        class="border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm"
-                    >
-                        <option value="">No state</option>
-                        <option
-                            v-for="stateOption in malaysiaStateOptions"
-                            :key="stateOption"
-                            :value="stateOption"
-                        >
-                            {{ stateOption }}
-                        </option>
-                    </select>
-                    <InputError :message="errors.state" />
-                </div>
-
-                <div class="grid content-start gap-2">
-                    <Label for="city">City</Label>
-                    <select
-                        id="city"
-                        v-model="form.city"
-                        :disabled="form.state === '' || cityOptions.length === 0"
-                        class="border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm disabled:opacity-50"
-                    >
-                        <option value="">
-                            {{
-                                form.state === ''
-                                    ? 'Select state first'
-                                    : cityOptions.length === 0
-                                      ? 'No cities available'
-                                      : 'No city'
-                            }}
-                        </option>
-                        <option
-                            v-for="cityOption in cityOptions"
-                            :key="cityOption"
-                            :value="cityOption"
-                        >
-                            {{ cityOption }}
-                        </option>
-                    </select>
-                    <InputError :message="errors.city" />
-                </div>
-
-                <div class="grid content-start gap-2">
-                    <Label for="post_code">Post code</Label>
-                    <Input id="post_code" v-model="form.post_code" type="text" />
-                    <InputError :message="errors.post_code" />
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <Input
-                        id="is_admin"
-                        type="checkbox"
-                        class="h-5 w-5"
-                        :checked="form.is_admin"
-                        @change="
-                            form.is_admin = ($event.target as HTMLInputElement).checked
-                        "
-                    />
-                    <Label for="is_admin">Admin capability</Label>
-                </div>
-                <InputError :message="errors.is_admin" />
-
-                <div class="flex items-center gap-2">
-                    <Input
-                        id="is_active_as_seller"
-                        type="checkbox"
-                        class="h-5 w-5"
-                        :checked="form.is_active_as_seller"
-                        @change="
-                            form.is_active_as_seller = (
-                                $event.target as HTMLInputElement
-                            ).checked
-                        "
-                    />
-                    <Label for="is_active_as_seller">Seller activation</Label>
-                </div>
-                <InputError :message="errors.is_active_as_seller" />
-
-                <div class="flex items-center gap-4">
-                    <Button :disabled="isSaving" type="submit">
-                        {{ isSaving ? 'Saving…' : 'Save customer' }}
-                    </Button>
-                    <a
-                        :href="show(user.id).url"
-                        rel="noopener"
-                        class="text-muted-foreground text-sm hover:underline"
-                    >
-                        View detail
-                    </a>
-                </div>
-            </form>
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Heading variant="small" :title="`Edit ${user.name}`" :description="user.email" />
+            <div class="flex shrink-0 gap-2">
+                <Link :href="show(user.id)" class="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Cancel</Link>
+                <Button :disabled="isSaving" type="submit">{{ isSaving ? 'Saving…' : 'Save customer' }}</Button>
+            </div>
         </div>
-    </div>
+
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div class="grid content-start gap-4">
+                <section class="grid content-start gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                    <h2 class="text-base font-medium">Account</h2>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="grid content-start gap-2">
+                            <Label for="name">Name</Label>
+                            <Input id="name" v-model="form.name" type="text" required maxlength="255" />
+                            <InputError :message="errors.name" />
+                        </div>
+                        <div class="grid content-start gap-2">
+                            <Label for="email">Email</Label>
+                            <Input id="email" v-model="form.email" type="email" required />
+                            <p class="text-xs text-muted-foreground">
+                                {{ user.email_verified_at ? 'Changing the email marks it unverified again.' : 'This email is not verified yet.' }}
+                            </p>
+                            <InputError :message="errors.email" />
+                        </div>
+                        <div class="grid content-start gap-2">
+                            <Label for="phone">Phone number</Label>
+                            <Input id="phone" v-model="form.phone" type="text" placeholder="012-3456789" />
+                            <InputError :message="errors.phone" />
+                        </div>
+                    </div>
+                </section>
+
+                <section class="grid content-start gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                    <h2 class="text-base font-medium">Delivery address</h2>
+                    <div class="grid content-start gap-2">
+                        <Label for="address">Street address</Label>
+                        <textarea
+                            id="address"
+                            v-model="form.address"
+                            rows="3"
+                            maxlength="500"
+                            class="min-h-20 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
+                        />
+                        <p class="text-xs text-muted-foreground">Used to prefill checkout for this customer.</p>
+                        <InputError :message="errors.address" />
+                    </div>
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        <div class="grid content-start gap-2">
+                            <Label for="state">State</Label>
+                            <select id="state" v-model="form.state" class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
+                                <option value="">No state</option>
+                                <option v-for="stateOption in malaysiaStateOptions" :key="stateOption" :value="stateOption">{{ stateOption }}</option>
+                            </select>
+                            <InputError :message="errors.state" />
+                        </div>
+                        <div class="grid content-start gap-2">
+                            <Label for="city">City</Label>
+                            <select
+                                id="city"
+                                v-model="form.city"
+                                :disabled="form.state === '' || cityOptions.length === 0"
+                                class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm disabled:opacity-50"
+                            >
+                                <option value="">
+                                    {{ form.state === '' ? 'Select state first' : cityOptions.length === 0 ? 'No cities available' : 'No city' }}
+                                </option>
+                                <option v-for="cityOption in cityOptions" :key="cityOption" :value="cityOption">{{ cityOption }}</option>
+                            </select>
+                            <InputError :message="errors.city" />
+                        </div>
+                        <div class="grid content-start gap-2">
+                            <Label for="post_code">Post code</Label>
+                            <Input id="post_code" v-model="form.post_code" type="text" maxlength="20" placeholder="50000" />
+                            <InputError :message="errors.post_code" />
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="grid content-start gap-4">
+                <section class="grid content-start gap-4 rounded-xl border bg-card p-4 shadow-sm">
+                    <h2 class="text-base font-medium">Access</h2>
+
+                    <label class="flex items-start gap-3" for="is_admin">
+                        <input
+                            id="is_admin"
+                            v-model="form.is_admin"
+                            type="checkbox"
+                            class="mt-0.5 size-4 rounded border-input"
+                        />
+                        <span class="grid gap-0.5">
+                            <span class="text-sm font-medium">Admin</span>
+                            <span class="text-xs text-muted-foreground">Full access to this admin area, including orders, payments and settings.</span>
+                        </span>
+                    </label>
+                    <InputError :message="errors.is_admin" />
+
+                    <label class="flex items-start gap-3 border-t pt-4" for="is_active_as_seller">
+                        <input
+                            id="is_active_as_seller"
+                            v-model="form.is_active_as_seller"
+                            type="checkbox"
+                            class="mt-0.5 size-4 rounded border-input"
+                        />
+                        <span class="grid gap-0.5">
+                            <span class="text-sm font-medium">Seller access</span>
+                            <span class="text-xs text-muted-foreground">
+                                Lets the owner open the seller dashboard. The store page itself follows the store status.
+                            </span>
+                        </span>
+                    </label>
+                    <InputError :message="errors.is_active_as_seller" />
+
+                    <p v-if="losesOwnAdmin" class="rounded-md bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                        This is your own account. Saving without admin closes the admin area for you.
+                    </p>
+                </section>
+
+                <section v-if="user.seller" class="grid content-start gap-1 rounded-xl border bg-card p-4 shadow-sm">
+                    <h2 class="text-base font-medium">Store</h2>
+                    <Link :href="sellerShow(user.seller.id)" class="text-sm font-medium hover:underline">{{ user.seller.store_name }}</Link>
+                    <p class="text-xs text-muted-foreground">Status: {{ user.seller.status }}. Store details are edited on the store page.</p>
+                </section>
+            </div>
+        </div>
+    </form>
 </template>
