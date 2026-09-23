@@ -6,11 +6,13 @@ use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Product category (spec §10.2). The self-referencing hierarchy is TBC
@@ -21,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string $slug
  * @property int|null $parent_id
  * @property string|null $description
+ * @property string|null $image_path
  * @property bool $is_active
  * @property int $sort_order
  * @property Carbon|null $created_at
@@ -31,6 +34,7 @@ use Illuminate\Support\Carbon;
     'slug',
     'parent_id',
     'description',
+    'image_path',
     'is_active',
     'sort_order',
 ])]
@@ -38,6 +42,25 @@ class Category extends Model
 {
     /** @use HasFactory<CategoryFactory> */
     use HasFactory;
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = ['image_url'];
+
+    /**
+     * Public URL for the category picture shown on the storefront.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function imageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => $this->image_path !== null && $this->image_path !== ''
+                ? Storage::disk('public')->url($this->image_path)
+                : null,
+        );
+    }
 
     /**
      * Get the attributes that should be cast.

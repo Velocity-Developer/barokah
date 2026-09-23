@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -93,12 +94,17 @@ class AdminCategoryController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
+
+        unset($validated['image']);
 
         $category = Category::query()->create([
             ...$validated,
             'slug' => $this->uniqueSlug($validated['slug'] ?? $validated['name']),
         ]);
+
+        $this->applyImage($request, $category);
 
         return (new CategoryResource($category))->response()->setStatusCode(201);
     }
@@ -117,7 +123,11 @@ class AdminCategoryController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remove_image' => ['sometimes', 'nullable', 'boolean'],
         ]);
+
+        unset($validated['image'], $validated['remove_image']);
 
         if (array_key_exists('slug', $validated)) {
             $validated['slug'] = $validated['slug'] === null || $validated['slug'] === ''
@@ -128,8 +138,27 @@ class AdminCategoryController extends Controller
         }
 
         $category->fill($validated)->save();
+        $this->applyImage($request, $category);
 
         return new CategoryResource($category->refresh());
+    }
+
+    /**
+     * Replace or clear the category picture; the old file is deleted.
+     */
+    private function applyImage(Request $request, Category $category): void
+    {
+        $file = $request->file('image');
+
+        if ($file === null && ! $request->boolean('remove_image')) {
+            return;
+        }
+
+        if ($category->image_path !== null && $category->image_path !== '') {
+            Storage::disk('public')->delete($category->image_path);
+        }
+
+        $category->forceFill(['image_path' => $file?->store('categories', 'public')])->save();
     }
 
     /**

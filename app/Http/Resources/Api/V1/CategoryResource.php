@@ -25,11 +25,13 @@ class CategoryResource extends JsonResource
             'active_products_count' => $this->whenHas('active_products_count', fn () => (int) $this->active_products_count),
             'is_active' => (bool) $this->is_active,
             'sort_order' => (int) $this->sort_order,
-            'image_url' => $this->whenLoaded('products', function (): ?string {
+            // The category's own picture, else a product photo from it.
+            'image_url' => $this->image_url ?? $this->whenLoaded('products', function (): ?string {
                 $images = $this->products->first()?->images;
 
                 return $images?->firstWhere('is_primary', true)?->url ?? $images?->first()?->url;
             }),
+            'own_image_url' => $this->image_url,
         ];
     }
 }

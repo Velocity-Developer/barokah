@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Pencil, Plus, Search, Trash2 } from '@lucide/vue';
+import { ImageOff, Pencil, Plus, Search, Trash2 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
@@ -16,6 +16,7 @@ type AdminCategory = {
     sort_order: number;
     products_count?: number;
     active_products_count?: number;
+    own_image_url?: string | null;
 };
 
 type PageMeta = { current_page: number; last_page: number; total: number; from: number | null; to: number | null };
@@ -285,9 +286,17 @@ const selectClass = 'h-9 rounded-md border bg-background px-2.5 text-sm text-for
                             <tr v-for="category in categories" :key="category.id" class="border-b last:border-0 hover:bg-muted/50">
                                 <td class="px-4 py-3 tabular-nums text-muted-foreground">{{ category.sort_order }}</td>
                                 <td class="px-4 py-3">
+                                    <div class="flex items-start gap-3">
+                                        <img v-if="category.own_image_url" :src="category.own_image_url" alt="" class="size-10 shrink-0 rounded border object-cover" />
+                                        <span v-else class="flex size-10 shrink-0 items-center justify-center rounded border bg-muted text-muted-foreground" aria-hidden="true">
+                                            <ImageOff class="size-4" />
+                                        </span>
+                                        <div class="min-w-0">
                                     <Link :href="edit(category.id)" class="font-medium hover:underline">{{ category.name }}</Link>
                                     <p class="text-xs text-muted-foreground">/{{ category.slug }}</p>
                                     <p v-if="category.description" class="mt-0.5 line-clamp-1 max-w-md text-xs text-muted-foreground">{{ category.description }}</p>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
                                     <Link :href="productsIndex({ query: { category_id: category.id } })" class="font-medium tabular-nums hover:underline">

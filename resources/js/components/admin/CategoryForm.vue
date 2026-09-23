@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { ArrowLeft, Trash2 } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
+import { ArrowLeft, ImageOff, Trash2, Upload } from '@lucide/vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -20,6 +20,8 @@ export type CategoryFormValue = {
     sort_order?: number;
     products_count?: number;
     active_products_count?: number;
+    own_image_url?: string | null;
+    image_url?: string | null;
 };
 
 const props = defineProps<{
@@ -37,6 +39,28 @@ const form = reactive({
 });
 
 const slugTouched = ref(isEdit.value);
+const image = ref<File | null>(null);
+const removeImage = ref(false);
+const imagePreview = ref<string | null>(null);
+
+watch(image, (file) => {
+    if (imagePreview.value) URL.revokeObjectURL(imagePreview.value);
+    imagePreview.value = file ? URL.createObjectURL(file) : null;
+    if (file) removeImage.value = false;
+});
+
+onBeforeUnmount(() => {
+    if (imagePreview.value) URL.revokeObjectURL(imagePreview.value);
+});
+
+/** What the picture box shows now: the new file, the saved one, or nothing. */
+const shownImage = computed(() => imagePreview.value ?? (removeImage.value ? null : (props.category?.own_image_url ?? null)));
+
+function pickImage(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    image.value = input.files?.[0] ?? null;
+    input.value = '';
+}
 const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
 
@@ -60,17 +84,17 @@ function csrfToken(): string {
     return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
 }
 
-async function request(url: string, method: string, body?: Record<string, unknown>): Promise<{ ok: boolean; data: { data?: { id: number }; errors?: Record<string, string[]>; message?: string } }> {
+async function request(url: string, method: string, body?: FormData): Promise<{ ok: boolean; data: { data?: { id: number }; errors?: Record<string, string[]>; message?: string } }> {
     const response = await fetch(url, {
-        method,
+        // A picture means multipart, which cannot be sent as PUT.
+        method: body && method === 'PUT' ? 'POST' : method,
         credentials: 'same-origin',
         headers: {
             Accept: 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
             'X-CSRF-TOKEN': csrfToken(),
-            ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body,
     });
 
     const data = response.status === 204 ? {} : await response.json().catch(() => ({}));
@@ -82,13 +106,15 @@ async function save(): Promise<void> {
     isSaving.value = true;
     errors.value = {};
 
-    const payload = {
-        name: form.name.trim(),
-        slug: form.slug.trim() === '' ? null : slugify(form.slug),
-        description: form.description.trim() === '' ? null : form.description.trim(),
-        is_active: form.is_active,
-        sort_order: Number(form.sort_order) || 0,
-    };
+    const payload = new FormData();
+    if (isEdit.value) payload.append('_method', 'PUT');
+    payload.append('name', form.name.trim());
+    payload.append('slug', form.slug.trim() === '' ? '' : slugify(form.slug));
+    payload.append('description', form.description.trim());
+    payload.append('is_active', form.is_active ? '1' : '0');
+    payload.append('sort_order', String(Number(form.sort_order) || 0));
+    if (image.value) payload.append('image', image.value);
+    if (removeImage.value) payload.append('remove_image', '1');
 
     try {
         const { ok, data } = isEdit.value
@@ -103,6 +129,8 @@ async function save(): Promise<void> {
 
         if (isEdit.value) {
             toast.success('Category saved.');
+            image.value = null;
+            removeImage.value = false;
             router.reload({ only: ['category'] });
         } else {
             toast.success('Category created.');
@@ -177,6 +205,33 @@ async function remove(): Promise<void> {
                     <Label for="description">Description <span class="font-normal text-muted-foreground">(optional)</span></Label>
                     <textarea id="description" v-model="form.description" rows="4" maxlength="2000" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" />
                     <InputError :message="errors.description" />
+                </div>
+
+                <div class="grid content-start gap-2 border-t pt-4">
+                    <Label for="category-image">Category picture <span class="font-normal text-muted-foreground">(optional)</span></Label>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <img v-if="shownImage" :src="shownImage" alt="" class="size-24 rounded-lg border object-cover" />
+                        <span v-else class="flex size-24 items-center justify-center rounded-lg border bg-muted text-muted-foreground" aria-hidden="true">
+                            <ImageOff class="size-5" />
+                        </span>
+                        <div class="grid content-start gap-2">
+                            <div class="flex flex-wrap gap-2">
+                                <label for="category-image" class="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-sm font-medium hover:bg-muted">
+                                    <Upload class="size-4" aria-hidden="true" /> {{ shownImage ? 'Change picture' : 'Upload picture' }}
+                                </label>
+                                <input id="category-image" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="pickImage" />
+                                <button v-if="image" type="button" class="h-8 rounded-md border px-3 text-sm font-medium hover:bg-muted" @click="image = null">Undo</button>
+                                <button v-else-if="category?.own_image_url" type="button" class="h-8 rounded-md border px-3 text-sm font-medium hover:bg-muted" @click="removeImage = !removeImage">
+                                    {{ removeImage ? 'Keep picture' : 'Remove' }}
+                                </button>
+                            </div>
+                            <p class="text-xs text-muted-foreground">
+                                Shown on the homepage category cards. Square, JPG/PNG/WebP · max 2 MB.<template v-if="removeImage"> · removed on save</template>
+                            </p>
+                            <p class="text-xs text-muted-foreground">Without one, a photo from a product in this category is used.</p>
+                            <InputError :message="errors.image" />
+                        </div>
+                    </div>
                 </div>
             </section>
 

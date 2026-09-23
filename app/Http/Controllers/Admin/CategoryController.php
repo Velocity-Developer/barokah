@@ -32,7 +32,9 @@ class CategoryController extends Controller
         ]);
 
         return Inertia::render('Admin/Categories/Edit', [
-            'category' => $category,
+            // own_image_url is the picture set here; image_url may fall back to
+            // a product photo elsewhere, so the form uses the explicit one.
+            'category' => array_merge($category->toArray(), ['own_image_url' => $category->image_url]),
         ]);
     }
 }
