@@ -1,27 +1,139 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { onMounted, reactive, ref } from 'vue';
+import { ArrowLeft, ExternalLink, Zap } from '@lucide/vue';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
-import InputError from '@/components/InputError.vue';
+import ProductFields, { type ProductFormFields } from '@/components/seller/ProductFields.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { index } from '@/routes/seller/products';
-import RichTextEditor from '@/components/RichTextEditor.vue';
+import { index as flashSalesIndex } from '@/routes/seller/flash-sales';
 
-type Product = { id: number; name: string; description?: string | null; price: string | number; stock: number; weight_grams: number; status: string; category?: { id: number } | null; images?: { id: number; url: string }[]; flash_sale?: { id: number; discount_type: string; discount_value: string | number; quantity: number; starts_at: string; ends_at: string; price: string | number } | null };
+type Product = {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string | null;
+    price: string | number;
+    stock: number;
+    weight_grams: number;
+    status: string;
+    category?: { id: number } | null;
+    images?: { id: number; url: string }[];
+};
+
 type Category = { id: number; name: string };
+
 const props = defineProps<{ product: Product }>();
-const form = reactive({ name: props.product.name, description: props.product.description ?? '', price: String(props.product.price), stock: String(props.product.stock), weight_grams: String(props.product.weight_grams), status: props.product.status, category_id: String(props.product.category?.id ?? '') });
-const flashSale = reactive({ discount_type: props.product.flash_sale?.discount_type ?? 'percentage', discount_value: String(props.product.flash_sale?.discount_value ?? ''), quantity: String(props.product.flash_sale?.quantity ?? ''), starts_at: props.product.flash_sale?.starts_at?.slice(0, 16) ?? '', ends_at: props.product.flash_sale?.ends_at?.slice(0, 16) ?? '' }); const flashSaleErrors = ref<Record<string, string>>({}); const categories = ref<Category[]>([]); const errors = ref<Record<string, string>>({}); const isSaving = ref(false); const images = ref<File[]>([]); const removeImageIds = ref<number[]>([]);
-onMounted(async () => { const response = await fetch('/api/v1/categories', { headers: { Accept: 'application/json' } }); if (response.ok) categories.value = ((await response.json()) as { data: Category[] }).data; });
-function csrfToken(): string { return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? ''; }
-function onFiles(event: Event): void { images.value = Array.from((event.target as HTMLInputElement).files ?? []); }
-async function save(): Promise<void> { isSaving.value = true; errors.value = {}; const data = new FormData(); data.append('_method', 'PUT'); for (const [key, value] of Object.entries(form)) data.append(key, value); for (const image of images.value) data.append('images[]', image); for (const id of removeImageIds.value) data.append('remove_image_ids[]', String(id)); const response = await fetch(`/api/v1/seller/products/${props.product.id}`, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrfToken() }, body: data }); if (response.ok) { router.visit(index()); return; } const body = (await response.json()) as { errors?: Record<string, string[]> }; for (const [field, messages] of Object.entries(body.errors ?? {})) errors.value[field] = messages[0] ?? 'Invalid value.'; isSaving.value = false; }
-async function saveFlashSale(): Promise<void> { flashSaleErrors.value = {}; try { const response = await fetch(`/api/v1/seller/products/${props.product.id}/flash-sale`, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrfToken() }, body: JSON.stringify({ ...flashSale }) }); const body = (await response.json()) as { errors?: Record<string, string[]>; message?: string }; if (!response.ok) { for (const [field, messages] of Object.entries(body.errors ?? {})) flashSaleErrors.value[field] = messages[0] ?? 'Invalid value.'; if (Object.keys(body.errors ?? {}).length === 0) flashSaleErrors.value.form = body.message ?? 'Flash sale could not be saved.'; return; } router.visit(index()); } catch { flashSaleErrors.value.form = 'Network error. Please try again.'; } }
+
+defineOptions({ layout: { breadcrumbs: [{ title: 'Products', href: index() }] } });
+
+const form = reactive<ProductFormFields>({
+    name: props.product.name,
+    description: props.product.description ?? '',
+    price: String(props.product.price),
+    stock: String(props.product.stock),
+    weight_grams: String(props.product.weight_grams),
+    status: props.product.status,
+    category_id: String(props.product.category?.id ?? ''),
+});
+
+const categories = ref<Category[]>([]);
+const errors = ref<Record<string, string>>({});
+const isSaving = ref(false);
+const images = ref<File[]>([]);
+const removeImageIds = ref<number[]>([]);
+
+const publicUrl = computed(() => (props.product.status === 'active' ? `/products/${props.product.slug}` : null));
+
+onMounted(async () => {
+    const response = await fetch('/api/v1/categories', { headers: { Accept: 'application/json' } });
+
+    if (response.ok) categories.value = ((await response.json()) as { data: Category[] }).data;
+});
+
+function csrfToken(): string {
+    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
+}
+
+function toggleImage(id: number): void {
+    removeImageIds.value = removeImageIds.value.includes(id)
+        ? removeImageIds.value.filter((imageId) => imageId !== id)
+        : [...removeImageIds.value, id];
+}
+
+async function save(): Promise<void> {
+    isSaving.value = true;
+    errors.value = {};
+
+    const data = new FormData();
+    data.append('_method', 'PUT');
+    for (const [key, value] of Object.entries(form)) data.append(key, value);
+    for (const image of images.value) data.append('images[]', image);
+    for (const id of removeImageIds.value) data.append('remove_image_ids[]', String(id));
+
+    try {
+        const response = await fetch(`/api/v1/seller/products/${props.product.id}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrfToken() },
+            body: data,
+        });
+
+        if (response.ok) {
+            toast.success('Product saved.');
+            router.visit(index());
+
+            return;
+        }
+
+        const body = (await response.json()) as { errors?: Record<string, string[]>; message?: string };
+        for (const [field, messages] of Object.entries(body.errors ?? {})) errors.value[field] = messages[0] ?? 'Invalid value.';
+        toast.error(body.message ?? 'This product could not be saved.');
+    } catch {
+        toast.error('Products are temporarily unavailable.');
+    } finally {
+        isSaving.value = false;
+    }
+}
+
 </script>
 
 <template>
     <Head :title="`Edit ${product.name}`" />
-    <div class="flex h-full flex-1 flex-col gap-4 p-4"><Link :href="index()" class="text-muted-foreground w-fit text-sm hover:underline">← Back to products</Link><Heading variant="small" :title="`Edit ${product.name}`" description="Update product owned by your store." /><form class="max-w-2xl space-y-5 rounded-xl border p-4" @submit.prevent="save"><div class="grid content-start gap-2"><Label for="name">Name</Label><Input id="name" v-model="form.name" required /><InputError :message="errors.name" /></div><div class="grid content-start gap-2"><Label for="description">Description</Label><RichTextEditor v-model="form.description"/><InputError :message="errors.description" /></div><div class="grid grid-cols-2 gap-4"><div class="grid content-start gap-2"><Label for="price">Price</Label><Input id="price" v-model="form.price" type="number" min="0" step="0.01" required /><InputError :message="errors.price" /></div><div class="grid content-start gap-2"><Label for="stock">Stock</Label><Input id="stock" v-model="form.stock" type="number" min="0" required /><InputError :message="errors.stock" /></div></div><div class="grid grid-cols-2 gap-4"><div class="grid content-start gap-2"><Label for="category_id">Category</Label><select id="category_id" v-model="form.category_id" required class="border-input h-9 rounded-md border bg-transparent px-3 text-sm"><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select><InputError :message="errors.category_id" /></div><div class="grid content-start gap-2"><Label for="status">Status</Label><select id="status" v-model="form.status" class="border-input h-9 rounded-md border bg-transparent px-3 text-sm"><option value="draft">Draft</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select><InputError :message="errors.status" /></div></div><div class="grid content-start gap-2"><Label for="weight_grams">Weight (grams)</Label><Input id="weight_grams" v-model="form.weight_grams" type="number" min="0" required /><InputError :message="errors.weight_grams" /></div><div class="grid content-start gap-2"><Label for="images">Add images</Label><Input id="images" type="file" accept="image/jpeg,image/png,image/webp" multiple @change="onFiles" /><InputError :message="errors.images" /></div><div v-if="product.images?.length" class="flex flex-wrap gap-2"><div v-for="image in product.images" :key="image.id" class="relative"><img :src="image.url" class="h-20 w-20 rounded border object-cover" /><button type="button" class="text-destructive text-xs hover:underline" @click="removeImageIds.includes(image.id) ? removeImageIds = removeImageIds.filter((id) => id !== image.id) : removeImageIds.push(image.id)">{{ removeImageIds.includes(image.id) ? 'Undo' : 'Remove' }}</button></div></div><Button type="submit" :disabled="isSaving">{{ isSaving ? 'Saving…' : 'Save product' }}</Button></form><section class="max-w-2xl space-y-4 rounded-xl border p-4"><Heading variant="small" title="Flash sale" description="Set temporary product discount and quota." /><div class="grid grid-cols-2 gap-4"><div class="grid content-start gap-2"><Label for="discount_type">Type</Label><select id="discount_type" v-model="flashSale.discount_type" class="border-input h-9 rounded-md border bg-transparent px-3 text-sm"><option value="percentage">Percentage</option><option value="fixed">Fixed price</option></select><InputError :message="flashSaleErrors.discount_type" /></div><div class="grid content-start gap-2"><Label for="discount_value">Discount value</Label><Input id="discount_value" v-model="flashSale.discount_value" type="number" min="0" step="0.01" /><InputError :message="flashSaleErrors.discount_value" /></div></div><div class="grid grid-cols-2 gap-4"><div class="grid content-start gap-2"><Label for="flash_quantity">Quota</Label><Input id="flash_quantity" v-model="flashSale.quantity" type="number" min="1" /><InputError :message="flashSaleErrors.quantity" /></div><div class="grid content-start gap-2"><Label for="starts_at">Starts</Label><Input id="starts_at" v-model="flashSale.starts_at" type="datetime-local" /><InputError :message="flashSaleErrors.starts_at" /></div></div><div class="grid content-start gap-2"><Label for="ends_at">Ends</Label><Input id="ends_at" v-model="flashSale.ends_at" type="datetime-local" /><InputError :message="flashSaleErrors.ends_at" /></div><InputError :message="flashSaleErrors.form" /><Button type="button" @click="saveFlashSale">Save flash sale</Button></section></div>
+
+    <div class="flex h-full flex-1 flex-col gap-4 p-4 md:p-6">
+        <Link :href="index()" class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft class="size-4" aria-hidden="true" /> Back to products
+        </Link>
+
+        <form class="flex flex-col gap-4" @submit.prevent="save">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <Heading variant="small" :title="`Edit ${product.name}`" :description="`/${product.slug}`" />
+                <div class="flex shrink-0 flex-wrap gap-2">
+                    <a v-if="publicUrl" :href="publicUrl" target="_blank" rel="noopener" class="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium hover:bg-muted">
+                        <ExternalLink class="size-4" aria-hidden="true" /> View in store
+                    </a>
+                    <Link :href="index()" class="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Cancel</Link>
+                    <Button :disabled="isSaving" type="submit">{{ isSaving ? 'Saving…' : 'Save product' }}</Button>
+                </div>
+            </div>
+
+            <ProductFields
+                v-model:images="images"
+                :form="form"
+                :errors="errors"
+                :categories="categories"
+                :existing-images="product.images"
+                :removed-image-ids="removeImageIds"
+                @toggle-image="toggleImage"
+            />
+        </form>
+
+        <p class="flex flex-wrap items-center gap-1.5 rounded-xl border bg-card p-4 text-sm text-muted-foreground shadow-sm">
+            <Zap class="size-4 text-[var(--brand-primary,#ee4d2d)]" aria-hidden="true" />
+            Want a temporary sale price for this product?
+            <Link :href="flashSalesIndex()" class="font-medium text-foreground hover:underline">Set it up in Flash sales</Link>.
+        </p>
+    </div>
 </template>
