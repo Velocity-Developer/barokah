@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
+import InputError from '@/components/InputError.vue';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { index } from '@/routes/seller/orders';
 import { formatPrice } from '@/services/priceFormatter';
@@ -47,6 +51,16 @@ const trackingStatus = ref<
 >('packed');
 const deliveryPhoto = ref<File | null>(null);
 const message = ref('');
+const errors = ref<Record<string, string>>({});
+const isSaving = ref(false);
+
+/** What the buyer sees for each step, in the order they happen. */
+const TRACKING_STEPS = [
+    { value: 'received', label: 'Order received', hint: 'You have the order and will start packing.' },
+    { value: 'packed', label: 'Packed', hint: 'Parcel is ready for the courier.' },
+    { value: 'shipped', label: 'Handed to courier', hint: 'On its way to the buyer.' },
+    { value: 'delivered', label: 'Delivered', hint: 'Arrived. Add a photo as proof if you have one.' },
+] as const;
 const deliveryPhotoPreview = ref('');
 
 const isPaid = computed(
@@ -102,6 +116,11 @@ const orderStatusClass = computed(() => {
             return 'bg-slate-100 text-slate-700';
     }
 });
+
+const shippingMethodLabel = computed(() =>
+    ({ fixed: 'Fixed rate', external: 'Courier rate' } as Record<string, string>)[order.value?.shipping_method ?? ''] ??
+        displayText(order.value?.shipping_method),
+);
 
 const customerLocation = computed(() =>
     order.value
@@ -239,7 +258,11 @@ onMounted(async () => {
         courier.value = order.value.tracking?.courier ?? '';
         waybillNumber.value = order.value.tracking?.waybill_number ?? '';
         trackingUrl.value = order.value.tracking?.tracking_url ?? '';
-        const current = order.value.tracking?.tracking_status;
+        // The API stores the courier handover as picked_up; the form calls it shipped.
+        const current = order.value.tracking?.tracking_status === 'picked_up'
+            ? 'shipped'
+            : order.value.tracking?.tracking_status;
+
         if (
             current === 'received' ||
             current === 'packed' ||
@@ -259,10 +282,14 @@ onMounted(async () => {
 
 async function save(): Promise<void> {
     if (!isPaid.value) {
-        message.value = 'Cannot edit tracking while payment is pending.';
+        toast.error('Tracking can only be updated once the order is paid.');
+
         return;
     }
+
+    isSaving.value = true;
     message.value = '';
+    errors.value = {};
     const form = new FormData();
     form.append('tracking_status', trackingStatus.value);
     if (courier.value) {
@@ -293,19 +320,38 @@ async function save(): Promise<void> {
             body: form,
         },
     );
+    isSaving.value = false;
+
     if (response.ok) {
-        message.value = 'Tracking saved.';
+        toast.success('Tracking saved. The buyer can see it now.');
+        deliveryPhoto.value = null;
+
         return;
     }
 
     const payload = (await response.json().catch(
         () => null,
     )) as { message?: string; errors?: Record<string, string[]> } | null;
-    message.value =
-        Object.values(payload?.errors ?? {}).flat()[0] ??
-        payload?.message ??
-        'Tracking save failed.';
+
+    for (const [field, messages] of Object.entries(payload?.errors ?? {})) {
+        errors.value[field] = messages[0] ?? 'Invalid value.';
+    }
+
+    toast.error(payload?.message ?? 'Tracking could not be saved.');
 }
+
+const trackingHint = computed(() => TRACKING_STEPS.find((step) => step.value === trackingStatus.value)?.hint ?? '');
+
+/** The saved courier details, shown above the form so they are easy to check. */
+const savedTracking = computed(() => {
+    const tracking = order.value?.tracking;
+
+    if (!tracking || (!tracking.courier && !tracking.waybill_number && !tracking.tracking_url)) {
+        return null;
+    }
+
+    return tracking;
+});
 defineOptions({
     layout: {
         breadcrumbs: [{ title: 'Customer orders', href: index() }],
@@ -334,7 +380,6 @@ defineOptions({
             >
                 {{ orderStatusLabel }}
             </span>
-            <Badge variant="outline">Seller order</Badge>
             <Badge v-if="order?.payment" variant="outline">
                 Payment: {{ paymentLabel }}
                 <span v-if="order.payment.payment_method">
@@ -529,7 +574,7 @@ defineOptions({
                                 Shipping
                             </th>
                             <td class="px-3 py-2">
-                                {{ displayText(order.shipping_method) }}
+                                {{ shippingMethodLabel }}
                             </td>
                         </tr>
                     </tbody>
@@ -673,71 +718,77 @@ defineOptions({
                 shipment flow.
             </p>
 
-            <div
-                v-if="isPaid"
-                class="mt-6 border-t pt-5"
-            >
-                <h4 class="text-sm font-semibold">Update tracking</h4>
-                <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                    <select
-                        v-model="trackingStatus"
-                        class="rounded border px-3 py-2 text-sm sm:col-start-1 sm:row-start-1"
-                    >
-                        <option value="received">received</option>
-                        <option value="packed">packed</option>
-                        <option value="shipped">shipped</option>
-                        <option value="delivered">delivered</option>
-                    </select>
-                    <input
-                        v-model="courier"
-                        placeholder="Courier provider (e.g. JNE, DHL)"
-                        class="rounded border px-3 py-2 text-sm"
-                    />
-                    <input
-                        v-model="waybillNumber"
-                        placeholder="Waybill number"
-                        class="rounded border px-3 py-2 text-sm"
-                    />
-                    <input
-                        v-model="trackingUrl"
-                        placeholder="Tracking URL"
-                        type="url"
-                        class="rounded border px-3 py-2 text-sm"
-                    />
-                    <input
-                        v-if="trackingStatus === 'delivered'"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        class="rounded border px-3 py-2 text-sm"
-                        @change="onDeliveryPhotoChange"
-                    />
-                    <img
-                        v-if="
-                            trackingStatus === 'delivered' && deliveryPhotoPreview
-                        "
-                        :src="deliveryPhotoPreview"
-                        alt="Delivery proof preview"
-                        class="max-h-48 rounded-lg border object-contain sm:col-span-2"
-                    />
+            <p v-if="!isPaid" class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                Tracking opens once the buyer has paid.
+            </p>
+
+            <form v-else class="mt-6 grid gap-4 border-t pt-5" @submit.prevent="save">
+                <div>
+                    <h4 class="text-base font-medium">Update tracking</h4>
+                    <p class="text-sm text-muted-foreground">The buyer sees this on their order page, so keep it current.</p>
                 </div>
-                <div
-                    class="mt-4 flex flex-wrap items-center gap-3"
-                >
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid content-start gap-2">
+                        <Label for="tracking-status">Shipment status</Label>
+                        <select id="tracking-status" v-model="trackingStatus" class="h-9 rounded-md border border-input bg-transparent px-3 text-sm">
+                            <option v-for="step in TRACKING_STEPS" :key="step.value" :value="step.value">{{ step.label }}</option>
+                        </select>
+                        <p class="text-xs text-muted-foreground">{{ trackingHint }}</p>
+                        <InputError :message="errors.tracking_status" />
+                    </div>
+
+                    <div class="grid content-start gap-2">
+                        <Label for="tracking-courier">Courier</Label>
+                        <Input id="tracking-courier" v-model="courier" type="text" maxlength="255" placeholder="J&amp;T, Pos Laju, DHL…" />
+                        <InputError :message="errors.courier" />
+                    </div>
+
+                    <div class="grid content-start gap-2">
+                        <Label for="tracking-waybill">Waybill number</Label>
+                        <Input id="tracking-waybill" v-model="waybillNumber" type="text" maxlength="255" placeholder="e.g. 630123456789" class="font-mono" />
+                        <p class="text-xs text-muted-foreground">The number printed on the parcel label.</p>
+                        <InputError :message="errors.waybill_number" />
+                    </div>
+
+                    <div class="grid content-start gap-2">
+                        <Label for="tracking-url">Tracking link</Label>
+                        <Input id="tracking-url" v-model="trackingUrl" type="url" maxlength="500" placeholder="https://courier.com/track/630123456789" />
+                        <p class="text-xs text-muted-foreground">Optional. The courier page where the buyer can follow the parcel.</p>
+                        <InputError :message="errors.tracking_url" />
+                    </div>
+
+                    <div v-if="trackingStatus === 'delivered'" class="grid content-start gap-2 sm:col-span-2">
+                        <Label for="delivery-photo">Proof of delivery</Label>
+                        <input
+                            id="delivery-photo"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            class="h-9 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs"
+                            @change="onDeliveryPhotoChange"
+                        />
+                        <p class="text-xs text-muted-foreground">Optional photo of the delivered parcel. JPG, PNG or WebP, up to 5 MB.</p>
+                        <InputError :message="errors.delivery_photo" />
+                        <img
+                            v-if="deliveryPhotoPreview"
+                            :src="deliveryPhotoPreview"
+                            alt="Proof of delivery"
+                            class="max-h-48 w-fit rounded-lg border object-contain"
+                        />
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 border-t pt-4">
                     <button
-                        type="button"
-                        class="rounded bg-primary px-4 py-2 text-sm text-primary-foreground"
-                        @click="save"
+                        type="submit"
+                        :disabled="isSaving"
+                        class="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
                     >
-                        Save tracking
+                        {{ isSaving ? 'Saving…' : 'Save tracking' }}
                     </button>
-                    <p
-                        v-if="message"
-                        class="text-sm text-muted-foreground"
-                    >
-                        {{ message }}
-                    </p>
+                    <p v-if="message" class="text-sm text-muted-foreground">{{ message }}</p>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 </template>

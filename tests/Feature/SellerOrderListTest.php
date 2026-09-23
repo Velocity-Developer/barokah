@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use App\Enums\SellerStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -92,4 +93,45 @@ it('totals only this store items in a shared order', function () {
         ->assertJsonPath('data.0.subtotal', 80)
         ->assertJsonPath('data.0.items_count', 1)
         ->assertJsonPath('data.0.first_item', 'Keripik Manis');
+});
+
+it('saves courier details and records when the parcel was handed over', function () {
+    $owner = orderSeller();
+    $sellerId = $owner->seller->id;
+    $order = orderWithItem($sellerId, OrderStatus::Paid);
+    $order->payment()->create([
+        'payment_method' => 'bank_transfer',
+        'payment_gateway' => 'manual',
+        'status' => PaymentStatus::Paid,
+        'amount' => 50,
+        'paid_at' => now(),
+    ]);
+
+    $this->actingAs($owner)
+        ->post('/api/v1/seller/orders/'.$order->order_number.'/tracking', [
+            'tracking_status' => 'shipped',
+            'courier' => 'J&T Express',
+            'waybill_number' => '630123456789',
+            'tracking_url' => 'https://jtexpress.my/track/630123456789',
+        ], ['Accept' => 'application/json'])
+        ->assertOk();
+
+    $tracking = $order->sellerTrackings()->where('seller_id', $sellerId)->firstOrFail();
+
+    // "shipped" is stored as the courier handover.
+    expect($tracking->tracking_status)->toBe('picked_up')
+        ->and($tracking->courier)->toBe('J&T Express')
+        ->and($tracking->waybill_number)->toBe('630123456789')
+        ->and($tracking->picked_up_at)->not->toBeNull();
+});
+
+it('refuses tracking while the order is unpaid', function () {
+    $owner = orderSeller();
+    $order = orderWithItem($owner->seller->id, OrderStatus::PendingPayment);
+
+    $this->actingAs($owner)
+        ->post('/api/v1/seller/orders/'.$order->order_number.'/tracking', ['tracking_status' => 'packed'], ['Accept' => 'application/json'])
+        ->assertForbidden();
+
+    expect($order->sellerTrackings()->count())->toBe(0);
 });
