@@ -554,6 +554,26 @@ return [
             'group' => 'email',
             'is_public' => false,
         ],
+        // Order notifications: who hears about a new order.
+        'email.admin_notifications_enabled' => [
+            'value' => true,
+            'type' => SettingType::Boolean,
+            'group' => 'email',
+            'is_public' => false,
+        ],
+        // Comma separated. Empty falls back to the admin accounts, then contact.email.
+        'email.admin_notification_recipients' => [
+            'value' => '',
+            'type' => SettingType::String,
+            'group' => 'email',
+            'is_public' => false,
+        ],
+        'email.customer_notifications_enabled' => [
+            'value' => true,
+            'type' => SettingType::Boolean,
+            'group' => 'email',
+            'is_public' => false,
+        ],
         // Off: mail goes through the MAIL_MAILER in .env. On: the SMTP fields below are used.
         'email.smtp_enabled' => [
             'value' => false,

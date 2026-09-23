@@ -1,6 +1,22 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import type { Component } from 'vue';
+import {
+    Coins,
+    Cog,
+    CreditCard,
+    Languages,
+    LayoutTemplate,
+    Mail as MailIcon,
+    Palette,
+    Phone,
+    Search,
+    ShoppingCart,
+    Store as StoreIcon,
+    Truck,
+} from '@lucide/vue';
+import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -67,8 +83,6 @@ watch(
 
 const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
-const notice = ref<string | null>(null);
-const noticeIsSuccess = ref(false);
 
 onMounted(() => {
     const bannerIndexes = props.settings
@@ -341,7 +355,47 @@ const settingLabels: Record<string, string> = {
     'email.smtp_password': 'SMTP Password',
     'email.smtp_encryption': 'SMTP Encryption',
     'email.smtp_enabled': 'Use SMTP Server',
+    'email.admin_notifications_enabled': 'Notify Admin of New Orders',
+    'email.admin_notification_recipients': 'Admin Notification Email',
+    'email.customer_notifications_enabled': 'Send Order Email to Buyer',
 };
+
+const groupDescriptions: Record<string, string> = {
+    general: 'Site name, registration and maintenance mode.',
+    branding: 'Logo, favicon and the marketplace colours.',
+    homepage: 'Banners and sliders shown on the Home page.',
+    currency: 'Currency symbol, code and how prices are written.',
+    marketplace: 'How the marketplace itself is presented.',
+    checkout: 'Order limits and what buyers must fill in.',
+    payment: 'Bank transfer, QR payment and the PayNet gateway.',
+    shipping: 'Shipping method, rates and the courier API.',
+    localization: 'Languages, time zone and date formats.',
+    contact: 'The addresses and numbers shown to customers.',
+    seo: 'Titles, description and the share image.',
+    email: 'Sender details, order notifications and SMTP.',
+};
+
+const groupIcons: Record<string, Component> = {
+    general: Cog,
+    branding: Palette,
+    homepage: LayoutTemplate,
+    currency: Coins,
+    marketplace: StoreIcon,
+    checkout: ShoppingCart,
+    payment: CreditCard,
+    shipping: Truck,
+    localization: Languages,
+    contact: Phone,
+    seo: Search,
+    email: MailIcon,
+};
+
+// Grouped so the left menu reads as sections instead of one long list.
+const groupSections = computed(() => [
+    { title: 'Site', groups: ['general', 'branding', 'homepage', 'seo'] },
+    { title: 'Selling', groups: ['marketplace', 'currency', 'checkout', 'payment', 'shipping'] },
+    { title: 'Communication', groups: ['contact', 'email', 'localization'] },
+].map((section) => ({ ...section, groups: section.groups.filter((group) => props.groups.includes(group)) })));
 
 const groupLabel = computed(() => groupLabels[props.activeGroup] ?? props.activeGroup);
 
@@ -364,6 +418,10 @@ const dependentSettings: Record<string, { parent: string; visible: () => boolean
     ),
     'shipping.fixed_rate': { parent: 'shipping.method', visible: () => values['shipping.method'] === 'fixed' },
     'shipping.free_shipping_threshold': { parent: 'shipping.free_shipping_enabled', visible: () => Boolean(values['shipping.free_shipping_enabled']) },
+    'email.admin_notification_recipients': {
+        parent: 'email.admin_notifications_enabled',
+        visible: () => Boolean(values['email.admin_notifications_enabled']),
+    },
     ...Object.fromEntries(
         ['email.smtp_host', 'email.smtp_port', 'email.smtp_encryption', 'email.smtp_username', 'email.smtp_password'].map((key) => [
             key,
@@ -406,6 +464,9 @@ const groupOrder: Record<string, string[]> = {
     email: [
         'email.from_name',
         'email.from_address',
+        'email.admin_notifications_enabled',
+        'email.admin_notification_recipients',
+        'email.customer_notifications_enabled',
         'email.smtp_enabled',
         'email.smtp_host',
         'email.smtp_port',
@@ -508,6 +569,13 @@ const settingHints: Record<string, string> = {
     'localization.available_languages': 'Languages visitors can switch to.',
     'email.from_address': 'Order emails are sent from this address.',
     'email.smtp_enabled': 'Send email through the SMTP server below. When off, the server\'s default mailer is used.',
+    'email.admin_notifications_enabled': 'Send an email to the marketplace team whenever an order is placed.',
+    'email.admin_notification_recipients': 'Where order notifications go. Separate several addresses with commas. Leave empty to use the admin accounts, then the contact email.',
+    'email.customer_notifications_enabled': 'Send the buyer an order confirmation email.',
+};
+
+const settingPlaceholders: Record<string, string> = {
+    'email.admin_notification_recipients': 'orders@example.com, owner@example.com',
 };
 
 function clearMaskedValue(setting: AdminSettingEntry): void {
@@ -569,8 +637,6 @@ function onSettingsSubmit(event: SubmitEvent): void {
 async function save(): Promise<void> {
     isSaving.value = true;
     errors.value = {};
-    notice.value = null;
-    noticeIsSuccess.value = false;
 
     try {
         const formData = new FormData();
@@ -606,7 +672,7 @@ async function save(): Promise<void> {
         try {
             payload = JSON.parse(responseText || '{}') as typeof payload;
         } catch {
-            notice.value = `Settings could not be saved (${response.status}).`;
+            toast.error(`Settings could not be saved (${response.status}).`);
             return;
         }
 
@@ -618,15 +684,14 @@ async function save(): Promise<void> {
             }
 
             errors.value = first;
-            notice.value = payload.message ?? 'Settings could not be saved.';
+            toast.error(payload.message ?? 'Settings could not be saved.');
             return;
         }
 
-        notice.value = 'Settings saved.';
-        noticeIsSuccess.value = true;
+        toast.success(`${groupLabel.value} settings saved.`);
         router.reload({ only: ['settings'] });
     } catch {
-        notice.value = 'Settings are temporarily unavailable.';
+        toast.error('Settings are temporarily unavailable.');
     } finally {
         isSaving.value = false;
     }
@@ -636,43 +701,33 @@ async function save(): Promise<void> {
 <template>
     <Head title="Settings" />
 
-    <div class="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6 p-4 md:p-6">
-        <div class="rounded-xl border bg-card p-5 shadow-sm md:p-6">
-            <Heading
-                variant="small"
-                title="Settings"
-                description="Manage website configuration with clear labels. Secret values remain hidden."
-            />
-        </div>
+    <div class="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-4 p-4 md:p-6">
+        <Heading variant="small" title="Settings" description="Everything that configures the marketplace. Saved values apply right away; secrets stay hidden." />
 
-        <nav class="flex flex-wrap gap-2 rounded-xl border bg-card p-3 shadow-sm" aria-label="Settings groups">
-            <Link
-                v-for="group in groups"
-                :key="group"
-                :href="show(group)"
-                class="rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted"
-                :class="
-                    group === activeGroup
-                        ? 'border-primary font-medium'
-                        : 'text-muted-foreground'
-                "
-            >
-                {{ groupLabels[group] ?? group }}
-            </Link>
-        </nav>
+        <div class="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+            <!-- Submenu: sections on the left, the chosen group on the right. -->
+            <nav class="grid content-start gap-4 self-start rounded-xl border bg-card p-3 shadow-sm md:sticky md:top-4" aria-label="Settings groups">
+                <div v-for="section in groupSections" :key="section.title" class="grid gap-1">
+                    <p class="px-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">{{ section.title }}</p>
+                    <Link
+                        v-for="group in section.groups"
+                        :key="group"
+                        :href="show(group)"
+                        class="flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors"
+                        :class="group === activeGroup ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'"
+                        :aria-current="group === activeGroup ? 'page' : undefined"
+                    >
+                        <component :is="groupIcons[group]" v-if="groupIcons[group]" class="size-4 shrink-0" aria-hidden="true" />
+                        {{ groupLabels[group] ?? group }}
+                    </Link>
+                </div>
+            </nav>
 
-        <div
-            class="border-sidebar-border/70 dark:border-sidebar-border rounded-xl border bg-card p-4 shadow-sm md:p-6"
-        >
-            <h3 class="mb-4 text-base font-medium capitalize">{{ groupLabel }}</h3>
-
-            <p
-                v-if="notice"
-                class="mb-4 rounded-md border px-3 py-2 text-sm"
-                :class="noticeIsSuccess ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700'"
-            >
-                {{ notice }}
-            </p>
+        <div class="rounded-xl border bg-card p-4 shadow-sm md:p-6">
+            <div class="mb-5 border-b pb-4">
+                <h2 class="text-base font-medium">{{ groupLabel }}</h2>
+                <p v-if="groupDescriptions[activeGroup]" class="text-sm text-muted-foreground">{{ groupDescriptions[activeGroup] }}</p>
+            </div>
 
             <p
                 v-if="settings.length === 0"
@@ -987,6 +1042,7 @@ async function save(): Promise<void> {
                                 :id="setting.key"
                                 type="text"
                                 class="block w-full"
+                                :placeholder="settingPlaceholders[setting.key]"
                                 :model-value="String(values[setting.key] ?? '')"
                                 @update:model-value="values[setting.key] = $event"
                             />
@@ -1003,10 +1059,12 @@ async function save(): Promise<void> {
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4">
-                    <Button :disabled="isSaving" type="submit">Save</Button>
+                <div class="flex items-center gap-3 border-t pt-4">
+                    <Button :disabled="isSaving" type="submit">{{ isSaving ? 'Saving…' : 'Save changes' }}</Button>
+                    <p class="text-xs text-muted-foreground">Only the {{ groupLabel }} settings on this page are saved.</p>
                 </div>
             </form>
+        </div>
         </div>
     </div>
 </template>

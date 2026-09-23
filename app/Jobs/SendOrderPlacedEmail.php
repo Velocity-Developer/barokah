@@ -33,9 +33,16 @@ class SendOrderPlacedEmail implements ShouldQueue
             return;
         }
 
-        $recipients = $this->audience === OrderPlacedMail::AUDIENCE_ADMIN
+        $isAdmin = $this->audience === OrderPlacedMail::AUDIENCE_ADMIN;
+        $enabled = (bool) $settings->get($isAdmin ? 'email.admin_notifications_enabled' : 'email.customer_notifications_enabled', true);
+
+        if (! $enabled) {
+            return;
+        }
+
+        $recipients = $isAdmin
             ? $this->adminRecipients($settings)
-            : array_filter([$order->customer_email ?: $order->user?->email]);
+            : array_values(array_filter([$order->customer_email ?: $order->user?->email]));
 
         if ($recipients === []) {
             return;
@@ -47,20 +54,42 @@ class SendOrderPlacedEmail implements ShouldQueue
     }
 
     /**
-     * Admin accounts; the contact email from Settings when there is none.
+     * The notification addresses from Settings; the admin accounts when they
+     * are empty, and the contact email as a last resort.
      *
      * @return list<string>
      */
     private function adminRecipients(SettingsService $settings): array
     {
+        $configured = $this->emailList($settings->get('email.admin_notification_recipients'));
+
+        if ($configured !== []) {
+            return $configured;
+        }
+
         $admins = User::query()->where('is_admin', true)->pluck('email')->filter()->unique()->values()->all();
 
         if ($admins !== []) {
             return $admins;
         }
 
-        $contact = $settings->get('contact.email');
+        return $this->emailList($settings->get('contact.email'));
+    }
 
-        return is_string($contact) && $contact !== '' ? [$contact] : [];
+    /**
+     * @return list<string>
+     */
+    private function emailList(mixed $value): array
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        return collect(preg_split('/[,;]+/', $value) ?: [])
+            ->map(fn (string $address): string => trim($address))
+            ->filter(fn (string $address): bool => filter_var($address, FILTER_VALIDATE_EMAIL) !== false)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

@@ -185,6 +185,26 @@ class UpdateAdminSettingsRequest extends FormRequest
      *
      * @return array<int, mixed>
      */
+    /**
+     * Validates a comma separated list of email addresses.
+     */
+    protected function emailListRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            if (! is_string($value) || trim($value) === '') {
+                return;
+            }
+
+            foreach (preg_split('/[,;]+/', $value) ?: [] as $address) {
+                $address = trim($address);
+
+                if ($address !== '' && ! filter_var($address, FILTER_VALIDATE_EMAIL)) {
+                    $fail("{$address} is not a valid email address.");
+                }
+            }
+        };
+    }
+
     public function rulesForKey(string $key): array
     {
         if (preg_match('/^homepage\.banner_\d+_url$/', $key)) {
@@ -243,6 +263,7 @@ class UpdateAdminSettingsRequest extends FormRequest
             'seo.meta_title' => ['nullable', 'string', 'max:255'],
             'seo.meta_description', 'seo.keywords' => ['nullable', 'string', 'max:500'],
             'email.from_name' => ['nullable', 'string', 'max:255'],
+            'email.admin_notification_recipients' => ['nullable', 'string', 'max:500', $this->emailListRule()],
             'email.from_address' => ['nullable', 'email', 'max:255'],
             'email.smtp_host', 'email.smtp_username' => ['nullable', 'string', 'max:255'],
             'email.smtp_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
@@ -275,8 +296,12 @@ class UpdateAdminSettingsRequest extends FormRequest
             return $row->type;
         }
 
-        $definition = config('marketplace.settings_defaults.'.$key, []);
-        $type = $definition['type'] ?? null;
+        // Keys contain dots, so the defaults are read from the flat array
+        // instead of config() dot notation; a setting that has never been
+        // saved would otherwise fall back to the string rules.
+        $definitions = config('marketplace.settings_defaults', []);
+        $definition = is_array($definitions) ? ($definitions[$key] ?? []) : [];
+        $type = is_array($definition) ? ($definition['type'] ?? null) : null;
 
         if ($type instanceof SettingType) {
             return $type;
