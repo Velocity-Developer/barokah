@@ -245,7 +245,7 @@ const progressTimeline = computed<TimelineStep[]>(() => {
     return steps;
 });
 
-onMounted(async () => {
+async function loadOrder(): Promise<void> {
     const response = await fetch(`/api/v1/seller/orders/${props.orderNumber}`, {
         headers: { Accept: 'application/json' },
     });
@@ -278,7 +278,9 @@ onMounted(async () => {
                 : '');
         deliveryPhotoPreview.value = photo;
     }
-});
+}
+
+onMounted(loadOrder);
 
 async function save(): Promise<void> {
     if (!isPaid.value) {
@@ -292,14 +294,16 @@ async function save(): Promise<void> {
     errors.value = {};
     const form = new FormData();
     form.append('tracking_status', trackingStatus.value);
-    if (courier.value) {
-        form.append('courier', courier.value);
-    }
-    if (waybillNumber.value) {
-        form.append('waybill_number', waybillNumber.value);
-    }
-    if (trackingUrl.value) {
-        form.append('tracking_url', trackingUrl.value);
+    if (needsCourierDetails.value) {
+        if (courier.value) {
+            form.append('courier', courier.value);
+        }
+        if (waybillNumber.value) {
+            form.append('waybill_number', waybillNumber.value);
+        }
+        if (trackingUrl.value) {
+            form.append('tracking_url', trackingUrl.value);
+        }
     }
     if (trackingStatus.value === 'delivered' && deliveryPhoto.value) {
         form.append('delivery_photo', deliveryPhoto.value);
@@ -325,6 +329,7 @@ async function save(): Promise<void> {
     if (response.ok) {
         toast.success('Tracking saved. The buyer can see it now.');
         deliveryPhoto.value = null;
+        await loadOrder();
 
         return;
     }
@@ -341,6 +346,9 @@ async function save(): Promise<void> {
 }
 
 const trackingHint = computed(() => TRACKING_STEPS.find((step) => step.value === trackingStatus.value)?.hint ?? '');
+
+/** Courier details only exist once the parcel has left the store. */
+const needsCourierDetails = computed(() => trackingStatus.value === 'shipped' || trackingStatus.value === 'delivered');
 
 /** The saved courier details, shown above the form so they are easy to check. */
 const savedTracking = computed(() => {
@@ -645,18 +653,23 @@ defineOptions({
             >
                 Shipment progress
             </h4>
-            <ol
-                v-if="progressTimeline.length > 0"
-                class="mt-4 space-y-5 border-l-2 border-slate-200 pl-6 text-sm"
-            >
+            <ol v-if="progressTimeline.length > 0" class="mt-4 text-sm">
                 <li
                     v-for="(step, idx) in progressTimeline"
                     :key="step.label + step.time + idx"
-                    class="relative"
+                    class="flex gap-3 pb-5 last:pb-0"
                 >
-                    <span
-                        class="absolute -left-[29px] top-0.5 h-4 w-4 rounded-full border-2 border-white bg-indigo-500 ring-1 ring-indigo-500"
-                    />
+                    <!-- Gutter: the dot and the line that joins it to the next step. -->
+                    <div class="relative flex w-4 shrink-0 justify-center">
+                        <span class="z-10 mt-1 size-3.5 shrink-0 rounded-full border-2 border-white bg-indigo-500 ring-1 ring-indigo-500" />
+                        <span
+                            v-if="idx < progressTimeline.length - 1"
+                            class="absolute top-4 bottom-0 w-0.5 rounded bg-slate-200"
+                            aria-hidden="true"
+                        />
+                    </div>
+
+                    <div class="min-w-0 flex-1">
                     <p class="font-medium">{{ step.label }}</p>
                     <p
                         v-if="step.time"
@@ -708,6 +721,7 @@ defineOptions({
                             class="max-h-80 max-w-full object-contain"
                         />
                     </div>
+                    </div>
                 </li>
             </ol>
             <p
@@ -738,20 +752,24 @@ defineOptions({
                         <InputError :message="errors.tracking_status" />
                     </div>
 
-                    <div class="grid content-start gap-2">
+                    <p v-if="!needsCourierDetails" class="self-center text-sm text-muted-foreground">
+                        Courier, waybill number and tracking link are asked once you hand the parcel over.
+                    </p>
+
+                    <div v-if="needsCourierDetails" class="grid content-start gap-2">
                         <Label for="tracking-courier">Courier</Label>
                         <Input id="tracking-courier" v-model="courier" type="text" maxlength="255" placeholder="J&amp;T, Pos Laju, DHL…" />
                         <InputError :message="errors.courier" />
                     </div>
 
-                    <div class="grid content-start gap-2">
+                    <div v-if="needsCourierDetails" class="grid content-start gap-2">
                         <Label for="tracking-waybill">Waybill number</Label>
                         <Input id="tracking-waybill" v-model="waybillNumber" type="text" maxlength="255" placeholder="e.g. 630123456789" class="font-mono" />
                         <p class="text-xs text-muted-foreground">The number printed on the parcel label.</p>
                         <InputError :message="errors.waybill_number" />
                     </div>
 
-                    <div class="grid content-start gap-2">
+                    <div v-if="needsCourierDetails" class="grid content-start gap-2">
                         <Label for="tracking-url">Tracking link</Label>
                         <Input id="tracking-url" v-model="trackingUrl" type="url" maxlength="500" placeholder="https://courier.com/track/630123456789" />
                         <p class="text-xs text-muted-foreground">Optional. The courier page where the buyer can follow the parcel.</p>

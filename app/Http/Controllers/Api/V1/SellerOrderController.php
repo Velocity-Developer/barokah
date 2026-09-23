@@ -158,6 +158,39 @@ class SellerOrderController extends Controller
     }
 
     /**
+     * The first time a seller opens a paid order, it counts as received: the
+     * shipment progress starts at the moment they looked at it.
+     */
+    private function markReceived(Order $order, ?int $sellerId): void
+    {
+        if ($sellerId === null || $order->payment?->status !== PaymentStatus::Paid) {
+            return;
+        }
+
+        // Checkout already made a row per seller to hold the shipping fee, so
+        // the row may exist with no status yet.
+        $tracking = $order->sellerTrackings->firstWhere('seller_id', $sellerId);
+
+        if ($tracking !== null && ($tracking->tracking_status !== null || $tracking->received_at !== null)) {
+            return;
+        }
+
+        if ($tracking === null) {
+            $tracking = $order->sellerTrackings()->create([
+                'seller_id' => $sellerId,
+                'tracking_status' => 'received',
+                'received_at' => now(),
+            ]);
+
+            $order->setRelation('sellerTrackings', collect([$tracking]));
+
+            return;
+        }
+
+        $tracking->update(['tracking_status' => 'received', 'received_at' => now()]);
+    }
+
+    /**
      * Show one order scoped to the current seller's items.
      *
      * Orders without the seller's items return 404 so sellers cannot
@@ -178,6 +211,8 @@ class SellerOrderController extends Controller
         if ($order === null || $request->user()?->cannot('view', $order)) {
             abort(404);
         }
+
+        $this->markReceived($order, $sellerId);
 
         return new SellerOrderResource($order);
     }

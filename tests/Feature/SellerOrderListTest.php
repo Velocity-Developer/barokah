@@ -135,3 +135,43 @@ it('refuses tracking while the order is unpaid', function () {
 
     expect($order->sellerTrackings()->count())->toBe(0);
 });
+
+it('counts the first look at a paid order as received', function () {
+    $owner = orderSeller();
+    $sellerId = $owner->seller->id;
+    $order = orderWithItem($sellerId, OrderStatus::Paid);
+    $order->payment()->create([
+        'payment_method' => 'bank_transfer',
+        'payment_gateway' => 'manual',
+        'status' => PaymentStatus::Paid,
+        'amount' => 50,
+        'paid_at' => now(),
+    ]);
+
+    // Checkout already left a row here to hold the shipping fee.
+    $order->sellerTrackings()->create(['seller_id' => $sellerId, 'shipping_fee' => 5]);
+
+    $this->actingAs($owner)->getJson('/api/v1/seller/orders/'.$order->order_number)->assertOk();
+
+    $tracking = $order->sellerTrackings()->where('seller_id', $sellerId)->firstOrFail();
+    $seenAt = $tracking->received_at;
+
+    expect($tracking->tracking_status)->toBe('received')
+        ->and($seenAt)->not->toBeNull()
+        ->and((float) $tracking->shipping_fee)->toBe(5.0);
+
+    // Looking again leaves the first time alone.
+    $this->travel(5)->minutes();
+    $this->actingAs($owner)->getJson('/api/v1/seller/orders/'.$order->order_number)->assertOk();
+
+    expect($tracking->fresh()->received_at->equalTo($seenAt))->toBeTrue();
+});
+
+it('records nothing while the order is unpaid', function () {
+    $owner = orderSeller();
+    $order = orderWithItem($owner->seller->id, OrderStatus::PendingPayment);
+
+    $this->actingAs($owner)->getJson('/api/v1/seller/orders/'.$order->order_number)->assertOk();
+
+    expect($order->sellerTrackings()->count())->toBe(0);
+});
