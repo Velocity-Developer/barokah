@@ -1,24 +1,31 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+@php
+    // Only the dashboard follows the appearance setting; the storefront and
+    // the auth screens are always light (see App\Support\PageChrome).
+    $themedPage = \App\Support\PageChrome::usesDashboard($page['component'] ?? null);
+@endphp
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => $themedPage && ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        {{-- Inline script to detect system dark mode preference and apply it immediately --}}
-        <script>
-            (function() {
-                const appearance = '{{ $appearance ?? "system" }}';
+        {{-- Dashboard only: follow the system preference before Vue boots. --}}
+        @if ($themedPage)
+            <script>
+                (function() {
+                    const appearance = '{{ $appearance ?? "system" }}';
 
-                if (appearance === 'system') {
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    if (appearance === 'system') {
+                        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-                    if (prefersDark) {
-                        document.documentElement.classList.add('dark');
+                        if (prefersDark) {
+                            document.documentElement.classList.add('dark');
+                        }
                     }
-                }
-            })();
-        </script>
+                })();
+            </script>
+        @endif
 
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>

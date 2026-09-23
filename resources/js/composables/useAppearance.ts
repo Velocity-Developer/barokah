@@ -10,8 +10,25 @@ export type UseAppearanceReturn = {
     updateAppearance: (value: Appearance) => void;
 };
 
+/**
+ * Only the dashboard follows the appearance setting; the storefront and the
+ * auth screens stay light. app.ts flips this on every navigation.
+ */
+let themedPage = false;
+
+export function setThemedPage(enabled: boolean): void {
+    themedPage = enabled;
+    updateTheme(getStoredAppearance() ?? 'system');
+}
+
 export function updateTheme(value: Appearance): void {
     if (typeof window === 'undefined') {
+        return;
+    }
+
+    if (! themedPage) {
+        document.documentElement.classList.remove('dark');
+
         return;
     }
 
@@ -30,6 +47,14 @@ export function updateTheme(value: Appearance): void {
     }
 }
 
+const getStoredAppearance = () => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    return localStorage.getItem('appearance') as Appearance | null;
+};
+
 const setCookie = (name: string, value: string, days = 365) => {
     if (typeof document === 'undefined') {
         return;
@@ -46,14 +71,6 @@ const mediaQuery = () => {
     }
 
     return window.matchMedia('(prefers-color-scheme: dark)');
-};
-
-const getStoredAppearance = () => {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    return localStorage.getItem('appearance') as Appearance | null;
 };
 
 const prefersDark = (): boolean => {
