@@ -51,6 +51,9 @@ class SellerOrderResource extends JsonResource
                 ? $this->serializeTracking($this->sellerTrackings->first())
                 : null,
             'created_at' => $this->created_at,
+            // Handy for the list, which shows one line plus a "+N more" hint.
+            'items_count' => $this->whenLoaded('items', fn (): int => $this->items->count()),
+            'first_item' => $this->whenLoaded('items', fn (): ?string => $this->items->first()?->product_name_snapshot),
             'items' => SellerOrderItemResource::collection($this->whenLoaded('items')),
         ];
     }

@@ -130,8 +130,26 @@ function displayMoney(value: string | number): string {
     const amount = typeof value === 'number' ? value : Number(value);
     return Number.isFinite(amount) ? formatPrice(amount) : String(value);
 }
+function onDeliveryPhotoChange(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    deliveryPhoto.value = file;
+
+    if (file) {
+        if (deliveryPhotoPreview.value?.startsWith('blob:')) {
+            URL.revokeObjectURL(deliveryPhotoPreview.value);
+        }
+
+        deliveryPhotoPreview.value = URL.createObjectURL(file);
+    }
+}
+
 function displayText(value: string | null | undefined): string {
     return value || '-';
+}
+
+/** Timestamps arrive as ISO strings; show them in the reader's local time. */
+function formatDateTime(value: string | null | undefined): string {
+    return value ? new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
 }
 
 function trackingStatusLabel(status: string | null | undefined): string {
@@ -307,7 +325,7 @@ defineOptions({
         <Heading
             variant="small"
             :title="orderNumber"
-            :description="`Placed ${displayText(order?.created_at)}`"
+            :description="`Placed ${formatDateTime(order?.created_at)}`"
         />
         <div class="flex flex-wrap items-center gap-2">
             <span
@@ -599,7 +617,7 @@ defineOptions({
                         v-if="step.time"
                         class="mt-1 text-xs text-muted-foreground"
                     >
-                        {{ step.time }}
+                        {{ formatDateTime(step.time) }}
                     </p>
                     <p
                         v-if="step.description"
@@ -691,14 +709,7 @@ defineOptions({
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         class="rounded border px-3 py-2 text-sm"
-                        @change="
-                            deliveryPhoto =
-                                (($event.target as HTMLInputElement).files?.[0] ??
-                                    null);
-                            deliveryPhotoPreview = deliveryPhoto
-                                ? URL.createObjectURL(deliveryPhoto)
-                                : deliveryPhotoPreview
-                        "
+                        @change="onDeliveryPhotoChange"
                     />
                     <img
                         v-if="
