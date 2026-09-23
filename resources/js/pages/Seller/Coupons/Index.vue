@@ -1,7 +1,19 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import Heading from '@/components/Heading.vue';
-const props = defineProps<{ coupons: { data: any[]; links: any[] } }>();
-function remove(coupon: any): void { if (confirm(`Hapus coupon ${coupon.code}?`)) fetch(`/api/v1/seller/coupons/${coupon.id}`, { method: 'DELETE', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '' } }).then(() => router.reload()); }
+import { Head } from '@inertiajs/vue3';
+import CouponList from '@/components/coupons/CouponList.vue';
+
+type Paginated = { data: Record<string, unknown>[]; [key: string]: unknown };
+
+defineProps<{
+    coupons: Paginated;
+    filters: { search: string; status: string; owner: string; sort: string };
+    statusCounts: Record<string, number>;
+}>();
+
+defineOptions({ layout: { breadcrumbs: [{ title: 'Coupons', href: '/seller/coupons' }] } });
 </script>
-<template><Head title="Seller coupons" /><div class="flex flex-col gap-4 p-4"><div class="flex justify-between"><Heading variant="small" title="Coupons" description="Coupons for your store." /><Link href="/seller/coupons/create" class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">Tambah coupon</Link></div><div class="overflow-x-auto rounded-xl border"><table class="w-full text-left text-sm"><thead class="bg-muted"><tr><th class="p-3">Code</th><th class="p-3">Name</th><th class="p-3">Type</th><th class="p-3">Status</th><th class="p-3">Action</th></tr></thead><tbody><tr v-for="coupon in props.coupons.data" :key="coupon.id" class="border-t"><td class="p-3">{{ coupon.code }}</td><td class="p-3">{{ coupon.name }}</td><td class="p-3">{{ coupon.discount_type }}</td><td class="p-3">{{ coupon.status ? 'Active' : 'Inactive' }}</td><td class="p-3"><Link :href="`/seller/coupons/${coupon.id}/edit`" class="mr-3 text-primary">Edit</Link><button class="text-destructive" @click="remove(coupon)">Delete</button></td></tr></tbody></table></div><nav class="flex gap-1"><Link v-for="(link, i) in props.coupons.links" :key="i" :href="link.url ?? '#'" class="rounded border px-3 py-1" :class="link.active ? 'font-semibold' : ''" v-html="link.label" /></nav></div></template>
+
+<template>
+    <Head title="Coupons" />
+    <CouponList mode="seller" :coupons="coupons as never" :filters="filters" :status-counts="statusCounts" />
+</template>

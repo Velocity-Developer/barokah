@@ -34,8 +34,14 @@ export type CouponValue = {
 
 const props = defineProps<{
     coupon?: CouponValue | null;
-    sellers: { id: number; store_name: string }[];
+    /** Admins choose the scope; a seller's coupon always belongs to their store. */
+    sellers?: { id: number; store_name: string }[];
+    mode?: 'admin' | 'seller';
 }>();
+
+const isAdmin = computed(() => (props.mode ?? 'admin') === 'admin');
+const base = computed(() => (isAdmin.value ? '/admin/coupons' : '/seller/coupons'));
+const apiBase = computed(() => (isAdmin.value ? '/api/v1/admin/coupons' : '/api/v1/seller/coupons'));
 
 const { formatAmount, currencySymbol } = useSettingsStore();
 const isEdit = computed(() => Boolean(props.coupon));
@@ -56,7 +62,8 @@ const form = reactive({
     code: props.coupon?.code ?? '',
     name: props.coupon?.name ?? '',
     description: props.coupon?.description ?? '',
-    owner_type: props.coupon?.owner_type ?? ('global' as 'global' | 'seller'),
+    // A seller's coupon is always their own store's; the API enforces it too.
+    owner_type: props.coupon?.owner_type ?? (((props.mode ?? 'admin') === 'seller' ? 'seller' : 'global') as 'global' | 'seller'),
     seller_id: props.coupon?.seller_id ? String(props.coupon.seller_id) : '',
     discount_type: props.coupon?.discount_type ?? ('percentage' as DiscountType),
     discount_value: props.coupon ? String(props.coupon.discount_value) : '',
@@ -88,8 +95,12 @@ const summary = computed(() => {
 
     if (Number(form.minimum_spend) > 0) parts.push(`on orders of ${formatAmount(Number(form.minimum_spend))} or more`);
 
-    const store = props.sellers.find((seller) => String(seller.id) === form.seller_id)?.store_name;
-    parts.push(form.owner_type === 'seller' ? `for products from ${store ?? 'one store'}` : 'across the marketplace');
+    if (! isAdmin.value) {
+        parts.push('for products from your store');
+    } else {
+        const store = props.sellers?.find((seller) => String(seller.id) === form.seller_id)?.store_name;
+        parts.push(form.owner_type === 'seller' ? `for products from ${store ?? 'one store'}` : 'across the marketplace');
+    }
 
     return parts.join(' ');
 });
@@ -126,7 +137,7 @@ async function save(): Promise<void> {
     };
 
     try {
-        const response = await fetch(isEdit.value ? `/api/v1/admin/coupons/${props.coupon!.id}` : '/api/v1/admin/coupons', {
+        const response = await fetch(isEdit.value ? `${apiBase.value}/${props.coupon!.id}` : apiBase.value, {
             method: isEdit.value ? 'PUT' : 'POST',
             credentials: 'same-origin',
             headers: {
@@ -146,7 +157,7 @@ async function save(): Promise<void> {
         }
 
         toast.success(isEdit.value ? 'Coupon updated.' : 'Coupon created.');
-        router.visit('/admin/coupons');
+        router.visit(base.value);
     } catch {
         toast.error('Coupons are temporarily unavailable.');
     } finally {
@@ -157,7 +168,7 @@ async function save(): Promise<void> {
 
 <template>
     <form class="flex h-full flex-1 flex-col gap-4 p-4 md:p-6" @submit.prevent="save">
-        <Link href="/admin/coupons" class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link :href="base" class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft class="size-4" aria-hidden="true" /> Back to coupons
         </Link>
 
@@ -168,7 +179,7 @@ async function save(): Promise<void> {
                 :description="isEdit ? `Used ${coupon!.usage_count} ${coupon!.usage_count === 1 ? 'time' : 'times'}` : 'Customers enter the code at checkout to get the discount.'"
             />
             <div class="flex shrink-0 gap-2">
-                <Link href="/admin/coupons" class="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Cancel</Link>
+                <Link :href="base" class="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Cancel</Link>
                 <Button type="submit" :disabled="isSaving">{{ isSaving ? 'Saving…' : isEdit ? 'Save changes' : 'Create coupon' }}</Button>
             </div>
         </div>
@@ -284,7 +295,7 @@ async function save(): Promise<void> {
                     </label>
                 </section>
 
-                <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                <section v-if="isAdmin" class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Scope</h2>
                     <label class="flex cursor-pointer items-center gap-2 text-sm">
                         <input v-model="form.owner_type" type="radio" value="global" class="accent-[var(--brand-primary,#ee4d2d)]" />

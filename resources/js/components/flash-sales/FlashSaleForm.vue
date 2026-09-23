@@ -8,7 +8,8 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { index } from '@/routes/admin/flash-sales';
+import * as adminRoutes from '@/routes/admin/flash-sales';
+import * as sellerRoutes from '@/routes/seller/flash-sales';
 import { useSettingsStore } from '@/stores/settings';
 
 export type FlashSaleProduct = { id: number; name: string; price: number; stock: number; store: string | null };
@@ -28,7 +29,12 @@ export type FlashSaleValue = {
 const props = defineProps<{
     products?: FlashSaleProduct[];
     flashSale?: FlashSaleValue | null;
+    /** Admins post to the admin endpoints; sellers to their own. */
+    mode?: 'admin' | 'seller';
 }>();
+
+const isAdmin = computed(() => (props.mode ?? 'admin') === 'admin');
+const routes = computed(() => (isAdmin.value ? adminRoutes : sellerRoutes));
 
 const { formatAmount, currencySymbol } = useSettingsStore();
 const isEdit = computed(() => Boolean(props.flashSale));
@@ -120,7 +126,10 @@ async function save(): Promise<void> {
         starts_at: new Date(form.starts_at).toISOString(),
         ends_at: new Date(form.ends_at).toISOString(),
     };
-    const url = isEdit.value ? `/api/v1/admin/flash-sales/${props.flashSale!.id}` : `/api/v1/admin/products/${form.product_id}/flash-sale`;
+    const base = isAdmin.value ? 'admin' : 'seller';
+    const url = isEdit.value
+        ? `/api/v1/${base}/flash-sales/${props.flashSale!.id}`
+        : `/api/v1/${base}/products/${form.product_id}/flash-sale`;
 
     try {
         const response = await fetch(url, {
@@ -143,7 +152,7 @@ async function save(): Promise<void> {
         }
 
         toast.success(isEdit.value ? 'Flash sale updated.' : 'Flash sale created.');
-        router.visit(index().url);
+        router.visit(routes.value.index().url);
     } catch {
         toast.error('Flash sales are temporarily unavailable.');
     } finally {
@@ -154,7 +163,7 @@ async function save(): Promise<void> {
 
 <template>
     <form class="flex h-full flex-1 flex-col gap-4 p-4 md:p-6" @submit.prevent="save">
-        <Link :href="index()" class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link :href="routes.index()" class="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft class="size-4" aria-hidden="true" /> Back to flash sales
         </Link>
 
@@ -165,7 +174,7 @@ async function save(): Promise<void> {
                 :description="isEdit ? `${flashSale!.product.name}${flashSale!.product.store ? ' · ' + flashSale!.product.store : ''}` : 'Give a product a lower price for a limited time and quantity.'"
             />
             <div class="flex shrink-0 gap-2">
-                <Link :href="index()" class="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Cancel</Link>
+                <Link :href="routes.index()" class="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Cancel</Link>
                 <Button type="submit" :disabled="isSaving || (!isEdit && !form.product_id)">
                     {{ isSaving ? 'Saving…' : isEdit ? 'Save changes' : 'Create flash sale' }}
                 </Button>
