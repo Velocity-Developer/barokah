@@ -147,3 +147,34 @@ it('does not let admins apply as seller', function () {
 
     expect($admin->refresh()->seller)->toBeNull();
 });
+
+it('shows review details with the oldest application first', function () {
+    $owner = User::factory()->create(['name' => 'Nurul Huda', 'phone' => '012-3456789']);
+    $owner->forceFill(['profile_photo_path' => 'users/photos/nurul.jpg'])->save();
+
+    $older = Seller::factory()->create([
+        'user_id' => $owner->id,
+        'status' => SellerStatus::Pending,
+        'store_location' => 'No. 5, Jalan Meru, Klang, Selangor',
+        'city' => 'Klang',
+        'state' => 'Selangor',
+        'created_at' => now()->subDays(4),
+    ]);
+    $newer = Seller::factory()->create(['status' => SellerStatus::Pending, 'created_at' => now()->subDay()]);
+    Seller::factory()->count(2)->create(['status' => SellerStatus::Active]);
+
+    $this->withoutVite()->actingAs(makeAdmin())
+        ->get(route('admin.seller-approvals.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('applications', 2)
+            ->where('applications.0.id', $older->id)
+            ->where('applications.1.id', $newer->id)
+            ->where('applications.0.owner.name', 'Nurul Huda')
+            ->where('applications.0.owner.email', $owner->email)
+            ->where('applications.0.owner.phone', '012-3456789')
+            // The city and state are already in the address, so they are not repeated.
+            ->where('applications.0.location', 'No. 5, Jalan Meru, Klang, Selangor')
+            ->where('applications.0.profile_photo_url', fn (?string $url) => str_contains((string) $url, 'users/photos/nurul.jpg'))
+            ->where('active_stores_count', 2));
+});

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ArrowLeft, ExternalLink, ImageOff, Mail, MapPin, MessageCircle, Pencil, Phone, Star, UserCheck } from '@lucide/vue';
+import { htmlToParagraphs } from '@/lib/richText';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { show as orderShow } from '@/routes/admin/orders';
@@ -67,16 +68,7 @@ function formatDate(value: string | null): string {
     return value ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 }
 
-/** Store descriptions are rich-text HTML; show plain paragraphs (no v-html). */
-const descriptionParagraphs = computed<string[]>(() => {
-    const html = props.seller.description ?? '';
-
-    if (!html.trim()) return [];
-
-    const doc = new DOMParser().parseFromString(html.replace(/<\/(p|h[1-6]|li|div)>|<br\s*\/?>/gi, '$&\n'), 'text/html');
-
-    return (doc.body.textContent ?? '').split('\n').map((line) => line.trim()).filter(Boolean);
-});
+const descriptionParagraphs = computed(() => htmlToParagraphs(props.seller.description));
 
 const whatsappUrl = computed(() => {
     const digits = (props.seller.whatsapp ?? '').replace(/\D/g, '');

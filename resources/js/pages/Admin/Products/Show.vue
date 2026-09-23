@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, ExternalLink, ImageOff, Pencil, Star, Zap } from '@lucide/vue';
+import { htmlToParagraphs } from '@/lib/richText';
 import { computed, ref } from 'vue';
 import { index, edit } from '@/routes/admin/products';
 import { show as orderShow } from '@/routes/admin/orders';
@@ -45,19 +46,7 @@ const images = computed<ProductImage[]>(() =>
 );
 const activeImage = ref<string | null>(images.value[0]?.url ?? null);
 
-/** Descriptions are saved as rich-text HTML; show them as plain paragraphs (no v-html). */
-const descriptionParagraphs = computed<string[]>(() => {
-    const html = props.product.description ?? '';
-
-    if (!html.trim()) return [];
-
-    const doc = new DOMParser().parseFromString(html.replace(/<\/(p|h[1-6]|li|div)>|<br\s*\/?>/gi, '$&\n'), 'text/html');
-
-    return (doc.body.textContent ?? '')
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean);
-});
+const descriptionParagraphs = computed(() => htmlToParagraphs(props.product.description));
 
 const statusStyles: Record<string, string> = {
     active: 'bg-green-50 text-green-700 ring-green-200 dark:bg-green-950 dark:text-green-300 dark:ring-green-900',
