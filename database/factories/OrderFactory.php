@@ -39,8 +39,6 @@ class OrderFactory extends Factory
             'total' => $subtotal + $shippingFee,
             'status' => OrderStatus::PendingPayment,
             'shipping_method' => 'fixed',
-            'shipping_provider' => null,
-            'notes' => null,
             'expired_at' => null,
         ];
     }
