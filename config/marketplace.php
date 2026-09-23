@@ -541,6 +541,52 @@ return [
             'is_public' => true,
         ],
 
+        // Google reCAPTCHA. The site key is public so the widget can render;
+        // the secret stays server-side.
+        'security.recaptcha_enabled' => [
+            'value' => false,
+            'type' => SettingType::Boolean,
+            'group' => 'security',
+            'is_public' => true,
+        ],
+        'security.recaptcha_version' => [
+            'value' => 'v2',
+            'type' => SettingType::String,
+            'group' => 'security',
+            'is_public' => true,
+        ],
+        'security.recaptcha_site_key' => [
+            'value' => '',
+            'type' => SettingType::String,
+            'group' => 'security',
+            'is_public' => true,
+        ],
+        'security.recaptcha_secret_key' => [
+            'value' => '',
+            'type' => SettingType::String,
+            'group' => 'security',
+            'is_public' => false,
+        ],
+        'security.recaptcha_on_login' => [
+            'value' => true,
+            'type' => SettingType::Boolean,
+            'group' => 'security',
+            'is_public' => true,
+        ],
+        'security.recaptcha_on_guest_checkout' => [
+            'value' => true,
+            'type' => SettingType::Boolean,
+            'group' => 'security',
+            'is_public' => true,
+        ],
+        // v3 only: how strict the score check is (0 = lenient, 1 = strict).
+        'security.recaptcha_score_threshold' => [
+            'value' => 0.5,
+            'type' => SettingType::String,
+            'group' => 'security',
+            'is_public' => false,
+        ],
+
         // Email (behavior TBC, spec §24 item 19; secrets server-only).
         'email.from_name' => [
             'value' => env('MARKETPLACE_NAME', 'Barokah'),

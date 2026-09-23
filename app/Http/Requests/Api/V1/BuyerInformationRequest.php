@@ -3,7 +3,10 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Rules\CityInState;
+use App\Rules\RecaptchaToken;
 use App\Services\PaymentService;
+use App\Services\SettingsService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -20,11 +23,18 @@ use Illuminate\Validation\Rule;
 class BuyerInformationRequest extends FormRequest
 {
     /**
-     * Guest buyers may check out without authentication (spec §4.3).
+     * Guest buyers may check out without authentication (spec §4.3), unless
+     * guest checkout is switched off in Settings.
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user() !== null
+            || (bool) app(SettingsService::class)->get('checkout.guest_checkout_enabled', true);
+    }
+
+    protected function failedAuthorization(): void
+    {
+        throw new AuthorizationException(__('Please sign in to place this order.'));
     }
 
     /**
@@ -58,6 +68,8 @@ class BuyerInformationRequest extends FormRequest
             'shipping_method' => ['nullable', 'string', Rule::in(['fixed', 'external'])],
             'payment_method' => ['required', 'string', Rule::in($paymentMethods)],
             'coupon_code' => ['nullable', 'string', 'max:50'],
+            // Guests may be asked for a captcha (Settings → Security).
+            'recaptcha_token' => $this->user() === null ? ['nullable', 'string', new RecaptchaToken('guest_checkout')] : ['nullable', 'string'],
         ];
     }
 }

@@ -18,7 +18,7 @@ class SettingController extends Controller
 {
     public function show(SettingsService $settingsService, ?string $group = null): Response
     {
-        $groups = ['general', 'branding', 'homepage', 'currency', 'marketplace', 'checkout', 'payment', 'shipping', 'localization', 'contact', 'seo', 'email'];
+        $groups = ['general', 'branding', 'homepage', 'currency', 'marketplace', 'checkout', 'payment', 'shipping', 'localization', 'contact', 'seo', 'email', 'security'];
 
         $active = in_array($group, $groups, true) ? $group : 'general';
 

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import Recaptcha from '@/components/Recaptcha.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -23,6 +25,8 @@ defineProps<{
     status?: string;
     canResetPassword: boolean;
 }>();
+
+const recaptchaToken = ref('');
 </script>
 
 <template>
@@ -85,6 +89,12 @@ defineProps<{
                     <Checkbox id="remember" name="remember" :tabindex="3" />
                     <span>Remember me</span>
                 </Label>
+            </div>
+
+            <div class="grid content-start gap-2">
+                <Recaptcha v-model="recaptchaToken" context="login" />
+                <input type="hidden" name="recaptcha_token" :value="recaptchaToken" />
+                <InputError :message="errors.recaptcha_token" />
             </div>
 
             <Button

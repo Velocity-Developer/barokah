@@ -12,6 +12,7 @@ import {
     Palette,
     Phone,
     Search,
+    ShieldCheck,
     ShoppingCart,
     Store as StoreIcon,
     Truck,
@@ -276,6 +277,7 @@ const groupLabels: Record<string, string> = {
     seo: 'SEO',
     email: 'Email',
     homepage: 'Homepage',
+    security: 'Security',
 };
 
 const settingLabels: Record<string, string> = {
@@ -358,6 +360,13 @@ const settingLabels: Record<string, string> = {
     'email.admin_notifications_enabled': 'Notify Admin of New Orders',
     'email.admin_notification_recipients': 'Admin Notification Email',
     'email.customer_notifications_enabled': 'Send Order Email to Buyer',
+    'security.recaptcha_enabled': 'Use Google reCAPTCHA',
+    'security.recaptcha_version': 'reCAPTCHA Version',
+    'security.recaptcha_site_key': 'Site Key',
+    'security.recaptcha_secret_key': 'Secret Key',
+    'security.recaptcha_on_login': 'Protect the Login Page',
+    'security.recaptcha_on_guest_checkout': 'Protect Guest Checkout',
+    'security.recaptcha_score_threshold': 'Minimum Score (v3)',
 };
 
 const groupDescriptions: Record<string, string> = {
@@ -373,6 +382,7 @@ const groupDescriptions: Record<string, string> = {
     contact: 'The addresses and numbers shown to customers.',
     seo: 'Titles, description and the share image.',
     email: 'Sender details, order notifications and SMTP.',
+    security: 'Google reCAPTCHA on the login page and guest checkout.',
 };
 
 const groupIcons: Record<string, Component> = {
@@ -388,6 +398,7 @@ const groupIcons: Record<string, Component> = {
     contact: Phone,
     seo: Search,
     email: MailIcon,
+    security: ShieldCheck,
 };
 
 // Grouped so the left menu reads as sections instead of one long list.
@@ -395,6 +406,7 @@ const groupSections = computed(() => [
     { title: 'Site', groups: ['general', 'branding', 'homepage', 'seo'] },
     { title: 'Selling', groups: ['marketplace', 'currency', 'checkout', 'payment', 'shipping'] },
     { title: 'Communication', groups: ['contact', 'email', 'localization'] },
+    { title: 'System', groups: ['security'] },
 ].map((section) => ({ ...section, groups: section.groups.filter((group) => props.groups.includes(group)) })));
 
 const groupLabel = computed(() => groupLabels[props.activeGroup] ?? props.activeGroup);
@@ -418,6 +430,16 @@ const dependentSettings: Record<string, { parent: string; visible: () => boolean
     ),
     'shipping.fixed_rate': { parent: 'shipping.method', visible: () => values['shipping.method'] === 'fixed' },
     'shipping.free_shipping_threshold': { parent: 'shipping.free_shipping_enabled', visible: () => Boolean(values['shipping.free_shipping_enabled']) },
+    ...Object.fromEntries(
+        ['security.recaptcha_version', 'security.recaptcha_site_key', 'security.recaptcha_secret_key', 'security.recaptcha_on_login', 'security.recaptcha_on_guest_checkout'].map((key) => [
+            key,
+            { parent: 'security.recaptcha_enabled', visible: () => Boolean(values['security.recaptcha_enabled']) },
+        ]),
+    ),
+    'security.recaptcha_score_threshold': {
+        parent: 'security.recaptcha_enabled',
+        visible: () => Boolean(values['security.recaptcha_enabled']) && values['security.recaptcha_version'] === 'v3',
+    },
     'email.admin_notification_recipients': {
         parent: 'email.admin_notifications_enabled',
         visible: () => Boolean(values['email.admin_notifications_enabled']),
@@ -460,6 +482,15 @@ const groupOrder: Record<string, string[]> = {
         'localization.date_format',
         'localization.time_format',
         'localization.gtranslate_enabled',
+    ],
+    security: [
+        'security.recaptcha_enabled',
+        'security.recaptcha_version',
+        'security.recaptcha_site_key',
+        'security.recaptcha_secret_key',
+        'security.recaptcha_score_threshold',
+        'security.recaptcha_on_login',
+        'security.recaptcha_on_guest_checkout',
     ],
     email: [
         'email.from_name',
@@ -516,6 +547,10 @@ const settingRows = computed<SettingRow[]>(() => {
 });
 
 const selectOptions: Record<string, { value: string; label: string }[]> = {
+    'security.recaptcha_version': [
+        { value: 'v2', label: 'v2 — tick box' },
+        { value: 'v3', label: 'v3 — score, no tick box' },
+    ],
     'marketplace.status': [
         { value: 'open', label: 'Open' },
         { value: 'closed', label: 'Closed' },
@@ -556,7 +591,7 @@ const amountKeys = new Set([
     'shipping.free_shipping_threshold',
 ]);
 
-const secretKeys = new Set(['payment.secret_key', 'shipping.api_key', 'shipping.api_secret', 'email.smtp_password']);
+const secretKeys = new Set(['payment.secret_key', 'shipping.api_key', 'shipping.api_secret', 'email.smtp_password', 'security.recaptcha_secret_key']);
 
 const longTextKeys = new Set(['marketplace.description', 'seo.meta_description', 'contact.address']);
 
@@ -572,9 +607,18 @@ const settingHints: Record<string, string> = {
     'email.admin_notifications_enabled': 'Send an email to the marketplace team whenever an order is placed.',
     'email.admin_notification_recipients': 'Where order notifications go. Separate several addresses with commas. Leave empty to use the admin accounts, then the contact email.',
     'email.customer_notifications_enabled': 'Send the buyer an order confirmation email.',
+    'security.recaptcha_enabled': 'Get the keys from google.com/recaptcha. Nothing is checked until both keys are filled in.',
+    'security.recaptcha_version': 'v2 shows the "I am not a robot" tick box. v3 runs in the background and scores the visitor.',
+    'security.recaptcha_site_key': 'Public key used by the page.',
+    'security.recaptcha_secret_key': 'Server-side key. It is never sent to the browser.',
+    'security.recaptcha_on_login': 'Ask for the captcha before checking the password.',
+    'security.recaptcha_on_guest_checkout': 'Ask shoppers who are not signed in for the captcha when they place an order.',
+    'security.recaptcha_score_threshold': '0 lets everyone through, 1 is strictest. 0.5 suits most sites.',
 };
 
 const settingPlaceholders: Record<string, string> = {
+    'security.recaptcha_site_key': '6Lxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    'security.recaptcha_score_threshold': '0.5',
     'email.admin_notification_recipients': 'orders@example.com, owner@example.com',
 };
 

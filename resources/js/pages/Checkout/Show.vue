@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { Check, CreditCard, Lock, MapPin, Truck, User } from '@lucide/vue';
 import { useCheckoutStore, type CheckoutStep } from '@/stores/checkout';
@@ -8,6 +8,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { getMalaysiaCities } from '@/composables/useMalaysiaCities';
 import malaysiaStates from '@/data/malaysia-states.json';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
+import Recaptcha from '@/components/Recaptcha.vue';
 
 const malaysiaStateOptions: string[] = (malaysiaStates as { name: string }[]).map(
     (stateOption) => stateOption.name,
@@ -38,6 +39,12 @@ const props = defineProps<{
 }>();
 
 const { formatAmount, getSettingValue } = useSettingsStore();
+const page = usePage();
+
+// Signed-in buyers are already known; only guests may be asked for a captcha.
+const isGuest = computed(() => !(page.props.auth as { user?: unknown } | undefined)?.user);
+const recaptchaToken = ref('');
+const recaptcha = ref<{ refresh: () => Promise<void> } | null>(null);
 const { state, setStep, setOrderNumber } = useCheckoutStore();
 const { state: cartState, clear: clearCart } = useCartStore();
 
@@ -597,6 +604,7 @@ async function placeOrder(): Promise<void> {
                 shipping_method: shippingMethod.value,
                 payment_method: paymentMethod.value,
                 coupon_code: couponCode.value.trim() || undefined,
+                recaptcha_token: recaptchaToken.value || undefined,
             }),
         });
 
@@ -615,6 +623,11 @@ async function placeOrder(): Promise<void> {
         } catch {
             submitError.value = `Order request failed (HTTP ${response.status}).`;
             return;
+        }
+
+        // A used token cannot be sent twice, so ask for a new one.
+        if (!response.ok) {
+            void recaptcha.value?.refresh();
         }
 
         if (response.status === 422 && payload.errors) {
@@ -1340,6 +1353,9 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                         >
                             {{ isLoadingShipping ? 'Calculating…' : 'Continue' }}
                         </button>
+                        <div v-if="state.step === 4 && !createdOrderNumber && isGuest" class="w-full sm:w-auto">
+                            <Recaptcha ref="recaptcha" v-model="recaptchaToken" context="guest_checkout" />
+                        </div>
                         <button
                             v-if="state.step === 4 && !createdOrderNumber"
                             type="button"
