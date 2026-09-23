@@ -4,9 +4,8 @@ import { Search, ShoppingCart, UserRound, ChevronDown, LogOut, Settings2, Home a
 import { useCartStore } from '@/stores/cart';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
-import { store as loginStore } from '@/routes/login';
 import { show as profileShow } from '@/routes/profile';
-import { home } from '@/routes';
+import { home, logout } from '@/routes';
 import LanguageSwitcher from '@/components/marketplace/LanguageSwitcher.vue';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { dashboard as sellerDashboard } from '@/routes/seller';
@@ -285,7 +284,7 @@ function submitSearch(): void {
                             aria-hidden="true"
                         ></div>
                         <Link
-                            :href="loginStore()"
+                            :href="logout()"
                             method="post"
                             as="button"
                             role="menuitem"

@@ -17,13 +17,19 @@ use App\Http\Controllers\Web\ProductIndexController;
 use App\Http\Controllers\Web\ProductRatingController;
 use App\Http\Controllers\Web\ProductShowController;
 use App\Http\Controllers\Web\ProfileController as WebProfileController;
+use App\Http\Controllers\Web\RobotsController;
 use App\Http\Controllers\Web\SellerCenterController;
 use App\Http\Controllers\Web\SellerFollowController;
 use App\Http\Controllers\Web\SellerShowController;
+use App\Http\Controllers\Web\SitemapController;
 use App\Http\Controllers\Web\TrackingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+
+// Search engines: an XML sitemap and a robots.txt that points at it.
+Route::get('sitemap.xml', SitemapController::class)->name('sitemap');
+Route::get('robots.txt', RobotsController::class)->name('robots');
 
 Route::get('products', ProductIndexController::class)->name('products.index');
 Route::get('flash-sale', FlashSaleController::class)->name('flash-sale.index');

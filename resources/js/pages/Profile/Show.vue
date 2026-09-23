@@ -8,8 +8,7 @@ import ProfileController from '@/actions/App/Http/Controllers/Web/ProfileControl
 import { UserRound, KeyRound, Home, LogOut, Store, Heart, ImageIcon, BadgeCheck, MessageCircle } from '@lucide/vue';
 import ChatPanel from '@/components/chat/ChatPanel.vue';
 import { send } from '@/routes/verification';
-import { home } from '@/routes';
-import { store as loginStore } from '@/routes/login';
+import { home, logout } from '@/routes';
 import { show as profileShow } from '@/routes/profile';
 import { dashboard as sellerDashboard } from '@/routes/seller';
 import { show as sellerShow } from '@/routes/sellers';
@@ -471,7 +470,7 @@ function savePassword(): void {
                                 <span>Marketplace</span>
                             </Link>
                             <Link
-                                :href="loginStore()"
+                                :href="logout()"
                                 method="post"
                                 as="button"
                                 class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-gray-600 transition hover:bg-gray-50 hover:text-red-600"
