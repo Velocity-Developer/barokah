@@ -105,6 +105,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('seller/products/{product:id}/flash-sale', [FlashSaleController::class, 'store'])->name('seller.products.flash-sale.store');
             Route::put('seller/products/{product:id}/flash-sale', [FlashSaleController::class, 'update'])->name('seller.products.flash-sale.update');
             Route::delete('seller/products/{product:id}/flash-sale', [FlashSaleController::class, 'destroy'])->name('seller.products.flash-sale.destroy');
+            Route::put('seller/flash-sales/{flashSale}', [FlashSaleController::class, 'sellerUpdate'])->name('seller.flash-sales.update');
+            Route::delete('seller/flash-sales/{flashSale}', [FlashSaleController::class, 'sellerDestroy'])->name('seller.flash-sales.destroy');
         });
 
         // The Inertia SPA calls these routes with same-origin fetch using

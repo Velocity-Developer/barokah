@@ -33,6 +33,37 @@ class FlashSaleController extends Controller
         return new FlashSaleResource($this->save($request->validated(), $product, $sale));
     }
 
+    /**
+     * Update one of the seller's own flash sales, chosen by id so a product
+     * with several sales updates the right one.
+     */
+    public function sellerUpdate(UpdateFlashSaleRequest $request, FlashSale $flashSale): FlashSaleResource
+    {
+        Gate::authorize('update', $flashSale->product);
+
+        if ($flashSale->ends_at->lte(now())) {
+            abort(422, 'Finished flash sale cannot be changed.');
+        }
+
+        return new FlashSaleResource($this->save($request->validated(), $flashSale->product, $flashSale));
+    }
+
+    /**
+     * End a running flash sale, or delete one that has not started.
+     */
+    public function sellerDestroy(FlashSale $flashSale): Response
+    {
+        Gate::authorize('update', $flashSale->product);
+
+        if ($flashSale->starts_at->lte(now())) {
+            $flashSale->update(['ends_at' => now()]);
+        } else {
+            $flashSale->delete();
+        }
+
+        return response()->noContent();
+    }
+
     public function adminStore(StoreFlashSaleRequest $request, Product $product): FlashSaleResource
     {
         return new FlashSaleResource($this->save($request->validated(), $product));

@@ -4,15 +4,18 @@ namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateFlashSaleRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Ownership is checked by the controller, which knows whether the route
+     * carries the product or the flash sale (admin routes also sit behind the
+     * admin gate).
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
