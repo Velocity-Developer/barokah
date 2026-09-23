@@ -40,6 +40,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('admin', fn (User $user): bool => $user->isAdmin());
         Gate::define('seller', fn (User $user): bool => $user->isSeller());
+
+        // Who belongs in the dashboard at all. Buyers manage their account on
+        // the storefront profile page instead.
+        Gate::define('dashboard', fn (User $user): bool => $user->isAdmin() || $user->isSeller());
     }
 
     /**

@@ -2,17 +2,20 @@
 
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Middleware\EnsureDashboardUser;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'can:admin'])->group(function () {
+// Account settings sit in the dashboard, so they are for admins and sellers.
+// Buyers edit the same details on their storefront profile page.
+Route::middleware(['auth', EnsureDashboardUser::class])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
-Route::middleware(['auth', 'verified', 'can:admin'])->group(function () {
+Route::middleware(['auth', 'verified', EnsureDashboardUser::class])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])

@@ -5,6 +5,15 @@ use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
 
+/** Account settings live in the dashboard, so these run as a store owner. */
+function securitySettingsUser(array $attributes = []): User
+{
+    $user = User::factory()->create($attributes);
+    $user->forceFill(['is_admin' => true])->save();
+
+    return $user->refresh();
+}
+
 test('security page is displayed', function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
 
@@ -13,7 +22,7 @@ test('security page is displayed', function () {
         'confirmPassword' => true,
     ]);
 
-    $user = User::factory()->create();
+    $user = securitySettingsUser();
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
@@ -28,7 +37,7 @@ test('security page is displayed', function () {
 test('security page requires password confirmation when enabled', function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
 
-    $user = User::factory()->create();
+    $user = securitySettingsUser();
 
     Features::twoFactorAuthentication([
         'confirm' => true,
@@ -46,7 +55,7 @@ test('security page renders without two factor when feature is disabled', functi
 
     config(['fortify.features' => []]);
 
-    $user = User::factory()->create();
+    $user = securitySettingsUser();
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
@@ -61,7 +70,7 @@ test('security page renders without two factor when feature is disabled', functi
 });
 
 test('password can be updated', function () {
-    $user = User::factory()->create();
+    $user = securitySettingsUser();
 
     $response = $this
         ->actingAs($user)
@@ -80,7 +89,7 @@ test('password can be updated', function () {
 });
 
 test('correct password must be provided to update password', function () {
-    $user = User::factory()->create();
+    $user = securitySettingsUser();
 
     $response = $this
         ->actingAs($user)
