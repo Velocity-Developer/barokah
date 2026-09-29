@@ -5,11 +5,12 @@ import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
 import ProfileController from '@/actions/App/Http/Controllers/Web/ProfileController';
-import { UserRound, KeyRound, Home, LogOut, Store, Heart, ImageIcon, BadgeCheck, MessageCircle } from '@lucide/vue';
+import { UserRound, KeyRound, Home, LogOut, Store, Heart, ImageIcon, BadgeCheck, MessageCircle, ShieldCheck, LayoutDashboard } from '@lucide/vue';
 import ChatPanel from '@/components/chat/ChatPanel.vue';
 import { send } from '@/routes/verification';
 import { home, logout } from '@/routes';
 import { show as profileShow } from '@/routes/profile';
+import { dashboard as adminDashboard } from '@/routes/admin';
 import { dashboard as sellerDashboard } from '@/routes/seller';
 import { show as sellerShow } from '@/routes/sellers';
 import {
@@ -27,6 +28,8 @@ const unreadMessages = computed<number>(() => Number(page.props.auth?.unread_mes
 
 // Admins manage sellers from the admin area and do not apply as sellers.
 const showSellerTab = computed<boolean>(() => page.props.auth?.can?.admin !== true);
+const canOpenAdmin = computed<boolean>(() => page.props.auth?.can?.admin === true);
+const canOpenSeller = computed<boolean>(() => page.props.auth?.can?.seller === true);
 
 const profileTabs = computed<ProfileTab[]>(() =>
     (['profile', 'media', 'password', 'messages', 'seller', 'following_sellers', 'favorite_products'] as ProfileTab[]).filter(
@@ -462,6 +465,22 @@ function savePassword(): void {
                                 <span class="ml-auto text-xs text-gray-400">{{ favoriteProductCards.length }}</span>
                             </button>
                             <hr class="my-1 border-gray-100" />
+                            <Link
+                                v-if="canOpenAdmin"
+                                :href="adminDashboard()"
+                                class="flex items-center gap-3 rounded-md px-3 py-2.5 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
+                            >
+                                <ShieldCheck class="h-4 w-4 shrink-0" />
+                                <span>Dashboard Admin</span>
+                            </Link>
+                            <Link
+                                v-if="canOpenSeller"
+                                :href="sellerDashboard()"
+                                class="flex items-center gap-3 rounded-md px-3 py-2.5 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
+                            >
+                                <LayoutDashboard class="h-4 w-4 shrink-0" />
+                                <span>Dashboard Seller</span>
+                            </Link>
                             <Link
                                 :href="home()"
                                 class="flex items-center gap-3 rounded-md px-3 py-2.5 text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"

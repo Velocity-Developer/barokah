@@ -166,7 +166,8 @@ function submitSearch(): void {
                 </span>
             </Link>
 
-            <div ref="userMenuRef" class="relative shrink-0">
+            <!-- On phones the account lives behind "Me" in the bottom nav. -->
+            <div ref="userMenuRef" class="relative hidden shrink-0 md:block">
                 <template v-if="authUser">
                     <button
                         type="button"
