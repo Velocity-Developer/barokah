@@ -42,6 +42,7 @@ function progressPercent(card: ProductCardData): number {
 
 <template>
     <section
+        v-if="loading || cards.length > 0"
         aria-label="Flash sale preview"
         class="mt-5 rounded-sm bg-white p-4 shadow-[var(--shadow-card)]"
     >
@@ -68,12 +69,6 @@ function progressPercent(card: ProductCardData): number {
                 class="h-[190px] w-[180px] shrink-0 animate-pulse rounded-sm bg-[var(--bg-muted)] md:w-[190px]"
             />
         </div>
-        <p
-            v-else-if="cards.length === 0"
-            class="mt-3 rounded-sm bg-[var(--bg-muted)] p-6 text-center text-xs text-[var(--text-muted)]"
-        >
-            Flash deals will appear here when promotions are configured.
-        </p>
         <div v-else class="relative mt-3">
             <button
                 type="button"
