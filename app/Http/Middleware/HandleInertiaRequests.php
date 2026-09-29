@@ -2,9 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\PayoutStatus;
 use App\Enums\SellerStatus;
 use App\Models\Conversation;
 use App\Models\Seller;
+use App\Models\SellerPayout;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -47,6 +49,9 @@ class HandleInertiaRequests extends Middleware
                 // only offers dashboards the user can actually open.
                 'pending_seller_approvals' => fn () => $request->user()?->can('admin')
                     ? Seller::query()->where('status', SellerStatus::Pending)->count()
+                    : 0,
+                'pending_payouts' => fn () => $request->user()?->can('admin')
+                    ? SellerPayout::query()->where('status', PayoutStatus::Pending)->count()
                     : 0,
                 'unread_messages' => fn () => $request->user() !== null
                     ? Conversation::unreadTotalFor($request->user())

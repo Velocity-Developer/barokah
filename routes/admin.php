@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FlashSaleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\PayoutController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\SellerApprovalController;
 use App\Http\Controllers\Admin\SellerController;
@@ -51,6 +52,12 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
 
     Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::get('payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+
+    Route::get('payouts', [PayoutController::class, 'index'])->name('payouts.index');
+    Route::get('payouts/{payout}', [PayoutController::class, 'show'])->name('payouts.show');
+    Route::post('payouts/{payout}/approve', [PayoutController::class, 'approve'])->name('payouts.approve');
+    Route::post('payouts/{payout}/reject', [PayoutController::class, 'reject'])->name('payouts.reject');
+    Route::post('payouts/{payout}/paid', [PayoutController::class, 'markPaid'])->name('payouts.paid');
 
     Route::get('settings/{group?}', [SettingController::class, 'show'])->name('settings.show');
 });

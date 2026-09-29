@@ -132,6 +132,14 @@ class Seller extends Model
     }
 
     /**
+     * @return HasMany<SellerPayout, $this>
+     */
+    public function payouts(): HasMany
+    {
+        return $this->hasMany(SellerPayout::class);
+    }
+
+    /**
      * @return BelongsToMany<User, $this>
      */
     public function followers(): BelongsToMany

@@ -16,6 +16,7 @@ export type Auth = {
     user: User;
     unread_messages?: number;
     pending_seller_approvals?: number;
+    pending_payouts?: number;
     can?: {
         admin: boolean;
         seller: boolean;

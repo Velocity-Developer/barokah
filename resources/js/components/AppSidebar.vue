@@ -13,6 +13,7 @@ import {
     Ticket,
     UserCheck,
     Users,
+    Wallet,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -35,6 +36,7 @@ import { index as adminCouponsIndex } from '@/routes/admin/coupons';
 import { index as adminFlashSalesIndex } from '@/routes/admin/flash-sales';
 import { index as adminOrdersIndex } from '@/routes/admin/orders';
 import { index as adminPaymentsIndex } from '@/routes/admin/payments';
+import { index as adminPayoutsIndex } from '@/routes/admin/payouts';
 import { index as adminProductsIndex } from '@/routes/admin/products';
 import { index as adminSellerApprovalsIndex } from '@/routes/admin/seller-approvals';
 import { index as adminSellersIndex } from '@/routes/admin/sellers';
@@ -48,6 +50,7 @@ import {
 import { index as sellerCouponsIndex } from '@/routes/seller/coupons';
 import { index as sellerFlashSalesIndex } from '@/routes/seller/flash-sales';
 import { index as sellerOrdersIndex } from '@/routes/seller/orders';
+import { index as sellerPayoutsIndex } from '@/routes/seller/payouts';
 import { index as sellerProductsIndex } from '@/routes/seller/products';
 import type { NavItem } from '@/types';
 
@@ -60,6 +63,7 @@ const isAdmin = computed(() => page.props.auth?.can?.admin === true);
 const isSeller = computed(() => page.props.auth?.can?.seller === true);
 const pendingApprovals = computed(() => Number(page.props.auth?.pending_seller_approvals ?? 0));
 const unreadMessages = computed(() => Number(page.props.auth?.unread_messages ?? 0));
+const pendingPayouts = computed(() => Number(page.props.auth?.pending_payouts ?? 0));
 
 const homeHref = computed(() => (isAdmin.value ? adminDashboard() : isSeller.value ? sellerDashboard() : home()));
 
@@ -73,6 +77,7 @@ const adminGroups = computed<NavGroup[]>(() => [
         items: [
             { title: 'Orders', href: adminOrdersIndex(), icon: ShoppingBag },
             { title: 'Payments', href: adminPaymentsIndex(), icon: CreditCard },
+            { title: 'Payouts', href: adminPayoutsIndex(), icon: Wallet, badge: pendingPayouts.value },
         ],
     },
     {
@@ -103,6 +108,7 @@ const sellerGroup = computed<NavGroup>(() => ({
     items: [
         { title: isAdmin.value ? 'Store dashboard' : 'Dashboard', href: sellerDashboard(), icon: LayoutGrid },
         { title: 'Orders', href: sellerOrdersIndex(), icon: ShoppingBag },
+        { title: 'Payouts', href: sellerPayoutsIndex(), icon: Wallet },
         { title: 'Products', href: sellerProductsIndex(), icon: Package },
         { title: 'Flash sales', href: sellerFlashSalesIndex(), icon: Tags },
         { title: 'Coupons', href: sellerCouponsIndex(), icon: Ticket },

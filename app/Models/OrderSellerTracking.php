@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['order_id', 'seller_id', 'shipping_fee', 'shipping_provider', 'courier', 'waybill_number', 'tracking_url', 'tracking_status', 'notes', 'received_at', 'packed_at', 'picked_up_at', 'delivered_at', 'delivery_photo_path'])]
+#[Fillable(['order_id', 'seller_id', 'payout_id', 'shipping_fee', 'shipping_provider', 'courier', 'waybill_number', 'tracking_url', 'tracking_status', 'notes', 'received_at', 'packed_at', 'picked_up_at', 'delivered_at', 'delivery_photo_path'])]
 class OrderSellerTracking extends Model
 {
     protected function casts(): array
@@ -27,5 +27,10 @@ class OrderSellerTracking extends Model
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Seller::class);
+    }
+
+    public function payout(): BelongsTo
+    {
+        return $this->belongsTo(SellerPayout::class, 'payout_id');
     }
 }

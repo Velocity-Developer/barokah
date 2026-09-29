@@ -231,6 +231,7 @@ class UpdateAdminSettingsRequest extends FormRequest
             'marketplace.status' => ['required', 'string', 'in:open,closed,maintenance'],
             'marketplace.seller_registration_enabled', 'marketplace.reviews_enabled',
             'marketplace.inventory_tracking_enabled' => ['boolean'],
+            'marketplace.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'checkout.order_expiration_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
             'checkout.min_order_amount', 'checkout.max_order_amount' => ['nullable', 'string', 'max:20', 'regex:/^\d+(\.\d{1,2})?$/'],
             'checkout.guest_checkout_enabled' => ['boolean'],

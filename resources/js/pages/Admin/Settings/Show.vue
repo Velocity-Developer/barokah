@@ -314,6 +314,7 @@ const settingLabels: Record<string, string> = {
     'marketplace.seller_registration_enabled': 'Allow Seller Registration',
     'marketplace.reviews_enabled': 'Enable Product Reviews',
     'marketplace.inventory_tracking_enabled': 'Enable Inventory Tracking',
+    'marketplace.commission_rate': 'Seller Commission (%)',
     'checkout.order_expiration_minutes': 'Order Payment Expiration (Minutes)',
     'checkout.min_order_amount': 'Minimum Order Amount',
     'checkout.max_order_amount': 'Maximum Order Amount',
@@ -587,6 +588,7 @@ const numberRules: Record<string, { min: number; max?: number; step: number }> =
 
 /** Amounts are stored as strings ("5.00") but edited as numbers. */
 const amountKeys = new Set([
+    'marketplace.commission_rate',
     'checkout.min_order_amount',
     'checkout.max_order_amount',
     'shipping.fixed_rate',
@@ -601,6 +603,7 @@ const settingHints: Record<string, string> = {
     'shipping.fixed_rate': 'Charged per order when the shipping method is Fixed rate.',
     'shipping.free_shipping_threshold': 'Orders at or above this amount ship for free.',
     'checkout.max_order_amount': 'Leave empty for no maximum.',
+    'marketplace.commission_rate': 'Share of product sales the marketplace keeps when paying stores out (0-100). Shipping fees are paid to the store in full. Applies to new payout requests.',
     'payment.sandbox_enabled': 'Use the PayNet test environment instead of live payments.',
     'general.maintenance_mode': 'Visitors see a maintenance page while this is on.',
     'localization.available_languages': 'Languages visitors can switch to.',

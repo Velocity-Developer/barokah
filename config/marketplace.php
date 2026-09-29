@@ -266,6 +266,13 @@ return [
             'group' => 'marketplace',
             'is_public' => true,
         ],
+        // Percent of product sales kept by the marketplace on seller payouts.
+        'marketplace.commission_rate' => [
+            'value' => '0',
+            'type' => SettingType::String,
+            'group' => 'marketplace',
+            'is_public' => false,
+        ],
 
         // Checkout.
         // TBC (spec §24 item 14): expiration default 30 min until confirmed.

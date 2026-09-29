@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Seller\CouponController as SellerCouponController;
+use App\Http\Controllers\PayoutProofController;
 use App\Http\Controllers\Seller\FlashSaleController as SellerFlashSaleController;
+use App\Http\Controllers\Seller\PayoutController as SellerPayoutController;
 use App\Http\Controllers\SellerDashboardController;
 use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\SellerProductController;
@@ -96,6 +98,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('seller/flash-sales/{flashSale}/edit', [SellerFlashSaleController::class, 'edit'])
         ->middleware('can:seller')
         ->name('seller.flash-sales.edit');
+    Route::get('seller/payouts', [SellerPayoutController::class, 'index'])->middleware('can:seller')->name('seller.payouts.index');
+    Route::post('seller/payouts', [SellerPayoutController::class, 'store'])->middleware('can:seller')->name('seller.payouts.store');
+    Route::get('payouts/{payout}/proof', PayoutProofController::class)->name('payouts.proof');
     Route::get('seller/coupons', [SellerCouponController::class, 'index'])->middleware('can:seller')->name('seller.coupons.index');
     Route::get('seller/coupons/create', [SellerCouponController::class, 'create'])->middleware('can:seller')->name('seller.coupons.create');
     Route::get('seller/coupons/{coupon}/edit', [SellerCouponController::class, 'edit'])->middleware('can:seller')->name('seller.coupons.edit');
