@@ -61,6 +61,9 @@ class HandleInertiaRequests extends Middleware
                     'seller' => $request->user()?->can('seller') ?? false,
                 ],
             ],
+            // Only staff get past maintenance, so only they need the reminder bar.
+            'maintenance_mode' => fn () => ($request->user()?->can('admin') || $request->user()?->can('seller'))
+                && app(EnforceMaintenanceMode::class)->isOn(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import MaintenanceNotice from '@/components/MaintenanceNotice.vue';
 import HeroPromo from '@/components/marketplace/HeroPromo.vue';
 import MainHeader from '@/components/marketplace/MainHeader.vue';
 import MarketplaceFooter from '@/components/marketplace/MarketplaceFooter.vue';
@@ -44,6 +45,7 @@ const pageTitle = computed(() => `${siteName.value} Marketplace`);
             />
         </Head>
 
+        <MaintenanceNotice />
         <UtilityBar />
         <MainHeader />
         <main

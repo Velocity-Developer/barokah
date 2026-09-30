@@ -605,7 +605,7 @@ const settingHints: Record<string, string> = {
     'checkout.max_order_amount': 'Leave empty for no maximum.',
     'marketplace.commission_rate': 'Share of product sales the marketplace keeps when paying stores out (0-100). Shipping fees are paid to the store in full. Applies to new payout requests.',
     'payment.sandbox_enabled': 'Use the PayNet test environment instead of live payments.',
-    'general.maintenance_mode': 'Visitors see a maintenance page while this is on.',
+    'general.maintenance_mode': 'Shoppers see a maintenance page while this is on. Admins keep the whole site, sellers keep their dashboard, and the login page stays open.',
     'localization.available_languages': 'Languages visitors can switch to.',
     'email.from_address': 'Order emails are sent from this address.',
     'email.smtp_enabled': 'Send email through the SMTP server below. When off, the server\'s default mailer is used.',
