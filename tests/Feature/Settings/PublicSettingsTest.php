@@ -60,3 +60,14 @@ test('updating a setting invalidates cached public settings', function () {
 
     expect($this->getJson('/api/v1/settings/public')->json()['currency.symbol'] ?? null)->toBe('MYR');
 });
+
+test('slider banner images get a storage url but their links stay as entered', function () {
+    $service = app(SettingsService::class);
+    $service->set('homepage.banner_1_url', 'homepage/hero.webp');
+    $service->set('homepage.banner_1_link', '/products?category=fashion');
+
+    $data = $this->getJson('/api/v1/settings/public')->assertOk()->json();
+
+    expect($data['homepage.banner_1_url'])->toEndWith('/storage/homepage/hero.webp');
+    expect($data['homepage.banner_1_link'])->toBe('/products?category=fashion');
+});
