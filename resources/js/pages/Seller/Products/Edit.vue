@@ -131,7 +131,7 @@ async function save(): Promise<void> {
         </form>
 
         <p class="flex flex-wrap items-center gap-1.5 rounded-xl border bg-card p-4 text-sm text-muted-foreground shadow-sm">
-            <Zap class="size-4 text-[var(--brand-primary,#ee4d2d)]" aria-hidden="true" />
+            <Zap class="size-4 text-[var(--brand-primary,#8b3fa8)]" aria-hidden="true" />
             Want a temporary sale price for this product?
             <Link :href="flashSalesIndex()" class="font-medium text-foreground hover:underline">Set it up in Flash sales</Link>.
         </p>

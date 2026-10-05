@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { Clock, Mail, MapPin, MessageCircle, Phone } from '@lucide/vue';
 import type { Component } from 'vue';
 import { computed } from 'vue';
@@ -22,14 +22,17 @@ const about = computed(
         'Multi-seller marketplace.',
 );
 
-const shopLinks: FooterLink[] = [
+const page = usePage();
+
+const shopLinks = computed<FooterLink[]>(() => [
     { label: 'All products', href: productsIndex().url },
     { label: 'Flash sale', href: '/flash-sale' },
     { label: 'Coupons', href: '/coupons' },
-    { label: 'Keripik', href: productsIndex({ query: { category: 'keripik' } }).url },
-    { label: 'Hijab', href: productsIndex({ query: { category: 'hijab' } }).url },
-    { label: 'Kerudung', href: productsIndex({ query: { category: 'kerudung' } }).url },
-];
+    ...(page.props.nav_categories ?? []).map((category) => ({
+        label: category.name,
+        href: productsIndex({ query: { category: category.slug } }).url,
+    })),
+]);
 
 const accountLinks: FooterLink[] = [
     { label: 'Track order', href: '/tracking' },

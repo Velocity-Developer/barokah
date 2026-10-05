@@ -151,7 +151,7 @@ const total = () => Object.values(props.statusCounts).reduce((sum, count) => sum
                     :key="tab.value"
                     type="button"
                     class="-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition"
-                    :class="filters.status === tab.value ? 'border-[var(--brand-primary,#ee4d2d)] font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
+                    :class="filters.status === tab.value ? 'border-[var(--brand-primary,#8b3fa8)] font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
                     :aria-pressed="filters.status === tab.value"
                     @click="visit({ status: tab.value })"
                 >
@@ -204,13 +204,13 @@ const total = () => Object.values(props.statusCounts).reduce((sum, count) => sum
                                     </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
-                                    <span class="font-medium text-[var(--brand-primary,#ee4d2d)]">{{ sale.price_formatted }}</span>
+                                    <span class="font-medium text-[var(--brand-primary,#8b3fa8)]">{{ sale.price_formatted }}</span>
                                     <span class="block text-xs text-muted-foreground"><span class="line-through">{{ sale.normal_price_formatted }}</span> · {{ sale.discount_label }}</span>
                                 </td>
                                 <td class="w-40 px-4 py-2.5">
                                     <p class="text-xs tabular-nums">{{ sale.quantity_sold }} / {{ sale.quantity }}</p>
                                     <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted" role="progressbar" :aria-valuenow="soldPercent(sale)" aria-valuemin="0" aria-valuemax="100" :aria-label="`${soldPercent(sale)}% sold`">
-                                        <div class="h-full rounded-full bg-[var(--brand-primary,#ee4d2d)]" :style="{ width: `${soldPercent(sale)}%` }" />
+                                        <div class="h-full rounded-full bg-[var(--brand-primary,#8b3fa8)]" :style="{ width: `${soldPercent(sale)}%` }" />
                                     </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-xs whitespace-nowrap">
@@ -261,7 +261,7 @@ const total = () => Object.values(props.statusCounts).reduce((sum, count) => sum
                                 :href="link.url"
                                 preserve-scroll
                                 class="min-w-8 rounded border px-2.5 py-1 text-center text-xs"
-                                :class="link.active ? 'border-[var(--brand-primary,#ee4d2d)] bg-[var(--brand-primary,#ee4d2d)] text-white' : 'hover:bg-muted'"
+                                :class="link.active ? 'border-[var(--brand-primary,#8b3fa8)] bg-[var(--brand-primary,#8b3fa8)] text-white' : 'hover:bg-muted'"
                             >
                                 {{ link.label }}
                             </Link>

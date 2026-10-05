@@ -181,7 +181,7 @@ function decide(application: SellerApplication, decision: 'approve' | 'reject'):
                         />
                         <span
                             v-else
-                            class="flex size-14 items-center justify-center rounded-full bg-[var(--accent-navy,#113366)] text-xl font-semibold text-white"
+                            class="flex size-14 items-center justify-center rounded-full bg-[var(--accent-navy,#4b1d63)] text-xl font-semibold text-white"
                             :class="application.banner_url ? '-mt-10 size-16 border-4 border-card' : ''"
                             aria-hidden="true"
                         >

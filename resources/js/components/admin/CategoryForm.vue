@@ -239,7 +239,7 @@ async function remove(): Promise<void> {
                 <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Visibility</h2>
                     <label class="flex cursor-pointer items-start gap-3">
-                        <input v-model="form.is_active" type="checkbox" class="mt-0.5 size-4 cursor-pointer accent-[var(--brand-primary,#ee4d2d)]" />
+                        <input v-model="form.is_active" type="checkbox" class="mt-0.5 size-4 cursor-pointer accent-[var(--brand-primary,#8b3fa8)]" />
                         <span class="text-sm">
                             <span class="font-medium">Show in store</span>
                             <span class="block text-xs text-muted-foreground">Hidden categories disappear from the menu, filters and homepage. Their products stay untouched.</span>
@@ -259,7 +259,7 @@ async function remove(): Promise<void> {
                         <span class="font-semibold">{{ productCount }}</span> {{ productCount === 1 ? 'product' : 'products' }}
                         <span class="text-muted-foreground">· {{ category?.active_products_count ?? 0 }} active</span>
                     </p>
-                    <Link :href="productsIndex({ query: { category_id: category!.id } })" class="text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">View products in this category</Link>
+                    <Link :href="productsIndex({ query: { category_id: category!.id } })" class="text-sm font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">View products in this category</Link>
                 </section>
 
                 <section v-if="isEdit" class="grid content-start gap-2 rounded-xl border border-red-200 bg-card p-4 shadow-sm dark:border-red-900">

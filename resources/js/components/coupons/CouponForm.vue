@@ -218,9 +218,9 @@ async function save(): Promise<void> {
                             ]"
                             :key="option.value"
                             class="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm transition"
-                            :class="form.discount_type === option.value ? 'border-[var(--brand-primary,#ee4d2d)] bg-[var(--brand-primary,#ee4d2d)]/5' : 'hover:bg-muted/50'"
+                            :class="form.discount_type === option.value ? 'border-[var(--brand-primary,#8b3fa8)] bg-[var(--brand-primary,#8b3fa8)]/5' : 'hover:bg-muted/50'"
                         >
-                            <input v-model="form.discount_type" type="radio" :value="option.value" class="mt-0.5 accent-[var(--brand-primary,#ee4d2d)]" />
+                            <input v-model="form.discount_type" type="radio" :value="option.value" class="mt-0.5 accent-[var(--brand-primary,#8b3fa8)]" />
                             <span>
                                 <span class="font-medium">{{ option.title }}</span>
                                 <span class="block text-xs text-muted-foreground">{{ option.hint }}</span>
@@ -245,7 +245,7 @@ async function save(): Promise<void> {
                         </div>
                     </div>
                     <label class="flex cursor-pointer items-start gap-2 text-sm">
-                        <input v-model="form.allow_flash_sale" type="checkbox" class="mt-0.5 accent-[var(--brand-primary,#ee4d2d)]" />
+                        <input v-model="form.allow_flash_sale" type="checkbox" class="mt-0.5 accent-[var(--brand-primary,#8b3fa8)]" />
                         <span>
                             Also applies to flash sale items
                             <span class="block text-xs text-muted-foreground">When off, products already on flash sale are excluded from the discount.</span>
@@ -287,7 +287,7 @@ async function save(): Promise<void> {
                 <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Status</h2>
                     <label class="flex cursor-pointer items-start gap-2 text-sm">
-                        <input v-model="form.status" type="checkbox" class="mt-0.5 accent-[var(--brand-primary,#ee4d2d)]" />
+                        <input v-model="form.status" type="checkbox" class="mt-0.5 accent-[var(--brand-primary,#8b3fa8)]" />
                         <span>
                             <span class="font-medium">Enabled</span>
                             <span class="block text-xs text-muted-foreground">Disabled coupons cannot be used even inside their dates.</span>
@@ -298,11 +298,11 @@ async function save(): Promise<void> {
                 <section v-if="isAdmin" class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Scope</h2>
                     <label class="flex cursor-pointer items-center gap-2 text-sm">
-                        <input v-model="form.owner_type" type="radio" value="global" class="accent-[var(--brand-primary,#ee4d2d)]" />
+                        <input v-model="form.owner_type" type="radio" value="global" class="accent-[var(--brand-primary,#8b3fa8)]" />
                         Marketplace-wide
                     </label>
                     <label class="flex cursor-pointer items-center gap-2 text-sm">
-                        <input v-model="form.owner_type" type="radio" value="seller" class="accent-[var(--brand-primary,#ee4d2d)]" />
+                        <input v-model="form.owner_type" type="radio" value="seller" class="accent-[var(--brand-primary,#8b3fa8)]" />
                         One store only
                     </label>
                     <select v-if="form.owner_type === 'seller'" v-model="form.seller_id" required class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" aria-label="Store">
@@ -314,7 +314,7 @@ async function save(): Promise<void> {
 
                 <section class="grid content-start gap-1 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Summary</h2>
-                    <p class="font-mono text-sm font-semibold text-[var(--brand-primary,#ee4d2d)]">{{ form.code || 'CODE' }}</p>
+                    <p class="font-mono text-sm font-semibold text-[var(--brand-primary,#8b3fa8)]">{{ form.code || 'CODE' }}</p>
                     <p class="text-sm">{{ summary }}.</p>
                 </section>
             </aside>

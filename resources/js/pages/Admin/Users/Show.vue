@@ -87,20 +87,20 @@ function formatDateTime(value: string | null | undefined): string {
         <section class="overflow-hidden rounded-xl border bg-card shadow-sm">
             <div
                 class="h-24 bg-cover bg-center sm:h-32"
-                :class="user.banner_url ? '' : 'bg-gradient-to-r from-[var(--brand-primary,#ee4d2d)] to-[var(--accent-navy,#113366)]'"
+                :class="user.banner_url ? '' : 'bg-gradient-to-r from-[var(--brand-primary,#8b3fa8)] to-[var(--accent-navy,#4b1d63)]'"
                 :style="user.banner_url ? { backgroundImage: `url('${user.banner_url}')` } : undefined"
                 aria-hidden="true"
             />
             <div class="flex flex-col gap-3 px-4 pb-4 md:flex-row md:items-end md:justify-between">
                 <div class="flex items-end gap-3">
                     <img v-if="user.profile_photo_url" :src="user.profile_photo_url" alt="" class="-mt-10 size-20 rounded-full border-4 border-card object-cover" />
-                    <span v-else class="-mt-10 flex size-20 items-center justify-center rounded-full border-4 border-card bg-[var(--accent-navy,#113366)] text-2xl font-semibold text-white" aria-hidden="true">
+                    <span v-else class="-mt-10 flex size-20 items-center justify-center rounded-full border-4 border-card bg-[var(--accent-navy,#4b1d63)] text-2xl font-semibold text-white" aria-hidden="true">
                         {{ user.name.charAt(0).toUpperCase() }}
                     </span>
                     <div class="pb-1">
                         <div class="flex flex-wrap items-center gap-2">
                             <h1 class="text-xl font-semibold">{{ user.name }}</h1>
-                            <span v-if="user.is_admin" class="inline-flex rounded-full bg-[var(--accent-navy,#113366)] px-2 py-0.5 text-xs font-medium text-white">Admin</span>
+                            <span v-if="user.is_admin" class="inline-flex rounded-full bg-[var(--accent-navy,#4b1d63)] px-2 py-0.5 text-xs font-medium text-white">Admin</span>
                             <span v-if="user.seller" class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset" :class="storeStatusStyles[user.seller.status] ?? 'bg-muted text-muted-foreground ring-border'">
                                 Store {{ user.seller.status }}
                             </span>

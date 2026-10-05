@@ -983,7 +983,7 @@ async function save(): Promise<void> {
                                 <input
                                     :id="setting.key"
                                     type="checkbox"
-                                    class="h-5 w-5 cursor-pointer accent-[var(--brand-primary,#ee4d2d)]"
+                                    class="h-5 w-5 cursor-pointer accent-[var(--brand-primary,#8b3fa8)]"
                                     :checked="Boolean(values[setting.key])"
                                     @change="values[setting.key] = ($event.target as HTMLInputElement).checked"
                                 />

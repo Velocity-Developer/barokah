@@ -234,7 +234,7 @@ const selectClass = 'h-9 rounded-md border bg-background px-2.5 text-sm text-for
                     :key="tab.value"
                     type="button"
                     class="-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition"
-                    :class="filters.status === tab.value ? 'border-[var(--brand-primary,#ee4d2d)] font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
+                    :class="filters.status === tab.value ? 'border-[var(--brand-primary,#8b3fa8)] font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
                     :aria-pressed="filters.status === tab.value"
                     @click="setStatus(tab.value)"
                 >
@@ -266,7 +266,7 @@ const selectClass = 'h-9 rounded-md border bg-background px-2.5 text-sm text-for
                 <div v-else-if="categories.length === 0" class="p-10 text-center text-sm text-muted-foreground">
                     <template v-if="filters.search || filters.status">
                         No categories match these filters.
-                        <button type="button" class="ml-1 font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline" @click="resetFilters">Clear filters</button>
+                        <button type="button" class="ml-1 font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline" @click="resetFilters">Clear filters</button>
                     </template>
                     <template v-else>No categories yet. Create the first one to start grouping products.</template>
                 </div>
@@ -353,7 +353,7 @@ const selectClass = 'h-9 rounded-md border bg-background px-2.5 text-sm text-for
                             :key="number"
                             type="button"
                             class="min-w-8 rounded border px-2.5 py-1 text-xs"
-                            :class="number === meta.current_page ? 'border-[var(--brand-primary,#ee4d2d)] bg-[var(--brand-primary,#ee4d2d)] text-white' : 'hover:bg-muted'"
+                            :class="number === meta.current_page ? 'border-[var(--brand-primary,#8b3fa8)] bg-[var(--brand-primary,#8b3fa8)] text-white' : 'hover:bg-muted'"
                             @click="gotoPage(number)"
                         >
                             {{ number }}

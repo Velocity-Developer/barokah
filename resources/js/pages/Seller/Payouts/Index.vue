@@ -101,7 +101,7 @@ function requestPayout(): void {
                         <p class="text-muted-foreground">Paid to</p>
                         <p v-if="hasBank" class="break-words whitespace-pre-line">{{ bank_account }}</p>
                         <p v-else class="text-amber-700 dark:text-amber-300">No bank account yet.</p>
-                        <Link :href="sellerSettings()" class="text-xs font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">
+                        <Link :href="sellerSettings()" class="text-xs font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">
                             {{ hasBank ? 'Change in Store settings' : 'Add it in Store settings' }}
                         </Link>
                     </div>

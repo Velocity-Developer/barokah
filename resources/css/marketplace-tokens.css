@@ -8,15 +8,15 @@
  */
 
 :root {
-    --brand-primary: #ee4d2d;
-    --brand-primary-hover: #d94426;
-    --brand-primary-soft: #fff1ed;
-    --accent-red: #d0011b;
+    --brand-primary: #8b3fa8;
+    --brand-primary-hover: #74308f;
+    --brand-primary-soft: #f6ecfb;
+    --accent-red: #c2185b;
     --accent-yellow: #ffbb00;
-    --accent-navy: #113366;
+    --accent-navy: #4b1d63;
     --accent-blue: #0053de;
     --accent-cyan: #26aa99;
-    --bg-page: #f5f5f5;
+    --bg-page: #fbf7fd;
     --bg-surface: #ffffff;
     --bg-muted: #fafafa;
     --text-primary: #222222;
@@ -24,12 +24,57 @@
     --text-muted: #888888;
     --text-faint: #aaaaaa;
     --text-inverse: #ffffff;
-    --border-default: #e8e8e8;
-    --border-soft: #f0f0f0;
-    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-hover: 0 4px 14px rgba(0, 0, 0, 0.12);
+    --border-default: #eadcf2;
+    --border-soft: #f3eaf8;
+    --shadow-card: 0 2px 10px rgba(110, 50, 140, 0.07);
+    --shadow-hover: 0 8px 22px rgba(110, 50, 140, 0.16);
     --container-max: 1200px;
     --grid-gap: 10px;
     --section-gap: 20px;
-    --font-marketplace: Arial, Helvetica, 'Noto Sans', sans-serif;
+    --font-marketplace: 'Nunito', Arial, Helvetica, sans-serif;
+    --font-display: 'Playfair Display', Georgia, serif;
+}
+
+/*
+ * Storefront chrome (the MarketplaceLayout root carries .mp-storefront).
+ * A larger --radius rounds every rounded-sm/md/lg in the storefront, so the
+ * shop reads soft and feminine without touching each component.
+ */
+.mp-storefront {
+    --radius: 1rem;
+    font-family: var(--font-marketplace);
+    background-color: var(--bg-page);
+    background-image:
+        radial-gradient(circle at 8% 12%, rgba(139, 63, 168, 0.07) 0, transparent 28%),
+        radial-gradient(circle at 92% 38%, rgba(214, 120, 190, 0.07) 0, transparent 26%),
+        radial-gradient(circle at 12% 78%, rgba(139, 63, 168, 0.06) 0, transparent 24%);
+    background-attachment: fixed;
+}
+
+/* Header: brand gradient with a faint floral dot pattern. */
+.mp-header-bg {
+    background-color: var(--brand-primary);
+    background-image:
+        radial-gradient(rgba(255, 255, 255, 0.14) 1.2px, transparent 1.3px),
+        linear-gradient(120deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 70%, #d678be) 100%);
+    background-size: 18px 18px, 100% 100%;
+}
+
+/* Section titles: serif display face with a small flourish underneath. */
+.mp-section-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent-navy);
+    letter-spacing: 0.01em;
+}
+
+.mp-section-title::after {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 3px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 35%, #f3b6dd));
 }

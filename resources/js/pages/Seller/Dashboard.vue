@@ -201,7 +201,7 @@ function soldPercent(sale: FlashSale): number {
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div class="flex items-center gap-3">
                 <img v-if="seller.profile_photo_url" :src="seller.profile_photo_url" alt="" class="size-12 shrink-0 rounded-full border object-cover" />
-                <span v-else class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-navy,#113366)] text-lg font-semibold text-white" aria-hidden="true">
+                <span v-else class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-navy,#4b1d63)] text-lg font-semibold text-white" aria-hidden="true">
                     {{ (seller.store_name ?? '?').charAt(0).toUpperCase() }}
                 </span>
                 <div>
@@ -286,7 +286,7 @@ function soldPercent(sale: FlashSale): number {
                             <div
                                 class="w-full max-w-9 rounded-t-[4px] transition-opacity"
                                 :class="hovered !== null && hovered !== index ? 'opacity-50' : ''"
-                                :style="{ height: barHeight(day.total), backgroundColor: 'var(--brand-primary, #ee4d2d)' }"
+                                :style="{ height: barHeight(day.total), backgroundColor: 'var(--brand-primary, #8b3fa8)' }"
                             />
                             <div
                                 v-if="hovered === index"
@@ -336,7 +336,7 @@ function soldPercent(sale: FlashSale): number {
                             <span class="font-semibold">{{ task.count }}</span>
                             {{ task.label }}{{ task.count === 1 ? '' : 's' }}
                         </p>
-                        <Link :href="task.href" class="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">
+                        <Link :href="task.href" class="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">
                             {{ task.action }} <ArrowRight class="size-3.5" aria-hidden="true" />
                         </Link>
                     </li>
@@ -368,7 +368,7 @@ function soldPercent(sale: FlashSale): number {
                     <h3 class="text-base font-medium">Recent orders</h3>
                     <p class="text-xs text-muted-foreground">Totals count your items only; other stores' items in the same checkout stay hidden.</p>
                 </div>
-                <Link :href="ordersIndex()" class="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">
+                <Link :href="ordersIndex()" class="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">
                     View all <ArrowRight class="size-3.5" aria-hidden="true" />
                 </Link>
             </div>
@@ -412,9 +412,9 @@ function soldPercent(sale: FlashSale): number {
         <section class="rounded-xl border bg-card p-4 shadow-sm">
             <div class="flex items-center justify-between gap-2">
                 <h3 class="flex items-center gap-1.5 text-base font-medium">
-                    <Zap class="size-4 text-[var(--brand-primary,#ee4d2d)]" aria-hidden="true" /> Running flash sales
+                    <Zap class="size-4 text-[var(--brand-primary,#8b3fa8)]" aria-hidden="true" /> Running flash sales
                 </h3>
-                <Link :href="flashSalesIndex()" class="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">
+                <Link :href="flashSalesIndex()" class="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">
                     Manage <ArrowRight class="size-3.5" aria-hidden="true" />
                 </Link>
             </div>
@@ -440,7 +440,7 @@ function soldPercent(sale: FlashSale): number {
                         </span>
                     </div>
                     <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div class="h-full rounded-full" :style="{ width: `${soldPercent(sale)}%`, backgroundColor: 'var(--brand-primary, #ee4d2d)' }" />
+                        <div class="h-full rounded-full" :style="{ width: `${soldPercent(sale)}%`, backgroundColor: 'var(--brand-primary, #8b3fa8)' }" />
                     </div>
                     <p class="mt-1.5 text-xs text-muted-foreground">
                         {{ formatDay(sale.starts_at) }} – {{ formatDay(sale.ends_at) }} · {{ sale.remaining_quantity }} left

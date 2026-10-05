@@ -49,7 +49,7 @@ function loadMore(): void {
         <div
             class="flex min-h-[56px] items-center justify-between border-b border-[var(--border-soft)] pb-3"
         >
-            <h2 class="text-base font-semibold text-[var(--text-primary)]">
+            <h2 class="mp-section-title">
                 Recommendations
             </h2>
         </div>

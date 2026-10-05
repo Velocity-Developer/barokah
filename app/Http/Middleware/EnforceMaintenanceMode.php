@@ -95,7 +95,7 @@ class EnforceMaintenanceMode
             'site_name' => $text('branding.site_name') ?? config('marketplace.name', 'Barokah'),
             'logo_url' => $text('branding.logo_url'),
             'favicon_url' => $text('branding.favicon_url'),
-            'primary_color' => $color !== null && preg_match('/^#[0-9a-fA-F]{3,8}$/', $color) === 1 ? $color : '#ee4d2d',
+            'primary_color' => $color !== null && preg_match('/^#[0-9a-fA-F]{3,8}$/', $color) === 1 ? $color : '#8b3fa8',
             'tagline' => $text('general.site_tagline'),
         ];
     }

@@ -2,8 +2,8 @@
 import BestSellerSection from '@/components/marketplace/BestSellerSection.vue';
 import CategorySection from '@/components/marketplace/CategorySection.vue';
 import FlashSaleSection from '@/components/marketplace/FlashSaleSection.vue';
+import ShopPromises from '@/components/marketplace/ShopPromises.vue';
 import SellerSection from '@/components/marketplace/SellerSection.vue';
-import QuickServices from '@/components/marketplace/QuickServices.vue';
 import RecommendationSection from '@/components/marketplace/RecommendationSection.vue';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import type {
@@ -28,11 +28,12 @@ function unwrap<T>(value: T[] | { data: T[] }): T[] {
 
 <template>
     <MarketplaceLayout show-hero>
-        <QuickServices :categories="unwrap(categories)" />
+        <!-- Kept short on purpose: shop by category first, then what sells. -->
+        <ShopPromises />
+        <CategorySection :categories="unwrap(categories)" />
         <FlashSaleSection :products="unwrap(flashSaleProducts)" />
         <BestSellerSection :products="unwrap(bestSellerProducts)" />
         <SellerSection :sellers="unwrap(sellers)" />
-        <CategorySection :categories="unwrap(categories)" />
         <RecommendationSection
             :products="unwrap(latestProducts)"
             :has-more="latestProductsHasMore"

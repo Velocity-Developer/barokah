@@ -324,9 +324,9 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                             </button>
                         </div>
 
-                        <div v-for="(file, idx) in newImages" :key="`new-${idx}`" class="relative aspect-square overflow-hidden rounded-lg border-2 border-dashed border-[var(--brand-primary,#ee4d2d)]">
+                        <div v-for="(file, idx) in newImages" :key="`new-${idx}`" class="relative aspect-square overflow-hidden rounded-lg border-2 border-dashed border-[var(--brand-primary,#8b3fa8)]">
                             <img :src="newImagePreviews[idx]" :alt="file.name" class="size-full object-cover" />
-                            <span class="absolute top-1.5 left-1.5 rounded bg-[var(--brand-primary,#ee4d2d)] px-1.5 py-0.5 text-[10px] font-medium text-white">New</span>
+                            <span class="absolute top-1.5 left-1.5 rounded bg-[var(--brand-primary,#8b3fa8)] px-1.5 py-0.5 text-[10px] font-medium text-white">New</span>
                             <button
                                 type="button"
                                 class="absolute top-1.5 right-1.5 flex size-7 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white"
@@ -340,7 +340,7 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                         <label
                             v-if="newImages.length < MAX_NEW_IMAGES"
                             for="images"
-                            class="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-xs text-muted-foreground transition hover:border-[var(--brand-primary,#ee4d2d)] hover:text-foreground"
+                            class="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-xs text-muted-foreground transition hover:border-[var(--brand-primary,#8b3fa8)] hover:text-foreground"
                         >
                             <ImagePlus class="size-6" aria-hidden="true" />
                             Add images

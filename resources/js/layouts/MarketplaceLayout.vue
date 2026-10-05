@@ -35,8 +35,7 @@ const pageTitle = computed(() => `${siteName.value} Marketplace`);
 
 <template>
     <div
-        class="min-h-screen font-[Arial,Helvetica,'Noto_Sans',sans-serif] text-[var(--text-primary)]"
-        style="background-color: var(--bg-page)"
+        class="mp-storefront min-h-screen text-[var(--text-primary)]"
     >
         <Head :title="pageTitle">
             <meta

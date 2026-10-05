@@ -214,9 +214,9 @@ async function save(): Promise<void> {
                             ]"
                             :key="option.value"
                             class="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm transition"
-                            :class="form.discount_type === option.value ? 'border-[var(--brand-primary,#ee4d2d)] bg-[var(--brand-primary,#ee4d2d)]/5' : 'hover:bg-muted/50'"
+                            :class="form.discount_type === option.value ? 'border-[var(--brand-primary,#8b3fa8)] bg-[var(--brand-primary,#8b3fa8)]/5' : 'hover:bg-muted/50'"
                         >
-                            <input v-model="form.discount_type" type="radio" :value="option.value" class="mt-0.5 accent-[var(--brand-primary,#ee4d2d)]" />
+                            <input v-model="form.discount_type" type="radio" :value="option.value" class="mt-0.5 accent-[var(--brand-primary,#8b3fa8)]" />
                             <span>
                                 <span class="font-medium">{{ option.title }}</span>
                                 <span class="block text-xs text-muted-foreground">{{ option.hint }}</span>
@@ -284,7 +284,7 @@ async function save(): Promise<void> {
                 <section class="grid content-start gap-2 rounded-xl border bg-card p-4 shadow-sm lg:sticky lg:top-4">
                     <h2 class="text-base font-medium">Preview</h2>
                     <template v-if="product && promoPrice !== null && !previewProblem">
-                        <p class="text-2xl font-semibold text-[var(--brand-primary,#ee4d2d)]">{{ formatAmount(promoPrice) }}</p>
+                        <p class="text-2xl font-semibold text-[var(--brand-primary,#8b3fa8)]">{{ formatAmount(promoPrice) }}</p>
                         <p class="text-sm text-muted-foreground">
                             <span class="line-through">{{ formatAmount(product.price) }}</span>
                             <span v-if="savingPercent !== null" class="ml-1 font-medium text-foreground">{{ savingPercent }}% off</span>

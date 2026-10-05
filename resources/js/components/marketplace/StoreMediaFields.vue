@@ -76,14 +76,14 @@ function sourceNote(own: string | null, fallback?: string | null): string {
         <div class="relative">
             <div
                 class="h-28 overflow-hidden rounded-lg border bg-cover bg-center sm:h-36"
-                :class="shownBanner ? '' : 'bg-gradient-to-r from-[var(--brand-primary,#ee4d2d)] to-[var(--accent-navy,#113366)]'"
+                :class="shownBanner ? '' : 'bg-gradient-to-r from-[var(--brand-primary,#8b3fa8)] to-[var(--accent-navy,#4b1d63)]'"
                 :style="shownBanner ? { backgroundImage: `url('${shownBanner}')` } : undefined"
                 role="img"
                 :aria-label="`${storeName} banner preview`"
             />
             <div class="absolute -bottom-8 left-4">
                 <img v-if="shownPhoto" :src="shownPhoto" :alt="storeName" class="size-20 rounded-full border-4 border-card bg-card object-cover" />
-                <span v-else class="flex size-20 items-center justify-center rounded-full border-4 border-card bg-[var(--accent-navy,#113366)] text-2xl font-semibold text-white" aria-hidden="true">
+                <span v-else class="flex size-20 items-center justify-center rounded-full border-4 border-card bg-[var(--accent-navy,#4b1d63)] text-2xl font-semibold text-white" aria-hidden="true">
                     {{ (storeName || '?').charAt(0).toUpperCase() }}
                 </span>
             </div>

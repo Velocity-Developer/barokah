@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\PayoutStatus;
 use App\Enums\SellerStatus;
+use App\Models\Category;
 use App\Models\Conversation;
 use App\Models\Seller;
 use App\Models\SellerPayout;
@@ -64,6 +65,14 @@ class HandleInertiaRequests extends Middleware
             // Only staff get past maintenance, so only they need the reminder bar.
             'maintenance_mode' => fn () => ($request->user()?->can('admin') || $request->user()?->can('seller'))
                 && app(EnforceMaintenanceMode::class)->isOn(),
+            // Storefront header and footer category links, in the order admins set.
+            'nav_categories' => fn () => Category::query()
+                ->active()
+                ->whereNull('parent_id')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->limit(8)
+                ->get(['id', 'name', 'slug']),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

@@ -24,10 +24,10 @@ return [
 
     'branding' => [
         'site_name' => env('MARKETPLACE_NAME', 'Barokah'),
-        'primary_color' => '#ee4d2d',
-        'primary_hover_color' => '#d94426',
-        'primary_soft_color' => '#fff1ed',
-        'secondary_color' => '#113366',
+        'primary_color' => '#8b3fa8',
+        'primary_hover_color' => '#74308f',
+        'primary_soft_color' => '#f6ecfb',
+        'secondary_color' => '#4b1d63',
     ],
 
     'shipping' => [
@@ -169,25 +169,25 @@ return [
             ]),
         ),
         'branding.primary_color' => [
-            'value' => '#ee4d2d',
+            'value' => '#8b3fa8',
             'type' => SettingType::Color,
             'group' => 'branding',
             'is_public' => true,
         ],
         'branding.primary_hover_color' => [
-            'value' => '#d94426',
+            'value' => '#74308f',
             'type' => SettingType::Color,
             'group' => 'branding',
             'is_public' => true,
         ],
         'branding.primary_soft_color' => [
-            'value' => '#fff1ed',
+            'value' => '#f6ecfb',
             'type' => SettingType::Color,
             'group' => 'branding',
             'is_public' => true,
         ],
         'branding.secondary_color' => [
-            'value' => '#113366',
+            'value' => '#4b1d63',
             'type' => SettingType::Color,
             'group' => 'branding',
             'is_public' => true,

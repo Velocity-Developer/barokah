@@ -210,7 +210,7 @@ function formatDate(value: string | null): string {
                             <div
                                 class="w-full max-w-9 rounded-t-[4px] transition-opacity"
                                 :class="hovered !== null && hovered !== index ? 'opacity-50' : ''"
-                                :style="{ height: barHeight(day.total), backgroundColor: 'var(--brand-primary, #ee4d2d)' }"
+                                :style="{ height: barHeight(day.total), backgroundColor: 'var(--brand-primary, #8b3fa8)' }"
                             />
                             <div
                                 v-if="hovered === index"
@@ -260,7 +260,7 @@ function formatDate(value: string | null): string {
                             <span class="font-semibold">{{ task.count }}</span>
                             {{ task.label }}{{ task.count === 1 ? '' : 's' }}
                         </p>
-                        <Link :href="task.href" class="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">
+                        <Link :href="task.href" class="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">
                             {{ task.action }} <ArrowRight class="size-3.5" aria-hidden="true" />
                         </Link>
                     </li>
@@ -292,7 +292,7 @@ function formatDate(value: string | null): string {
         <section class="rounded-xl border bg-card shadow-sm">
             <div class="flex items-center justify-between gap-2 p-4 pb-2">
                 <h3 class="text-base font-medium">Recent orders</h3>
-                <Link :href="ordersIndex()" class="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">
+                <Link :href="ordersIndex()" class="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">
                     View all <ArrowRight class="size-3.5" aria-hidden="true" />
                 </Link>
             </div>

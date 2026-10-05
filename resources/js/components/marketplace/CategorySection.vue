@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ChevronRight, Tag } from '@lucide/vue';
-import { computed } from 'vue';
+import { ChevronRight, Sparkles } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import { index as productsIndex } from '@/routes/products';
 import type { HomeCategoryItem } from '@/types/marketplace';
 
@@ -19,6 +19,9 @@ const tiles = computed(() =>
         count: category.products_count,
     })),
 );
+
+// A missing picture falls back to the icon instead of a broken image.
+const brokenImages = ref<Set<number>>(new Set());
 
 function countLabel(count: number | undefined): string | null {
     if (count === undefined) {
@@ -38,7 +41,7 @@ function countLabel(count: number | undefined): string | null {
             class="flex min-h-[56px] items-center justify-between gap-3 border-b border-[var(--border-soft)] pb-3"
         >
             <div>
-                <h2 class="text-base font-semibold text-[var(--text-primary)]">
+                <h2 class="mp-section-title">
                     Categories
                 </h2>
                 <p class="text-xs text-[var(--text-muted)]">
@@ -73,41 +76,50 @@ function countLabel(count: number | undefined): string | null {
         <!-- auto-fit: few categories stretch across the row, more wrap into 170px+ tiles. -->
         <div
             v-else
-            class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]"
+            class="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-[repeat(auto-fit,minmax(170px,1fr))] sm:gap-4"
         >
             <Link
                 v-for="tile in tiles"
                 :key="tile.id"
                 :href="tile.href"
-                class="group relative block aspect-[4/3] overflow-hidden sm:aspect-[16/10] rounded-sm border border-[var(--border-soft)] bg-[var(--brand-primary-soft)]"
+                class="group relative block aspect-[3/4] overflow-hidden rounded-lg bg-gradient-to-br from-[var(--brand-primary-soft)] to-white ring-1 ring-[var(--border-default)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] sm:aspect-[4/3]"
             >
                 <img
-                    v-if="tile.image"
+                    v-if="tile.image && !brokenImages.has(tile.id)"
                     :src="tile.image"
                     alt=""
                     loading="lazy"
-                    class="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    class="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    @error="brokenImages = new Set([...brokenImages, tile.id])"
                 />
                 <span
                     v-else
                     class="absolute inset-0 flex items-center justify-center text-[var(--brand-primary)]"
                     aria-hidden="true"
                 >
-                    <Tag class="h-10 w-10 opacity-60" />
+                    <Sparkles class="h-10 w-10 opacity-50 sm:h-14 sm:w-14" />
                 </span>
                 <span
-                    class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
+                    class="absolute inset-0 bg-gradient-to-t from-[color-mix(in_srgb,var(--accent-navy)_85%,transparent)] via-[color-mix(in_srgb,var(--brand-primary)_20%,transparent)] to-transparent"
                     aria-hidden="true"
                 />
-                <span class="absolute inset-x-0 bottom-0 p-3 text-white">
-                    <span class="block truncate text-sm font-semibold">
+                <span class="absolute inset-x-0 bottom-0 p-2.5 text-white sm:p-5">
+                    <span
+                        class="block truncate font-[family-name:var(--font-display)] text-base font-bold sm:text-2xl"
+                    >
                         {{ tile.name }}
                     </span>
                     <span
                         v-if="countLabel(tile.count)"
-                        class="block text-[11px] text-white/85"
+                        class="hidden text-xs text-white/85 sm:block"
                     >
                         {{ countLabel(tile.count) }}
+                    </span>
+                    <span
+                        class="mt-2 hidden items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-[var(--brand-primary)] transition group-hover:bg-[var(--brand-primary)] group-hover:text-white sm:inline-flex"
+                    >
+                        Shop now
+                        <ChevronRight class="h-3.5 w-3.5" aria-hidden="true" />
                     </span>
                 </span>
             </Link>

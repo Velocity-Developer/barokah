@@ -18,6 +18,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            nav_categories?: { id: number; name: string; slug: string }[];
             maintenance_mode?: boolean;
             sidebarOpen: boolean;
             [key: string]: unknown;

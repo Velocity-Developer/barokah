@@ -55,7 +55,7 @@ function pageLabel(label: string): string {
                     :key="tab.value"
                     type="button"
                     class="-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition"
-                    :class="filters.status === tab.value ? 'border-[var(--brand-primary,#ee4d2d)] font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
+                    :class="filters.status === tab.value ? 'border-[var(--brand-primary,#8b3fa8)] font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
                     :aria-pressed="filters.status === tab.value"
                     @click="setStatus(tab.value)"
                 >

@@ -24,12 +24,8 @@ const emit = defineEmits<{
 const { getSettingValue } = useSettingsStore();
 const { count: cartCount } = useCartStore();
 const query = ref(props.initialSearch);
-const quickCategories = [
-    { name: 'Keripik', slug: 'keripik' },
-    { name: 'Hijab', slug: 'hijab' },
-    { name: 'Kerudung', slug: 'kerudung' },
-];
 const page = usePage();
+const quickCategories = computed(() => page.props.nav_categories ?? []);
 const authUser = computed(() => (page.props.auth?.user as Record<string, unknown> | null) ?? null);
 const unreadMessages = computed<number>(() => Number(page.props.auth?.unread_messages ?? 0));
 const canOpenAdmin = computed<boolean>(() => page.props.auth?.can?.admin === true);
@@ -82,8 +78,7 @@ function submitSearch(): void {
 
 <template>
     <div
-        class="sticky top-0 z-40 text-white shadow"
-        style="background-color: var(--brand-primary)"
+        class="mp-header-bg sticky top-0 z-40 text-white shadow"
     >
         <div
             class="mx-auto flex w-full items-center gap-3 px-4 py-3 md:gap-6"

@@ -129,14 +129,14 @@ async function setStatus(status: 'active' | 'suspended'): Promise<void> {
         <section class="overflow-hidden rounded-xl border bg-card shadow-sm">
             <div
                 class="h-32 bg-cover bg-center sm:h-44"
-                :class="seller.display_banner_url ? '' : 'bg-gradient-to-r from-[var(--brand-primary,#ee4d2d)] to-[var(--accent-navy,#113366)]'"
+                :class="seller.display_banner_url ? '' : 'bg-gradient-to-r from-[var(--brand-primary,#8b3fa8)] to-[var(--accent-navy,#4b1d63)]'"
                 :style="seller.display_banner_url ? { backgroundImage: `url('${seller.display_banner_url}')` } : undefined"
                 aria-hidden="true"
             />
             <div class="flex flex-col gap-3 px-4 pb-4 md:flex-row md:items-end md:justify-between">
                 <div class="flex items-end gap-3">
                     <img v-if="seller.display_photo_url" :src="seller.display_photo_url" alt="" class="-mt-10 size-20 rounded-full border-4 border-card object-cover" />
-                    <span v-else class="-mt-10 flex size-20 items-center justify-center rounded-full border-4 border-card bg-[var(--accent-navy,#113366)] text-2xl font-semibold text-white" aria-hidden="true">
+                    <span v-else class="-mt-10 flex size-20 items-center justify-center rounded-full border-4 border-card bg-[var(--accent-navy,#4b1d63)] text-2xl font-semibold text-white" aria-hidden="true">
                         {{ seller.store_name.charAt(0).toUpperCase() }}
                     </span>
                     <div class="pb-1">
@@ -197,7 +197,7 @@ async function setStatus(status: 'active' | 'suspended'): Promise<void> {
                 <section class="rounded-xl border bg-card shadow-sm">
                     <div class="flex items-center justify-between gap-2 p-4 pb-2">
                         <h2 class="text-base font-medium">Products ({{ seller.products.length }})</h2>
-                        <Link :href="`/admin/products?seller_id=${seller.id}`" class="text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">Manage in Products</Link>
+                        <Link :href="`/admin/products?seller_id=${seller.id}`" class="text-sm font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">Manage in Products</Link>
                     </div>
                     <p v-if="!seller.products.length" class="p-4 pt-0 text-sm text-muted-foreground">No products yet.</p>
                     <div v-else class="max-h-[480px] overflow-auto">
@@ -291,7 +291,7 @@ async function setStatus(status: 'active' | 'suspended'): Promise<void> {
                         <p class="text-sm font-medium">{{ seller.owner.name }}</p>
                         <p class="flex items-center gap-2 text-sm"><Mail class="size-4 text-muted-foreground" aria-hidden="true" /><a :href="`mailto:${seller.owner.email}`" class="hover:underline">{{ seller.owner.email }}</a></p>
                         <p v-if="seller.owner.phone" class="flex items-center gap-2 text-sm"><Phone class="size-4 text-muted-foreground" aria-hidden="true" />{{ seller.owner.phone }}</p>
-                        <Link :href="`/admin/users/${seller.owner.id}`" class="text-sm font-medium text-[var(--brand-primary,#ee4d2d)] hover:underline">View customer account</Link>
+                        <Link :href="`/admin/users/${seller.owner.id}`" class="text-sm font-medium text-[var(--brand-primary,#8b3fa8)] hover:underline">View customer account</Link>
                     </template>
                     <p v-else class="text-sm text-muted-foreground">No owner linked.</p>
                 </section>

@@ -161,7 +161,7 @@ const selectClass = 'h-9 rounded-md border bg-background px-2.5 text-sm';
                     :key="tab.value"
                     type="button"
                     class="-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition"
-                    :class="filters.status === tab.value ? 'border-[var(--brand-primary,#ee4d2d)] font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
+                    :class="filters.status === tab.value ? 'border-[var(--brand-primary,#8b3fa8)] font-medium text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
                     :aria-pressed="filters.status === tab.value"
                     @click="visit({ status: tab.value })"
                 >
@@ -213,7 +213,7 @@ const selectClass = 'h-9 rounded-md border bg-background px-2.5 text-sm';
                             <tr v-for="coupon in coupons.data" :key="coupon.id" class="border-b last:border-0 hover:bg-muted/50">
                                 <td class="px-4 py-2.5">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="rounded border border-dashed border-[var(--brand-primary,#ee4d2d)] px-1.5 py-0.5 font-mono text-xs font-semibold tracking-wide text-[var(--brand-primary,#ee4d2d)]">{{ coupon.code }}</span>
+                                        <span class="rounded border border-dashed border-[var(--brand-primary,#8b3fa8)] px-1.5 py-0.5 font-mono text-xs font-semibold tracking-wide text-[var(--brand-primary,#8b3fa8)]">{{ coupon.code }}</span>
                                         <button type="button" class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" :aria-label="`Copy ${coupon.code}`" @click="copyCode(coupon.code)">
                                             <Copy class="size-3.5" />
                                         </button>
@@ -228,7 +228,7 @@ const selectClass = 'h-9 rounded-md border bg-background px-2.5 text-sm';
                                 <td class="w-36 px-4 py-2.5">
                                     <p class="text-xs tabular-nums">{{ coupon.usage_count }}{{ coupon.usage_limit ? ` / ${coupon.usage_limit}` : ' · unlimited' }}</p>
                                     <div v-if="usagePercent(coupon) !== null" class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                                        <div class="h-full rounded-full bg-[var(--brand-primary,#ee4d2d)]" :style="{ width: `${usagePercent(coupon)}%` }" />
+                                        <div class="h-full rounded-full bg-[var(--brand-primary,#8b3fa8)]" :style="{ width: `${usagePercent(coupon)}%` }" />
                                     </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-xs whitespace-nowrap">
@@ -272,7 +272,7 @@ const selectClass = 'h-9 rounded-md border bg-background px-2.5 text-sm';
                                 :href="link.url"
                                 preserve-scroll
                                 class="min-w-8 rounded border px-2.5 py-1 text-center text-xs"
-                                :class="link.active ? 'border-[var(--brand-primary,#ee4d2d)] bg-[var(--brand-primary,#ee4d2d)] text-white' : 'hover:bg-muted'"
+                                :class="link.active ? 'border-[var(--brand-primary,#8b3fa8)] bg-[var(--brand-primary,#8b3fa8)] text-white' : 'hover:bg-muted'"
                             >
                                 {{ link.label }}
                             </Link>

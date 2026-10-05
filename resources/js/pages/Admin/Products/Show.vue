@@ -170,7 +170,7 @@ const stockLabel = computed(() => {
                                 :key="image.id"
                                 type="button"
                                 class="relative size-16 overflow-hidden rounded-md border-2"
-                                :class="(activeImage ?? images[0].url) === image.url ? 'border-[var(--brand-primary,#ee4d2d)]' : 'border-transparent'"
+                                :class="(activeImage ?? images[0].url) === image.url ? 'border-[var(--brand-primary,#8b3fa8)]' : 'border-transparent'"
                                 :aria-label="`Show image ${image.id}`"
                                 @click="activeImage = image.url"
                             >

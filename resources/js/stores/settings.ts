@@ -43,10 +43,20 @@ function applyBrandColors(values: PublicSettings): void {
     const resolvedPrimary =
         typeof primary === 'string' && primary !== ''
             ? primary
-            : '#ee4d2d';
+            : '#8b3fa8';
+
+    const hover = values['branding.primary_hover_color'];
+    const soft = values['branding.primary_soft_color'];
 
     document.documentElement.style.setProperty('--brand-primary', resolvedPrimary);
-    document.documentElement.style.setProperty('--brand-primary-hover', resolvedPrimary);
+    document.documentElement.style.setProperty(
+        '--brand-primary-hover',
+        typeof hover === 'string' && hover !== '' ? hover : resolvedPrimary,
+    );
+
+    if (typeof soft === 'string' && soft !== '') {
+        document.documentElement.style.setProperty('--brand-primary-soft', soft);
+    }
 
     if (typeof secondary === 'string' && secondary !== '') {
         document.documentElement.style.setProperty('--accent-navy', secondary);

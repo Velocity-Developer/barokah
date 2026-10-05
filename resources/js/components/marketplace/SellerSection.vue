@@ -26,7 +26,7 @@ function plural(count: number, word: string): string {
             class="flex min-h-[56px] items-center border-b border-[var(--border-soft)] pb-3"
         >
             <div>
-                <h2 class="text-base font-semibold text-[var(--text-primary)]">
+                <h2 class="mp-section-title">
                     Featured Sellers
                 </h2>
                 <p class="text-xs text-[var(--text-muted)]">

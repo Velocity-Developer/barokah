@@ -39,7 +39,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                 </SidebarMenuButton>
                 <SidebarMenuBadge
                     v-if="item.badge"
-                    class="rounded-full bg-[var(--brand-primary,#ee4d2d)] px-1.5 text-[11px] text-white peer-hover/menu-button:text-white peer-data-[active=true]/menu-button:text-white"
+                    class="rounded-full bg-[var(--brand-primary,#8b3fa8)] px-1.5 text-[11px] text-white peer-hover/menu-button:text-white peer-data-[active=true]/menu-button:text-white"
                 >
                     {{ item.badge > 99 ? '99+' : item.badge }}
                 </SidebarMenuBadge>
