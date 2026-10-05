@@ -805,7 +805,8 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                     v-for="(step, index) in steps"
                     :key="step.id"
                     :class="[
-                        'relative flex items-center gap-2.5 px-3 py-3 md:px-4',
+                        // Phones: number above the label so all four names fit; side by side from sm up.
+                        'relative flex flex-col items-center gap-1 px-1 py-2.5 text-center sm:flex-row sm:gap-2.5 sm:px-3 sm:py-3 sm:text-left md:px-4',
                         index > 0 ? 'border-l border-[var(--border-soft)]' : '',
                         state.step === step.id ? 'bg-[var(--brand-primary-soft)]' : '',
                     ]"
@@ -823,10 +824,10 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                         <Check v-if="state.step > step.id" class="size-3.5" aria-hidden="true" />
                         <template v-else>{{ step.id }}</template>
                     </span>
-                    <span class="min-w-0">
+                    <span class="max-w-full min-w-0">
                         <span
                             :class="[
-                                'block truncate text-xs font-semibold md:text-sm',
+                                'block truncate text-[11px] font-semibold sm:text-xs md:text-sm',
                                 state.step === step.id ? 'text-[var(--brand-primary)]' : 'text-[var(--text-primary)]',
                             ]"
                         >
