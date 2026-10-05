@@ -201,6 +201,7 @@ const bankName = computed(() => getSettingValue<string>('payment.bank_name', '')
 const bankAccountName = computed(() => getSettingValue<string>('payment.bank_account_name', ''));
 const bankAccountNumber = computed(() => getSettingValue<string>('payment.bank_account_number', ''));
 const qrCodeUrl = computed(() => getSettingValue<string>('payment.qr_code_url', ''));
+const manualInstructions = computed(() => getSettingValue<string>('payment.manual_instructions', ''));
 
 const paymentOptions = computed<PaymentOption[]>(() => [...manualOptions.value, ...paynetOptions.value]);
 
@@ -1175,12 +1176,20 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                                 </div>
                                 <p v-if="!bankName && !bankAccountName && !bankAccountNumber" class="text-[var(--text-muted)]">Bank details have not been set. Please contact the store.</p>
                             </dl>
+                            <p v-if="manualInstructions" class="mt-3 text-xs leading-relaxed whitespace-pre-line text-[var(--text-secondary)]">{{ manualInstructions }}</p>
                         </div>
 
                         <div v-if="paymentMethod === 'qr_code' && qrCodeEnabled" class="mt-4 rounded-sm border border-[var(--border-soft)] bg-[var(--bg-muted)] p-4 text-sm">
                             <p class="font-semibold">QR code payment</p>
-                            <img v-if="qrCodeUrl" :src="qrCodeUrl" alt="Payment QR code" class="mt-2 h-48 w-48 rounded-sm border border-[var(--border-default)] bg-white object-contain" />
+                            <!-- Shoppers on a phone cannot scan their own screen, so the QR opens full size to save. -->
+                            <template v-if="qrCodeUrl">
+                                <a :href="qrCodeUrl" target="_blank" rel="noopener" class="mt-2 block w-60 max-w-full">
+                                    <img :src="qrCodeUrl" alt="Payment QR code" class="h-auto w-full rounded-sm border border-[var(--border-default)] bg-white object-contain" />
+                                </a>
+                                <a :href="qrCodeUrl" download class="mt-2 inline-block text-xs font-medium text-[var(--brand-primary)] hover:underline">Save QR image</a>
+                            </template>
                             <p v-else class="mt-2 text-[var(--text-muted)]">QR code image has not been uploaded. Please contact the store.</p>
+                            <p v-if="manualInstructions" class="mt-3 text-xs leading-relaxed whitespace-pre-line text-[var(--text-secondary)]">{{ manualInstructions }}</p>
                         </div>
 
                         <dl class="mt-5 space-y-2 rounded-sm border border-[var(--border-soft)] bg-[var(--bg-muted)] p-4 text-sm">

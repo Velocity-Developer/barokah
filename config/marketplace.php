@@ -345,6 +345,12 @@ return [
             'group' => 'payment',
             'is_public' => true,
         ],
+        'payment.manual_instructions' => [
+            'value' => '',
+            'type' => SettingType::String,
+            'group' => 'payment',
+            'is_public' => true,
+        ],
         'payment.paynet_enabled' => [
             'value' => true,
             'type' => SettingType::Boolean,

@@ -241,6 +241,7 @@ class UpdateAdminSettingsRequest extends FormRequest
             'payment.sandbox_enabled' => ['boolean'],
             'payment.bank_name', 'payment.bank_account_name', 'payment.bank_account_number' => ['nullable', 'string', 'max:255'],
             'payment.qr_code_url' => ['nullable', 'string', 'max:2000'],
+            'payment.manual_instructions' => ['nullable', 'string', 'max:1000'],
             'homepage.banner_speed' => ['required', 'integer', 'min:1000', 'max:60000'],
             'homepage.right_top_banner_url', 'homepage.right_bottom_banner_url' => ['nullable', 'string', 'max:2000'],
             'payment.gateway' => ['required', 'string', 'max:50'],

@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/stores/settings';
 
 type Faq = { question: string; answer: string; link?: { label: string; href: string } };
 type FaqGroup = { title: string; items: Faq[] };
+type OrderStep = { title: string; text: string; link?: { label: string; href: string } };
 type ContactItem = { icon: Component; label: string; value: string; href?: string; external?: boolean };
 
 const { getSettingValue, formatAmount } = useSettingsStore();
@@ -54,6 +55,60 @@ const shippingAnswer = computed<string>(() => {
     return parts.join(' ');
 });
 
+/** Step-by-step ordering guide; payment wording follows the payment settings. */
+const orderSteps = computed<OrderStep[]>(() => {
+    const methods = paymentMethods.value;
+    const bankEnabled = getSettingValue<boolean>('payment.bank_transfer_enabled', false);
+    const qrEnabled = getSettingValue<boolean>('payment.qr_code_enabled', false);
+    const instructions = getSettingValue<string>('payment.manual_instructions', '');
+    const expiration = getSettingValue<number>('checkout.order_expiration_minutes', 30);
+
+    let payText = 'Complete the payment shown on your order page.';
+    if (qrEnabled && bankEnabled) {
+        payText = 'Scan the QR code with your banking app, or transfer the exact total to the bank account shown on your order page.';
+    } else if (qrEnabled) {
+        payText = 'Scan the QR code shown on your order page with your banking app and pay the exact total.';
+    } else if (bankEnabled) {
+        payText = 'Transfer the exact total to the bank account shown on your order page.';
+    }
+
+    return [
+        {
+            title: 'Find a product',
+            text: 'Browse the categories or use the search bar at the top, then open the product you want.',
+            link: { label: 'Browse products', href: '/products' },
+        },
+        {
+            title: 'Add it to your cart',
+            text: 'Choose the quantity and tap Add to Cart, or Buy Now to check out straight away. You can add products from several stores to the same cart.',
+        },
+        {
+            title: 'Check out',
+            text: 'Open the cart and tap Proceed to checkout, then fill in your name, phone number and delivery address.',
+            link: { label: 'Go to cart', href: '/cart' },
+        },
+        {
+            title: 'Choose how to pay',
+            text: methods.length
+                ? `Pick ${methods.join(', ').replace(/, ([^,]*)$/, ' or $1')} and confirm the order. Note down your order number.`
+                : 'Pick a payment method and confirm the order. Note down your order number.',
+        },
+        {
+            title: 'Pay',
+            text: `${payText} Please pay within ${expiration} minutes, or the order expires.`,
+        },
+        {
+            title: 'Send your receipt',
+            text: instructions || 'Upload a screenshot of your payment receipt on the order page. We check it and confirm your order.',
+        },
+        {
+            title: 'Track your order',
+            text: 'Once the payment is confirmed the store packs and ships your items. Use Track Order with your order number to follow the delivery.',
+            link: { label: 'Track an order', href: '/tracking' },
+        },
+    ];
+});
+
 const faqGroups = computed<FaqGroup[]>(() => {
     const expiration = getSettingValue<number>('checkout.order_expiration_minutes', 30);
     const methods = paymentMethods.value;
@@ -65,7 +120,7 @@ const faqGroups = computed<FaqGroup[]>(() => {
                 {
                     question: 'How do I place an order?',
                     answer: 'Open a product, choose the quantity and tap Buy Now, or add several products to your cart and check out once. Fill in your delivery details, pick a payment method and confirm the order.',
-                    link: { label: 'Browse products', href: '/products' },
+                    link: { label: 'See the step-by-step guide', href: '/help#how-to-order' },
                 },
                 {
                     question: 'Which payment methods can I use?',
@@ -173,6 +228,33 @@ const contactItems = computed<ContactItem[]>(() => {
 
             <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_340px] lg:items-start">
                 <div class="grid gap-4">
+                    <section id="how-to-order" class="scroll-mt-28 rounded-sm bg-white shadow-[var(--shadow-card)]">
+                        <h2 class="border-b border-[var(--border-soft)] px-5 py-3 text-base font-semibold text-[var(--text-primary)]">
+                            How to order
+                        </h2>
+                        <ol class="grid gap-4 px-5 py-4">
+                            <li v-for="(step, index) in orderSteps" :key="step.title" class="flex gap-3">
+                                <span
+                                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-sm font-bold text-white"
+                                    aria-hidden="true"
+                                >
+                                    {{ index + 1 }}
+                                </span>
+                                <div class="min-w-0 text-sm leading-relaxed">
+                                    <p class="font-semibold text-[var(--text-primary)]">{{ step.title }}</p>
+                                    <p class="whitespace-pre-line text-[var(--text-secondary)]">{{ step.text }}</p>
+                                    <Link
+                                        v-if="step.link"
+                                        :href="step.link.href"
+                                        class="mt-1 inline-block font-medium text-[var(--brand-primary)] hover:underline"
+                                    >
+                                        {{ step.link.label }} →
+                                    </Link>
+                                </div>
+                            </li>
+                        </ol>
+                    </section>
+
                     <section
                         v-for="group in faqGroups"
                         :key="group.title"

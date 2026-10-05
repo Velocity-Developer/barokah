@@ -40,6 +40,7 @@ const accountLinks: FooterLink[] = [
     { label: 'My profile', href: profileShow().url },
     { label: 'Seller center', href: sellerCenter().url },
     { label: 'Cart', href: '/cart' },
+    { label: 'How to order', href: '/help#how-to-order' },
     { label: 'Help Center', href: '/help' },
 ];
 

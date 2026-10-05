@@ -102,6 +102,9 @@ const bankAccountNumber = computed(() =>
 const qrCodeUrl = computed(() =>
     getSettingValue<string>('payment.qr_code_url', ''),
 );
+const manualInstructions = computed(() =>
+    getSettingValue<string>('payment.manual_instructions', ''),
+);
 
 const paymentStatus = ref<string | null>(props.order.payment_status);
 const redirectUrl = ref<string | null>(null);
@@ -404,16 +407,33 @@ onBeforeUnmount(() => {
                             </dl>
 
                             <div v-if="isQrManual" class="mt-3">
-                                <img
-                                    v-if="qrCodeUrl"
-                                    :src="qrCodeUrl"
-                                    alt="Payment QR code"
-                                    class="h-48 w-48 rounded-lg border border-[var(--border-soft)] bg-white object-contain"
-                                />
+                                <template v-if="qrCodeUrl">
+                                    <a :href="qrCodeUrl" target="_blank" rel="noopener" class="block w-60 max-w-full">
+                                        <img
+                                            :src="qrCodeUrl"
+                                            alt="Payment QR code"
+                                            class="h-auto w-full rounded-lg border border-[var(--border-soft)] bg-white object-contain"
+                                        />
+                                    </a>
+                                    <a
+                                        :href="qrCodeUrl"
+                                        download
+                                        class="mt-2 inline-block text-xs font-medium text-[var(--brand-primary)] hover:underline"
+                                    >
+                                        Save QR image
+                                    </a>
+                                </template>
                                 <p v-else class="text-[var(--text-secondary)]">
                                     QR code image has not been set. Please contact the store.
                                 </p>
                             </div>
+
+                            <p
+                                v-if="manualInstructions"
+                                class="mt-3 text-xs leading-relaxed whitespace-pre-line text-[var(--text-secondary)]"
+                            >
+                                {{ manualInstructions }}
+                            </p>
                         </div>
 
                         <div v-else class="mt-4 rounded-lg border border-[var(--border-soft)] bg-[var(--bg-muted)] p-4 text-sm">

@@ -287,6 +287,7 @@ const settingLabels: Record<string, string> = {
     'payment.bank_account_number': 'Account Number',
     'payment.qr_code_enabled': 'QR Code',
     'payment.qr_code_url': 'QR Code Image',
+    'payment.manual_instructions': 'Bank Transfer & QR Instructions',
     'payment.paynet_enabled': 'Payment Gateway (PayNet)',
     'branding.logo_url': 'Website Logo',
     'branding.favicon_url': 'Website Favicon',
@@ -598,13 +599,14 @@ const amountKeys = new Set([
 
 const secretKeys = new Set(['payment.secret_key', 'shipping.api_key', 'shipping.api_secret', 'email.smtp_password', 'security.recaptcha_secret_key']);
 
-const longTextKeys = new Set(['marketplace.description', 'seo.meta_description', 'contact.address']);
+const longTextKeys = new Set(['marketplace.description', 'seo.meta_description', 'contact.address', 'payment.manual_instructions']);
 
 const settingHints: Record<string, string> = {
     'shipping.fixed_rate': 'Charged per order when the shipping method is Fixed rate.',
     'shipping.free_shipping_threshold': 'Orders at or above this amount ship for free.',
     'checkout.max_order_amount': 'Leave empty for no maximum.',
     'marketplace.commission_rate': 'Share of product sales the marketplace keeps when paying stores out (0-100). Shipping fees are paid to the store in full. Applies to new payout requests.',
+    'payment.manual_instructions': 'Shown with the bank and QR details at checkout and on the order page, e.g. how buyers send their receipt.',
     'payment.sandbox_enabled': 'Use the PayNet test environment instead of live payments.',
     'general.maintenance_mode': 'Shoppers see a maintenance page while this is on. Admins keep the whole site, sellers keep their dashboard, and the login page stays open.',
     'localization.available_languages': 'Languages visitors can switch to.',
