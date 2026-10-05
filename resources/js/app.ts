@@ -8,7 +8,9 @@ import { useSettingsStore } from '@/stores/settings';
 
 void useSettingsStore().loadSettings();
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+/** Shared prop `name` follows the Website Name setting; the build-time name is the fallback. */
+let appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+rememberSiteName(initialPage().props?.name);
 
 /** Storefront pages bring their own marketplace layout. */
 const STOREFRONT_PAGES = [
@@ -54,16 +56,25 @@ void createInertiaApp({
 
 // The appearance setting applies to the dashboard only, so the theme is
 // re-evaluated on the first render and on every navigation.
-function initialComponent(): string {
+function initialPage(): { component?: string; props?: { name?: unknown } } {
     try {
-        return (JSON.parse(document.getElementById('app')?.dataset.page ?? '{}') as { component?: string }).component ?? '';
+        return JSON.parse(document.getElementById('app')?.dataset.page ?? '{}');
     } catch {
-        return '';
+        return {};
     }
 }
 
-setThemedPage(usesDashboard(initialComponent()));
-router.on('navigate', (event) => setThemedPage(usesDashboard(event.detail.page.component)));
+function rememberSiteName(name: unknown): void {
+    if (typeof name === 'string' && name !== '') {
+        appName = name;
+    }
+}
+
+setThemedPage(usesDashboard(initialPage().component ?? ''));
+router.on('navigate', (event) => {
+    rememberSiteName(event.detail.page.props.name);
+    setThemedPage(usesDashboard(event.detail.page.component));
+});
 
 // This will set light / dark mode on page load...
 initializeTheme();

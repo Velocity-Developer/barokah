@@ -6,8 +6,9 @@ import { useSettingsStore } from '@/stores/settings';
 const name = usePage().props.name;
 const { getSettingValue } = useSettingsStore();
 
+/** The badge is a small square, so the favicon (an icon) fits it better than a wide wordmark logo. */
 function logoUrl(): string {
-    return getSettingValue<string>('branding.logo_url', '');
+    return getSettingValue<string>('branding.favicon_url', '') || getSettingValue<string>('branding.logo_url', '');
 }
 </script>
 

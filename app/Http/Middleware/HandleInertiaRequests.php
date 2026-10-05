@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Conversation;
 use App\Models\Seller;
 use App\Models\SellerPayout;
+use App\Services\SettingsService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,7 +44,8 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            'name' => config('app.name'),
+            // Website Name from Admin → Settings → Branding wins over APP_NAME.
+            'name' => app(SettingsService::class)->get('branding.site_name') ?: config('app.name'),
             'auth' => [
                 'user' => $request->user(),
                 // Same gates as the admin / seller route groups, so the header

@@ -219,6 +219,7 @@ class UpdateAdminSettingsRequest extends FormRequest
             'general.site_tagline' => ['nullable', 'string', 'max:255'],
             'general.maintenance_mode', 'general.allow_registration' => ['boolean'],
             'branding.site_name' => ['nullable', 'string', 'max:255'],
+            'branding.logo_tagline' => ['nullable', 'string', 'max:60'],
             'branding.logo_url', 'branding.favicon_url', 'seo.og_image' => ['nullable', 'string', 'max:2000'],
             'branding.primary_color', 'branding.primary_hover_color',
             'branding.primary_soft_color', 'branding.secondary_color' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],

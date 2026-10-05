@@ -290,6 +290,7 @@ const settingLabels: Record<string, string> = {
     'payment.paynet_enabled': 'Payment Gateway (PayNet)',
     'branding.logo_url': 'Website Logo',
     'branding.favicon_url': 'Website Favicon',
+    'branding.logo_tagline': 'Text Under Logo',
     'homepage.banner_speed': 'Banner Slider Speed (milliseconds)',
     'homepage.right_top_banner_link': 'Right Top Banner Promo Link',
     'homepage.right_bottom_banner_link': 'Right Bottom Banner Promo Link',
@@ -607,6 +608,7 @@ const settingHints: Record<string, string> = {
     'payment.sandbox_enabled': 'Use the PayNet test environment instead of live payments.',
     'general.maintenance_mode': 'Shoppers see a maintenance page while this is on. Admins keep the whole site, sellers keep their dashboard, and the login page stays open.',
     'localization.available_languages': 'Languages visitors can switch to.',
+    'branding.logo_tagline': 'Small line shown under the logo in the header and footer, e.g. a slogan. Leave empty to hide it.',
     'email.from_address': 'Order emails are sent from this address.',
     'email.smtp_enabled': 'Send email through the SMTP server below. When off, the server\'s default mailer is used.',
     'email.admin_notifications_enabled': 'Send an email to the marketplace team whenever an order is placed.',
@@ -626,6 +628,7 @@ const settingPlaceholders: Record<string, string> = {
     'security.recaptcha_site_key': '6Lxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     'security.recaptcha_score_threshold': '0.5',
     'email.admin_notification_recipients': 'orders@example.com, owner@example.com',
+    'branding.logo_tagline': 'Harga borong',
 };
 
 function clearMaskedValue(setting: AdminSettingEntry): void {

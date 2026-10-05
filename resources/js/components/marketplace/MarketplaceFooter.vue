@@ -15,6 +15,7 @@ const { getSettingValue } = useSettingsStore();
 
 const siteName = computed(() => getSettingValue<string>('branding.site_name', 'Barokah'));
 const logoUrl = computed(() => getSettingValue<string>('branding.logo_url', ''));
+const logoTagline = computed(() => getSettingValue<string>('branding.logo_tagline', ''));
 const about = computed(
     () =>
         getSettingValue<string>('marketplace.description', '') ||
@@ -94,21 +95,30 @@ function isExternal(href: string): boolean {
         >
             <div class="col-span-2 lg:col-span-1">
                 <Link href="/" class="inline-flex items-center gap-2" :aria-label="siteName">
-                    <img
-                        v-if="logoUrl"
-                        :src="logoUrl"
-                        :alt="siteName"
-                        class="h-9 max-w-32 object-contain"
-                    />
-                    <span
-                        v-else
-                        class="flex h-9 w-9 items-center justify-center rounded-sm text-lg font-bold text-white"
-                        style="background-color: var(--brand-primary)"
-                        aria-hidden="true"
-                    >
-                        {{ siteName.charAt(0) }}
+                    <span v-if="logoUrl" class="flex flex-col items-center">
+                        <img
+                            :src="logoUrl"
+                            :alt="siteName"
+                            class="h-10 w-auto max-w-44 object-contain"
+                        />
+                        <span
+                            v-if="logoTagline"
+                            class="text-[11px] leading-tight font-bold"
+                            style="color: var(--brand-primary)"
+                        >
+                            {{ logoTagline }}
+                        </span>
                     </span>
-                    <span class="text-base font-bold">{{ siteName }}</span>
+                    <template v-else>
+                        <span
+                            class="flex h-9 w-9 items-center justify-center rounded-sm text-lg font-bold text-white"
+                            style="background-color: var(--brand-primary)"
+                            aria-hidden="true"
+                        >
+                            {{ siteName.charAt(0) }}
+                        </span>
+                        <span class="text-base font-bold">{{ siteName }}</span>
+                    </template>
                 </Link>
                 <p class="mt-3 max-w-xs text-xs leading-relaxed text-[var(--text-muted)]">
                     {{ about }}

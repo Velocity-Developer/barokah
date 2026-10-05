@@ -99,6 +99,12 @@ return [
             'group' => 'branding',
             'is_public' => true,
         ],
+        'branding.logo_tagline' => [
+            'value' => '',
+            'type' => SettingType::String,
+            'group' => 'branding',
+            'is_public' => true,
+        ],
         'homepage.banner_speed' => [
             'value' => 5000,
             'type' => SettingType::Integer,

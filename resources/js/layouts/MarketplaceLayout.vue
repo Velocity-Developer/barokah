@@ -40,7 +40,7 @@ const pageTitle = computed(() => `${siteName.value} Marketplace`);
         <Head :title="pageTitle">
             <meta
                 name="description"
-                content="Barokah multi-seller marketplace for physical goods in Malaysia."
+                :content="`${siteName} multi-seller marketplace for physical goods in Malaysia.`"
             />
         </Head>
 

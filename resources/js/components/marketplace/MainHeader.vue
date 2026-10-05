@@ -66,6 +66,10 @@ function logoUrl(): string {
     return getSettingValue<string>('branding.logo_url', '');
 }
 
+function logoTagline(): string {
+    return getSettingValue<string>('branding.logo_tagline', '');
+}
+
 function submitSearch(): void {
     emit('search', query.value);
     router.get(
@@ -81,7 +85,7 @@ function submitSearch(): void {
         class="mp-header-bg sticky top-0 z-40 text-white shadow"
     >
         <div
-            class="mx-auto flex w-full items-center gap-3 px-4 py-3 md:gap-6"
+            class="mx-auto flex w-full items-center gap-2 px-4 py-3 sm:gap-3 md:gap-6"
             style="max-width: var(--container-max); min-height: 76px"
         >
             <Link
@@ -89,23 +93,36 @@ function submitSearch(): void {
                 class="flex shrink-0 items-center gap-2"
                 aria-label="Marketplace home"
             >
-                <img
-                    v-if="logoUrl()"
-                    :src="logoUrl()"
-                    :alt="siteName()"
-                    class="h-9 max-w-32 rounded-sm bg-white object-contain p-1"
-                />
+                <!-- The logo carries the name, so the text name only stands in when there is no logo. -->
                 <span
-                    v-else
-                    class="flex h-9 w-9 items-center justify-center rounded-sm bg-white text-lg font-bold"
-                    style="color: var(--brand-primary)"
-                    aria-hidden="true"
+                    v-if="logoUrl()"
+                    class="flex flex-col items-center rounded-md bg-white px-1.5 py-1 sm:px-2"
                 >
-                    {{ siteName().charAt(0) }}
+                    <img
+                        :src="logoUrl()"
+                        :alt="siteName()"
+                        class="h-5 w-auto max-w-20 object-contain sm:h-6 sm:max-w-28 md:h-9 md:max-w-40"
+                    />
+                    <span
+                        v-if="logoTagline()"
+                        class="text-[8px] leading-tight font-bold whitespace-nowrap sm:text-[9px] md:text-[11px]"
+                        style="color: var(--brand-primary)"
+                    >
+                        {{ logoTagline() }}
+                    </span>
                 </span>
-                <span class="hidden text-xl font-bold tracking-tight sm:block">
-                    {{ siteName() }}
-                </span>
+                <template v-else>
+                    <span
+                        class="flex h-9 w-9 items-center justify-center rounded-sm bg-white text-lg font-bold"
+                        style="color: var(--brand-primary)"
+                        aria-hidden="true"
+                    >
+                        {{ siteName().charAt(0) }}
+                    </span>
+                    <span class="hidden text-xl font-bold tracking-tight sm:block">
+                        {{ siteName() }}
+                    </span>
+                </template>
             </Link>
 
             <div class="min-w-0 flex-1">
@@ -123,7 +140,7 @@ function submitSearch(): void {
                     />
                     <button
                         type="submit"
-                        class="flex h-10 w-[60px] shrink-0 items-center justify-center rounded-sm text-white"
+                        class="flex h-10 w-10 sm:w-[60px] shrink-0 items-center justify-center rounded-sm text-white"
                         style="background-color: var(--brand-primary)"
                         aria-label="Search"
                     >
