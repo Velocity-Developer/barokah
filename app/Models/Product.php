@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property string $price
  * @property int $stock
  * @property int $weight_grams
+ * @property list<string>|null $variation_names
  * @property ProductStatus $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -40,6 +41,7 @@ use Illuminate\Support\Carbon;
     'price',
     'stock',
     'weight_grams',
+    'variation_names',
     'status',
 ])]
 class Product extends Model
@@ -57,6 +59,7 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'weight_grams' => 'integer',
+            'variation_names' => 'array',
             'status' => ProductStatus::class,
         ];
     }
@@ -104,6 +107,69 @@ class Product extends Model
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
+    }
+
+    /**
+     * @return HasMany<ProductVariationOption, $this>
+     */
+    public function variationOptions(): HasMany
+    {
+        return $this->hasMany(ProductVariationOption::class)->orderBy('level')->orderBy('sort_order');
+    }
+
+    /**
+     * @return HasMany<ProductVariant, $this>
+     */
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class)->orderBy('id');
+    }
+
+    public function hasVariations(): bool
+    {
+        return ! empty($this->variation_names);
+    }
+
+    /**
+     * The variant a shopper picked, checked against this product: products
+     * with variations need one of their own variants, others take none.
+     * Aborts with 409 like the other "cannot buy this" checkout errors.
+     */
+    public function resolveVariant(?int $variantId, bool $lock = false): ?ProductVariant
+    {
+        if (! $this->hasVariations()) {
+            abort_if($variantId !== null, 409, 'This product has no variations.');
+
+            return null;
+        }
+
+        abort_if($variantId === null, 409, 'Please choose a variation of '.$this->name.'.');
+
+        /** @var ProductVariant|null $variant */
+        $variant = $this->variants()
+            ->whereKey($variantId)
+            ->with(['option1', 'option2'])
+            ->when($lock, fn ($query) => $query->lockForUpdate())
+            ->first();
+
+        abort_if($variant === null, 409, 'The chosen variation of '.$this->name.' is no longer available.');
+
+        return $variant;
+    }
+
+    /**
+     * Unit price a shopper pays now for this product or one of its variants,
+     * flash sale included.
+     */
+    public function priceFor(?ProductVariant $variant = null, ?FlashSale $flashSale = null): float
+    {
+        $flashSale ??= $this->activeFlashSale();
+
+        if ($flashSale !== null) {
+            return $flashSale->priceFor($this, $variant);
+        }
+
+        return (float) ($variant?->price ?? $this->price);
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\OrderStatus;
 use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\ProductVariationsResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Seller;
@@ -71,7 +72,8 @@ class ProductController extends Controller
     public function edit(Product $product): Response
     {
         return Inertia::render('Admin/Products/Edit', [
-            'product' => $product->load(['seller', 'category', 'images']),
+            'product' => $product->load(['seller', 'category', 'images', 'variationOptions', 'variants', 'flashSales']),
+            'variations' => $product->hasVariations() ? (new ProductVariationsResource($product))->resolve() : null,
         ]);
     }
 }

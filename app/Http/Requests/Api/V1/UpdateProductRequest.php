@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Enums\ProductStatus;
+use App\Services\ProductVariationService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -39,6 +40,9 @@ class UpdateProductRequest extends FormRequest
             'status' => ['sometimes', 'required', Rule::enum(ProductStatus::class)],
             'images' => ['nullable', 'array', 'max:5'],
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            // JSON built by the product form; ProductVariationService checks its shape.
+            'variations' => ['nullable', 'string', 'max:200000'],
+            'variation_images' => ['nullable', 'array', 'max:'.ProductVariationService::MAX_OPTIONS],
             'remove_image_ids' => ['nullable', 'array'],
             'remove_image_ids.*' => ['integer', Rule::exists('product_images', 'id')],
         ];

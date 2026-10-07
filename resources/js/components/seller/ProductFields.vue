@@ -2,9 +2,11 @@
 import { ImageOff, Upload } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import VariationsEditor from '@/components/products/VariationsEditor.vue';
 import RichTextEditor from '@/components/RichTextEditor.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { VariationDraft } from '@/lib/productVariations';
 
 export type ProductFormFields = {
     name: string;
@@ -28,6 +30,7 @@ const props = defineProps<{
     categories: { id: number; name: string }[];
     existingImages?: ExistingImage[];
     removedImageIds?: number[];
+    variations: VariationDraft;
 }>();
 
 const emit = defineEmits<{ toggleImage: [id: number] }>();
@@ -122,26 +125,33 @@ function isRemoved(id: number): boolean {
                     <ImageOff class="size-4" aria-hidden="true" /> No photo yet.
                 </p>
             </section>
+
+            <VariationsEditor :draft="variations" :errors="errors" />
         </div>
 
         <div class="grid content-start gap-4">
             <section class="grid content-start gap-4 rounded-xl border bg-card p-4 shadow-sm">
                 <h2 class="text-base font-medium">Price &amp; stock</h2>
 
-                <div class="grid content-start gap-2">
-                    <Label for="price">Price</Label>
-                    <Input id="price" v-model="form.price" type="number" min="0" step="0.01" required placeholder="0.00" />
-                    <InputError :message="errors.price" />
-                </div>
+                <template v-if="!variations.enabled">
+                    <div class="grid content-start gap-2">
+                        <Label for="price">Price</Label>
+                        <Input id="price" v-model="form.price" type="number" min="0" step="0.01" required placeholder="0.00" />
+                        <InputError :message="errors.price" />
+                    </div>
+
+                    <div class="grid content-start gap-2">
+                        <Label for="stock">Stock</Label>
+                        <Input id="stock" v-model="form.stock" type="number" min="0" required />
+                        <InputError :message="errors.stock" />
+                    </div>
+                </template>
+                <p v-else class="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    Price and stock are set per variation.
+                </p>
 
                 <div class="grid content-start gap-2">
-                    <Label for="stock">Stock</Label>
-                    <Input id="stock" v-model="form.stock" type="number" min="0" required />
-                    <InputError :message="errors.stock" />
-                </div>
-
-                <div class="grid content-start gap-2">
-                    <Label for="weight_grams">Weight (grams)</Label>
+                    <Label for="weight_grams">{{ variations.enabled ? 'Default weight (grams)' : 'Weight (grams)' }}</Label>
                     <Input id="weight_grams" v-model="form.weight_grams" type="number" min="0" required />
                     <p class="text-xs text-muted-foreground">Used to work out the shipping fee.</p>
                     <InputError :message="errors.weight_grams" />

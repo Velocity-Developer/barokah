@@ -8,7 +8,6 @@ use App\Enums\PaymentStatus;
 use App\Jobs\SendSellerOrderPaidEmail;
 use App\Models\Order;
 use App\Models\Payment;
-use App\Models\Product;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -255,11 +254,7 @@ class PaymentService
             if ($status === PaymentStatus::Expired && $order->status === OrderStatus::PendingPayment) {
                 $order->load('items');
                 foreach ($order->items as $item) {
-                    if ($item->product_id !== null) {
-                        Product::query()
-                            ->whereKey($item->product_id)
-                            ->increment('stock', $item->quantity);
-                    }
+                    $item->restoreStock();
                 }
                 $order->update(['status' => OrderStatus::Expired]);
             }
@@ -327,11 +322,7 @@ class PaymentService
 
             if ($order->status === OrderStatus::PendingPayment) {
                 foreach ($order->items as $item) {
-                    if ($item->product_id !== null) {
-                        Product::query()
-                            ->whereKey($item->product_id)
-                            ->increment('stock', $item->quantity);
-                    }
+                    $item->restoreStock();
                 }
                 $order->update(['status' => OrderStatus::Expired]);
             }

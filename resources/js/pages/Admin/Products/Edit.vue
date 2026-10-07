@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { index, show } from '@/routes/admin/products';
 import { fetchAdminList } from '../useAdminList';
 import RichTextEditor from '@/components/RichTextEditor.vue';
+import VariationsEditor from '@/components/products/VariationsEditor.vue';
+import { appendVariations, draftFrom, draftTotals, type ProductVariations } from '@/lib/productVariations';
 import { useSettingsStore } from '@/stores/settings';
 import { ArrowLeft, ImagePlus, RotateCcw, Trash2, X } from '@lucide/vue';
 
@@ -41,6 +43,7 @@ type AdminCategoryOption = {
 
 const props = defineProps<{
     product: AdminProductDetail;
+    variations: ProductVariations | null;
 }>();
 
 defineOptions({
@@ -82,6 +85,7 @@ const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
 const newImages = ref<File[]>([]);
 const removeImageIds = ref<number[]>([]);
+const variations = reactive(draftFrom(props.variations));
 
 onMounted(async () => {
     try {
@@ -142,6 +146,8 @@ async function save(): Promise<void> {
     isSaving.value = true;
     errors.value = {};
 
+    if (variations.enabled) Object.assign(form, draftTotals(variations));
+
     const formData = new FormData();
     formData.append('_method', 'PUT');
     formData.append('name', form.name.trim());
@@ -162,6 +168,8 @@ async function save(): Promise<void> {
     for (const id of removeImageIds.value) {
         formData.append('remove_image_ids[]', String(id));
     }
+
+    appendVariations(formData, variations);
 
     try {
         const response = await fetch(
@@ -197,7 +205,11 @@ async function save(): Promise<void> {
         newImages.value = [];
         removeImageIds.value = [];
 
-        router.reload({ only: ['product'] });
+        // Fresh option ids from the server, so the next save updates them.
+        router.reload({
+            only: ['product', 'variations'],
+            onSuccess: () => Object.assign(variations, draftFrom(props.variations)),
+        });
     } catch {
         toast.error('Products are temporarily unavailable.');
     } finally {
@@ -353,6 +365,8 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                     </p>
                     <InputError :message="errors['images.0'] ?? errors.images" />
                 </section>
+
+                <VariationsEditor :draft="variations" :errors="errors" :currency="currencySymbol()" />
             </div>
 
             <aside class="grid content-start gap-4">
@@ -386,7 +400,7 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                 <!-- Pricing & inventory -->
                 <section class="grid content-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
                     <h2 class="text-base font-medium">Pricing &amp; inventory</h2>
-                    <div class="grid content-start gap-2">
+                    <div v-if="!variations.enabled" class="grid content-start gap-2">
                         <Label for="price">Price</Label>
                         <div class="relative">
                             <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">{{ currencySymbol() }}</span>
@@ -394,14 +408,15 @@ const statusHint = computed(() => statuses.find((status) => status.value === for
                         </div>
                         <InputError :message="errors.price" />
                     </div>
+                    <p v-else class="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">Price and stock are set per variation.</p>
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="grid content-start gap-2">
+                        <div v-if="!variations.enabled" class="grid content-start gap-2">
                             <Label for="stock">Stock</Label>
                             <Input id="stock" v-model="form.stock" type="number" min="0" required />
                             <InputError :message="errors.stock" />
                         </div>
                         <div class="grid content-start gap-2">
-                            <Label for="weight_grams">Weight (g)</Label>
+                            <Label for="weight_grams">{{ variations.enabled ? 'Default weight (g)' : 'Weight (g)' }}</Label>
                             <Input id="weight_grams" v-model="form.weight_grams" type="number" min="0" required />
                             <InputError :message="errors.weight_grams" />
                         </div>

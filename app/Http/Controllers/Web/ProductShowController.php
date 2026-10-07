@@ -36,6 +36,8 @@ class ProductShowController extends Controller
                     ),
                 'category',
                 'images',
+                'variationOptions',
+                'variants',
                 'latestReviews.user',
             ])
             ->withAvg('reviews', 'rating')

@@ -38,6 +38,7 @@ class ShippingQuoteRequest extends FormRequest
             'quantity' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'items' => ['nullable', 'array', 'min:1', 'max:50'],
             'items.*.product_id' => ['required_with:items', 'integer', Rule::exists('products', 'id')],
+            'items.*.variant_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['required_with:items', 'integer', 'min:1', 'max:1000000'],
         ];
     }

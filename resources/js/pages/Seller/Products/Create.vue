@@ -6,6 +6,7 @@ import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import ProductFields, { type ProductFormFields } from '@/components/seller/ProductFields.vue';
 import { Button } from '@/components/ui/button';
+import { appendVariations, draftFrom, draftTotals, type ProductVariations } from '@/lib/productVariations';
 import { index } from '@/routes/seller/products';
 
 type Category = { id: number; name: string };
@@ -26,6 +27,7 @@ const categories = ref<Category[]>([]);
 const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
 const images = ref<File[]>([]);
+const variations = reactive(draftFrom(null));
 
 onMounted(async () => {
     const response = await fetch('/api/v1/categories', { headers: { Accept: 'application/json' } });
@@ -41,9 +43,12 @@ async function save(): Promise<void> {
     isSaving.value = true;
     errors.value = {};
 
+    if (variations.enabled) Object.assign(form, draftTotals(variations));
+
     const data = new FormData();
     for (const [key, value] of Object.entries(form)) data.append(key, value);
     for (const image of images.value) data.append('images[]', image);
+    appendVariations(data, variations);
 
     try {
         const response = await fetch('/api/v1/seller/products', {
@@ -87,6 +92,6 @@ async function save(): Promise<void> {
             </div>
         </div>
 
-        <ProductFields v-model:images="images" :form="form" :errors="errors" :categories="categories" />
+        <ProductFields v-model:images="images" :form="form" :errors="errors" :categories="categories" :variations="variations" />
     </form>
 </template>

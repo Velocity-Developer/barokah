@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\StoreProductRequest;
 use App\Http\Requests\Api\V1\UpdateProductRequest;
 use App\Http\Resources\Api\V1\ProductResource;
 use App\Models\Product;
+use App\Services\ProductVariationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,8 @@ use Illuminate\Validation\Rule;
  */
 class SellerProductController extends Controller
 {
+    public function __construct(protected ProductVariationService $variations) {}
+
     /** @var array<string, array{0: string, 1: string}> */
     private const SORTS = [
         'newest' => ['created_at', 'desc'],
@@ -96,8 +99,9 @@ class SellerProductController extends Controller
     public function store(StoreProductRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $variations = $this->variations->parse($request->input('variations'), $request->file('variation_images', []));
 
-        $product = DB::transaction(function () use ($request, $validated) {
+        $product = DB::transaction(function () use ($request, $validated, $variations) {
             /** @var Product $product */
             $product = $request->user()->seller->products()->create([
                 'category_id' => $validated['category_id'],
@@ -112,7 +116,11 @@ class SellerProductController extends Controller
 
             $this->storeImages($product, $request->file('images', []));
 
-            return $product->load(['seller', 'category', 'images', 'flashSales']);
+            if ($variations !== null) {
+                $this->variations->sync($product, $variations, $request->file('variation_images', []));
+            }
+
+            return $product->load(['seller', 'category', 'images', 'flashSales', 'variationOptions', 'variants']);
         });
 
         return (new ProductResource($product))->response()->setStatusCode(201);
@@ -125,7 +133,7 @@ class SellerProductController extends Controller
     {
         Gate::authorize('view', $product);
 
-        return new ProductResource($product->load(['seller', 'category', 'images']));
+        return new ProductResource($product->load(['seller', 'category', 'images', 'variationOptions', 'variants']));
     }
 
     /**
@@ -134,8 +142,9 @@ class SellerProductController extends Controller
     public function update(UpdateProductRequest $request, Product $product): ProductResource
     {
         $validated = $request->validated();
+        $variations = $this->variations->parse($request->input('variations'), $request->file('variation_images', []));
 
-        $product = DB::transaction(function () use ($request, $product, $validated) {
+        $product = DB::transaction(function () use ($request, $product, $validated, $variations) {
             if (array_key_exists('slug', $validated)) {
                 $validated['slug'] = $validated['slug'] === null || $validated['slug'] === ''
                     ? $this->uniqueSlug($validated['name'] ?? $product->name, $product->id)
@@ -161,7 +170,11 @@ class SellerProductController extends Controller
 
             $this->storeImages($product->refresh(), $request->file('images', []));
 
-            return $product->load(['seller', 'category', 'images']);
+            if ($variations !== null) {
+                $this->variations->sync($product, $variations, $request->file('variation_images', []));
+            }
+
+            return $product->load(['seller', 'category', 'images', 'variationOptions', 'variants']);
         });
 
         return new ProductResource($product);
@@ -175,6 +188,8 @@ class SellerProductController extends Controller
         Gate::authorize('delete', $product);
 
         DB::transaction(function () use ($product): void {
+            $this->variations->deleteImages($product);
+
             foreach ($product->images as $image) {
                 Storage::disk('public')->delete($image->path);
             }

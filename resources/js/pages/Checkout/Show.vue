@@ -9,6 +9,7 @@ import { getMalaysiaCities } from '@/composables/useMalaysiaCities';
 import malaysiaStates from '@/data/malaysia-states.json';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import Recaptcha from '@/components/Recaptcha.vue';
+import type { ProductVariations, Variant } from '@/lib/productVariations';
 
 const malaysiaStateOptions: string[] = (malaysiaStates as { name: string }[]).map(
     (stateOption) => stateOption.name,
@@ -19,13 +20,17 @@ type WizardProduct = {
     name: string;
     slug: string;
     price: string | number;
+    effective_price?: string | number;
     stock: number;
+    variations?: ProductVariations | null;
 };
 
 type ProductProp = WizardProduct | { data: WizardProduct };
 
 type CartCheckoutItem = {
     productId: number;
+    variantId: number | null;
+    variantLabel: string | null;
     name: string;
     price: number;
     quantity: number;
@@ -36,6 +41,7 @@ const props = defineProps<{
     profile: Record<string, string | null>;
     cartCheckout: boolean;
     initialQuantity?: number;
+    initialVariantId?: number | null;
 }>();
 
 const { formatAmount, getSettingValue } = useSettingsStore();
@@ -59,7 +65,24 @@ const product = computed<WizardProduct | null>(() => {
 if (!props.cartCheckout && props.product) {
     state.productId = product.value.id;
     state.productSlug = product.value.slug;
+    state.variantId = props.initialVariantId ?? null;
 }
+
+/** Buy Now of a product with variations carries the chosen variant in the URL. */
+const selectedVariant = computed<Variant | null>(
+    () => product.value?.variations?.variants.find((variant) => variant.id === props.initialVariantId) ?? null,
+);
+const needsVariant = computed(() => Boolean(product.value?.variations?.types.length) && selectedVariant.value === null);
+const productStock = computed(() => selectedVariant.value?.stock ?? product.value?.stock ?? 0);
+const productUnitPrice = computed(() =>
+    Number(selectedVariant.value?.effective_price ?? product.value?.effective_price ?? product.value?.price ?? 0),
+);
+/** Items as the order, shipping and coupon endpoints expect them. */
+const orderLines = computed(() =>
+    props.cartCheckout
+        ? cartItems.value.map((item) => ({ product_id: item.productId, variant_id: item.variantId, quantity: item.quantity }))
+        : [{ product_id: product.value?.id, variant_id: selectedVariant.value?.id ?? null, quantity: quantity.value }],
+);
 
 if (state.step < 1 || state.step > 4) {
     setStep(1);
@@ -144,6 +167,8 @@ const shippingError = ref<string | null>(null);
 const cartItems = computed<CartCheckoutItem[]>(() =>
     cartState.items.map((item) => ({
         productId: item.productId,
+        variantId: item.variantId ?? null,
+        variantLabel: item.variantLabel ?? null,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
@@ -159,7 +184,7 @@ async function applyCoupon(): Promise<void> {
     try {
         const response = await fetch('/api/v1/coupons/validate', {
             method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ coupon_code: couponCode.value, items: props.cartCheckout ? cartItems.value.map((item) => ({ product_id: item.productId, quantity: item.quantity })) : [{ product_id: product.value?.id, quantity: quantity.value }], shipping_fee: shippingFee.value ?? 0 }),
+            body: JSON.stringify({ coupon_code: couponCode.value, items: orderLines.value, shipping_fee: shippingFee.value ?? 0 }),
         });
         const payload = await response.json() as { discount?: number; message?: string; errors?: Record<string, string[]> };
         if (!response.ok) throw new Error(payload.errors?.coupon_code?.[0] ?? payload.message ?? 'Invalid coupon.');
@@ -183,7 +208,7 @@ const checkoutSubtotal = computed(() =>
               (total, item) => total + item.price * item.quantity,
               0,
           )
-        : Number(product.value?.price ?? 0) * quantity.value,
+        : productUnitPrice.value * quantity.value,
 );
 
 type PaymentOption = {
@@ -318,7 +343,7 @@ const itemCount = computed(() =>
 );
 
 function incrementQuantity(): void {
-    const max = product.value?.stock ?? 999;
+    const max = productStock.value || 999;
     if (quantity.value < max) {
         quantity.value += 1;
     }
@@ -401,7 +426,7 @@ function validatePersonal(): boolean {
     }
 
     if (!props.cartCheckout) {
-        const max = product.value?.stock ?? 1;
+        const max = productStock.value || 1;
         if (!Number.isInteger(quantity.value) || quantity.value < 1) {
             errors.quantity = 'Quantity must be at least 1.';
         } else if (quantity.value > max) {
@@ -506,9 +531,7 @@ async function loadShippingQuote(): Promise<void> {
                 post_code: buyer.shipping_post_code,
                 method: 'fixed',
                 subtotal: checkoutSubtotal.value,
-                items: props.cartCheckout
-                    ? cartItems.value.map((item) => ({ product_id: item.productId, quantity: item.quantity }))
-                    : [{ product_id: product.value?.id, quantity: quantity.value }],
+                items: orderLines.value,
             }),
         });
         const payload = (await response.json()) as { data?: { fee?: number }; message?: string };
@@ -578,17 +601,7 @@ async function placeOrder(): Promise<void> {
                 Accept: 'application/json',
             },
             body: JSON.stringify({
-                ...(props.cartCheckout
-                    ? {
-                          items: cartItems.value.map((item) => ({
-                              product_id: item.productId,
-                              quantity: item.quantity,
-                          })),
-                      }
-                    : {
-                          product_id: product.value?.id,
-                          quantity: quantity.value,
-                      }),
+                items: orderLines.value,
                 buyer: {
                     name: buyer.name,
                     address: buyer.address,
@@ -892,12 +905,22 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                             </div>
                         </div>
 
+                        <p
+                            v-if="!cartCheckout && product && needsVariant"
+                            class="mt-5 rounded-sm border border-[var(--accent-red)] bg-white p-3 text-sm text-[var(--accent-red)]"
+                            role="alert"
+                        >
+                            Please choose a variation first.
+                            <Link :href="`/products/${product.slug}`" class="font-semibold underline">Back to the product</Link>
+                        </p>
+
                         <div v-if="!cartCheckout && product" class="mt-5 rounded-sm border border-[var(--border-soft)] bg-[var(--bg-muted)] p-4">
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div class="min-w-0">
                                     <p class="truncate text-sm font-semibold text-[var(--text-primary)]">{{ product.name }}</p>
+                                    <p v-if="selectedVariant" class="mt-0.5 text-xs text-[var(--text-secondary)]">Variation: {{ selectedVariant.label }}</p>
                                     <p class="mt-0.5 text-xs text-[var(--text-muted)]">
-                                        {{ formatAmount(Number(product.price)) }} each · {{ product.stock }} available
+                                        {{ formatAmount(productUnitPrice) }} each · {{ productStock }} available
                                     </p>
                                 </div>
                                 <div class="inline-flex h-11 items-center overflow-hidden rounded-sm border border-[var(--border-default)] bg-white">
@@ -915,7 +938,7 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                                         type="button"
                                         class="flex h-full w-10 items-center justify-center text-lg text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] disabled:opacity-40"
                                         aria-label="Increase quantity"
-                                        :disabled="quantity >= product.stock"
+                                        :disabled="quantity >= productStock"
                                         @click="incrementQuantity"
                                     >
                                         +
@@ -932,11 +955,11 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                             <ul class="divide-y divide-[var(--border-soft)]">
                                 <li
                                     v-for="item in cartItems"
-                                    :key="item.productId"
+                                    :key="`${item.productId}:${item.variantId ?? ''}`"
                                     class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm"
                                 >
                                     <span class="min-w-0 truncate text-[var(--text-primary)]">
-                                        {{ item.name }}
+                                        {{ item.name }}<template v-if="item.variantLabel"> ({{ item.variantLabel }})</template>
                                         <span class="text-[var(--text-muted)]">× {{ item.quantity }}</span>
                                     </span>
                                     <span class="shrink-0 font-medium">{{ formatAmount(item.price * item.quantity) }}</span>
@@ -1384,11 +1407,11 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                         <ul class="mt-3 space-y-2 border-b border-[var(--border-soft)] pb-3">
                             <li
                                 v-for="item in cartItems"
-                                :key="item.productId"
+                                :key="`${item.productId}:${item.variantId ?? ''}`"
                                 class="flex justify-between gap-2 text-sm"
                             >
                                 <span class="min-w-0 truncate text-[var(--text-secondary)]">
-                                    {{ item.name }}
+                                    {{ item.name }}<template v-if="item.variantLabel"> ({{ item.variantLabel }})</template>
                                     <span class="text-[var(--text-muted)]">× {{ item.quantity }}</span>
                                 </span>
                                 <span class="shrink-0 font-medium">{{ formatAmount(item.price * item.quantity) }}</span>
@@ -1400,6 +1423,7 @@ const sectionHintClass = 'mt-1 text-sm text-[var(--text-muted)]';
                     </template>
                     <template v-else-if="product">
                         <p class="mt-2 truncate text-sm font-medium text-[var(--text-primary)]">{{ product.name }}</p>
+                        <p v-if="selectedVariant" class="mt-0.5 text-xs text-[var(--text-secondary)]">Variation: {{ selectedVariant.label }}</p>
                         <p class="mt-1 text-xs text-[var(--text-muted)]">Quantity: {{ quantity }}</p>
                     </template>
 

@@ -17,6 +17,8 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $order_id
  * @property int|null $product_id
+ * @property int|null $product_variant_id
+ * @property string|null $variant_label
  * @property int $seller_id
  * @property string $product_name_snapshot
  * @property string $product_slug_snapshot
@@ -29,8 +31,10 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'order_id',
     'product_id',
+    'product_variant_id',
     'seller_id',
     'product_name_snapshot',
+    'variant_label',
     'product_slug_snapshot',
     'price_snapshot',
     'quantity',
@@ -75,6 +79,32 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * @return BelongsTo<ProductVariant, $this>
+     */
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+
+    /**
+     * Put the reserved quantity back on the product (and its variant) when
+     * an unpaid order expires, fails or is cancelled. Callers run this
+     * inside their transaction with the order row locked.
+     */
+    public function restoreStock(): void
+    {
+        if ($this->product_id === null) {
+            return;
+        }
+
+        Product::query()->whereKey($this->product_id)->increment('stock', $this->quantity);
+
+        if ($this->product_variant_id !== null) {
+            ProductVariant::query()->whereKey($this->product_variant_id)->increment('stock', $this->quantity);
+        }
     }
 
     public function review(): HasOne

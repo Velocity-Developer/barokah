@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
-import { useCartStore } from '@/stores/cart';
+import { cartLineKey, useCartStore, type CartItem } from '@/stores/cart';
 import { useCheckoutStore } from '@/stores/checkout';
 import { useSettingsStore } from '@/stores/settings';
 
@@ -9,9 +9,9 @@ const { formatAmount } = useSettingsStore();
 const { state, subtotal, update, remove } = useCartStore();
 const { startBuy } = useCheckoutStore();
 
-function checkout(item: { productId: number; slug: string; quantity: number }): void {
-    startBuy(item.productId, item.slug, item.quantity);
-    window.location.href = `/checkout/${item.slug}`;
+function checkout(item: CartItem): void {
+    startBuy(item.productId, item.slug, item.quantity, item.variantId);
+    window.location.href = `/checkout/${item.slug}?quantity=${item.quantity}${item.variantId ? `&variant=${item.variantId}` : ''}`;
 }
 
 function checkoutCart(): void {
@@ -31,12 +31,13 @@ function checkoutCart(): void {
                 <div class="space-y-3">
                     <article
                         v-for="item in state.items"
-                        :key="item.productId"
+                        :key="cartLineKey(item)"
                         class="flex gap-4 rounded-sm border border-[var(--border-default)] bg-white p-4"
                     >
                         <img v-if="item.image" :src="item.image" :alt="item.name" class="size-24 rounded-sm object-cover" />
                         <div class="min-w-0 flex-1">
                             <Link :href="`/products/${item.slug}`" class="font-medium hover:underline">{{ item.name }}</Link>
+                            <p v-if="item.variantLabel" class="mt-0.5 text-xs text-[var(--text-muted)]">Variation: {{ item.variantLabel }}</p>
                             <p class="mt-1 text-sm text-[var(--brand-primary)]">{{ formatAmount(item.price) }}</p>
                             <div class="mt-3 flex items-center gap-3">
                                 <input
@@ -45,9 +46,9 @@ function checkoutCart(): void {
                                     min="1"
                                     :max="item.stock"
                                     class="h-9 w-20 rounded-sm border border-[var(--border-default)] px-2 text-sm"
-                                    @change="update(item.productId, Number(($event.target as HTMLInputElement).value))"
+                                    @change="update(cartLineKey(item), Number(($event.target as HTMLInputElement).value))"
                                 />
-                                <button type="button" class="text-sm text-red-600 hover:underline" @click="remove(item.productId)">Remove</button>
+                                <button type="button" class="text-sm text-red-600 hover:underline" @click="remove(cartLineKey(item))">Remove</button>
                                 <button type="button" class="text-sm font-medium text-[var(--brand-primary)] hover:underline" @click="checkout(item)">Buy now</button>
                             </div>
                         </div>

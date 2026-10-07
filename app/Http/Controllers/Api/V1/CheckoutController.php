@@ -47,9 +47,9 @@ class CheckoutController extends Controller
     {
         $validated = $request->validated();
 
-        /** @var array<int, array{product_id: int, quantity: int}> $lines */
+        /** @var array<int, array{product_id: int, variant_id?: int|null, quantity: int}> $lines */
         $lines = $validated['items']
-            ?? [['product_id' => $validated['product_id'], 'quantity' => $validated['quantity']]];
+            ?? [['product_id' => $validated['product_id'], 'variant_id' => $validated['variant_id'] ?? null, 'quantity' => $validated['quantity']]];
 
         $shippingMethod = $validated['shipping_method'] ?? 'fixed';
         $currencyCode = (string) $this->settings->get('currency.code', config('marketplace.currency.code', 'MYR'));
@@ -60,6 +60,8 @@ class CheckoutController extends Controller
 
             /** @var array<int, array{product: Product, quantity: int, line_total: float}> $prepared */
             $prepared = [];
+            /** @var array<int, int> $flashSaleQuantities flash sale id => units taken so far in this order */
+            $flashSaleQuantities = [];
 
             foreach ($lines as $line) {
                 /** @var Product|null $product */
@@ -69,8 +71,11 @@ class CheckoutController extends Controller
                     abort(409, 'Selected product is not available.');
                 }
 
-                if ($product->stock < $line['quantity']) {
-                    abort(409, 'Insufficient stock for '.$product->name.'.');
+                $variant = $product->resolveVariant(isset($line['variant_id']) ? (int) $line['variant_id'] : null, lock: true);
+                $itemName = $variant === null ? $product->name : $product->name.' ('.$variant->label().')';
+
+                if (($variant?->stock ?? $product->stock) < $line['quantity']) {
+                    abort(409, 'Insufficient stock for '.$itemName.'.');
                 }
 
                 $flashSale = $product->flashSales()
@@ -78,15 +83,22 @@ class CheckoutController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if ($flashSale !== null && $flashSale->remainingQuantity() < $line['quantity']) {
-                    abort(409, 'Insufficient flash sale quota for '.$product->name.'.');
+                if ($flashSale !== null) {
+                    // Two variants of one product share the product's promo quota.
+                    $flashSaleQuantities[$flashSale->id] = ($flashSaleQuantities[$flashSale->id] ?? 0) + $line['quantity'];
+
+                    if ($flashSale->remainingQuantity() < $flashSaleQuantities[$flashSale->id]) {
+                        abort(409, 'Insufficient flash sale quota for '.$product->name.'.');
+                    }
                 }
 
-                $unitPrice = (float) ($flashSale?->price ?? $product->price);
+                $unitPrice = $product->priceFor($variant, $flashSale);
                 $lineTotal = $unitPrice * $line['quantity'];
                 $subtotal += $lineTotal;
                 $prepared[] = [
                     'product' => $product,
+                    'variant' => $variant,
+                    'item_name' => $itemName,
                     'flash_sale_model' => $flashSale,
                     'quantity' => $line['quantity'],
                     'unit_price' => $unitPrice,
@@ -171,8 +183,10 @@ class CheckoutController extends Controller
 
                 $order->items()->create([
                     'product_id' => $product->id,
+                    'product_variant_id' => $row['variant']?->id,
                     'seller_id' => $product->seller_id,
-                    'product_name_snapshot' => $product->name,
+                    'product_name_snapshot' => $row['item_name'],
+                    'variant_label' => $row['variant']?->label(),
                     'product_slug_snapshot' => $product->slug,
                     'price_snapshot' => $row['unit_price'],
                     'quantity' => $row['quantity'],
@@ -181,6 +195,7 @@ class CheckoutController extends Controller
                 ]);
 
                 $product->decrement('stock', $row['quantity']);
+                $row['variant']?->decrement('stock', $row['quantity']);
                 if ($row['flash_sale_model'] !== null) {
                     $row['flash_sale_model']->increment('quantity_sold', $row['quantity']);
                 }

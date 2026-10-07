@@ -6,6 +6,7 @@ import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import ProductFields, { type ProductFormFields } from '@/components/seller/ProductFields.vue';
 import { Button } from '@/components/ui/button';
+import { appendVariations, draftFrom, draftTotals, type ProductVariations } from '@/lib/productVariations';
 import { index } from '@/routes/seller/products';
 import { index as flashSalesIndex } from '@/routes/seller/flash-sales';
 
@@ -24,7 +25,7 @@ type Product = {
 
 type Category = { id: number; name: string };
 
-const props = defineProps<{ product: Product }>();
+const props = defineProps<{ product: Product; variations: ProductVariations | null }>();
 
 defineOptions({ layout: { breadcrumbs: [{ title: 'Products', href: index() }] } });
 
@@ -43,6 +44,7 @@ const errors = ref<Record<string, string>>({});
 const isSaving = ref(false);
 const images = ref<File[]>([]);
 const removeImageIds = ref<number[]>([]);
+const variations = reactive(draftFrom(props.variations));
 
 const publicUrl = computed(() => (props.product.status === 'active' ? `/products/${props.product.slug}` : null));
 
@@ -66,10 +68,13 @@ async function save(): Promise<void> {
     isSaving.value = true;
     errors.value = {};
 
+    if (variations.enabled) Object.assign(form, draftTotals(variations));
+
     const data = new FormData();
     data.append('_method', 'PUT');
     for (const [key, value] of Object.entries(form)) data.append(key, value);
     for (const image of images.value) data.append('images[]', image);
+    appendVariations(data, variations);
     for (const id of removeImageIds.value) data.append('remove_image_ids[]', String(id));
 
     try {
@@ -126,6 +131,7 @@ async function save(): Promise<void> {
                 :categories="categories"
                 :existing-images="product.images"
                 :removed-image-ids="removeImageIds"
+                :variations="variations"
                 @toggle-image="toggleImage"
             />
         </form>

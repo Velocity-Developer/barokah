@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\Api\V1\ProductVariationsResource;
 use App\Models\Product;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -24,7 +25,8 @@ class SellerProductController extends Controller
         Gate::authorize('update', $product);
 
         return Inertia::render('Seller/Products/Edit', [
-            'product' => $product->load(['category', 'images']),
+            'product' => $product->load(['category', 'images', 'variationOptions', 'variants', 'flashSales']),
+            'variations' => $product->hasVariations() ? (new ProductVariationsResource($product))->resolve() : null,
         ]);
     }
 }

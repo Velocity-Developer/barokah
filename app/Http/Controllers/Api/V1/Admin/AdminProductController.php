@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\UpdateProductRequest;
 use App\Http\Resources\Api\V1\ProductResource;
 use App\Models\Product;
+use App\Services\ProductVariationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -27,6 +28,8 @@ use Illuminate\Validation\Rule;
  */
 class AdminProductController extends Controller
 {
+    public function __construct(protected ProductVariationService $variations) {}
+
     /** @var array<string, array{0: string, 1: string}> */
     private const SORTS = [
         'latest' => ['created_at', 'desc'],
@@ -107,7 +110,7 @@ class AdminProductController extends Controller
     {
         Gate::authorize('view', $product);
 
-        return new ProductResource($product->load(['seller', 'category', 'images']));
+        return new ProductResource($product->load(['seller', 'category', 'images', 'variationOptions', 'variants']));
     }
 
     /**
@@ -119,8 +122,9 @@ class AdminProductController extends Controller
     public function update(UpdateProductRequest $request, Product $product): ProductResource
     {
         $validated = $request->validated();
+        $variations = $this->variations->parse($request->input('variations'), $request->file('variation_images', []));
 
-        $product = DB::transaction(function () use ($request, $product, $validated) {
+        $product = DB::transaction(function () use ($request, $product, $validated, $variations) {
             if (array_key_exists('name', $validated)) {
                 $product->slug = $this->uniqueSlug($validated['name'], $product->id);
             }
@@ -139,7 +143,11 @@ class AdminProductController extends Controller
 
             $this->storeImages($product->refresh(), $request->file('images', []));
 
-            return $product->load(['seller', 'category', 'images']);
+            if ($variations !== null) {
+                $this->variations->sync($product, $variations, $request->file('variation_images', []));
+            }
+
+            return $product->load(['seller', 'category', 'images', 'variationOptions', 'variants']);
         });
 
         return new ProductResource($product);
@@ -153,6 +161,8 @@ class AdminProductController extends Controller
         Gate::authorize('delete', $product);
 
         DB::transaction(function () use ($product): void {
+            $this->variations->deleteImages($product);
+
             foreach ($product->images as $image) {
                 Storage::disk('public')->delete($image->path);
             }

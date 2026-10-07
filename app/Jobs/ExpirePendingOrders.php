@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
-use App\Models\Product;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -50,11 +49,7 @@ class ExpirePendingOrders implements ShouldQueue
                         }
 
                         foreach ($locked->items as $item) {
-                            if ($item->product_id !== null) {
-                                Product::query()
-                                    ->whereKey($item->product_id)
-                                    ->increment('stock', $item->quantity);
-                            }
+                            $item->restoreStock();
                         }
 
                         $locked->update(['status' => OrderStatus::Expired]);

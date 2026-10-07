@@ -14,20 +14,22 @@ class CouponController extends Controller
     public function preview(CouponPreviewRequest $request, CouponService $coupons): JsonResponse
     {
         $data = $request->validated();
-        $requestedItems = collect($data['items'])->keyBy('product_id');
-        $items = Product::query()->with('flashSales')->whereIn('id', $requestedItems->keys())->get()
-            ->map(function (Product $product) use ($requestedItems): array {
-                $flashSale = $product->activeFlashSale();
-                $unitPrice = (float) ($flashSale?->price ?? $product->price);
+        $products = Product::query()->with('flashSales')->whereIn('id', array_column($data['items'], 'product_id'))->get()->keyBy('id');
+        // One line per requested item: two variants of a product are two lines.
+        $items = collect($data['items'])->map(function (array $item) use ($products): array {
+            /** @var Product $product */
+            $product = $products[$item['product_id']];
+            $variant = $product->resolveVariant(isset($item['variant_id']) ? (int) $item['variant_id'] : null);
+            $flashSale = $product->activeFlashSale();
 
-                return [
-                    'product_id' => $product->id,
-                    'seller_id' => $product->seller_id,
-                    'category_id' => $product->category_id,
-                    'line_total' => $unitPrice * (int) $requestedItems[$product->id]['quantity'],
-                    'flash_sale' => $flashSale !== null,
-                ];
-            })->all();
+            return [
+                'product_id' => $product->id,
+                'seller_id' => $product->seller_id,
+                'category_id' => $product->category_id,
+                'line_total' => $product->priceFor($variant, $flashSale) * (int) $item['quantity'],
+                'flash_sale' => $flashSale !== null,
+            ];
+        })->all();
 
         return response()->json(DB::transaction(fn (): array => $coupons->calculate(
             $data['coupon_code'],

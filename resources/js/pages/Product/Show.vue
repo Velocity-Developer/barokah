@@ -17,6 +17,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { openStoreChat } from '@/composables/useChatApi';
 import { useSellerFollow } from '@/composables/useSellerFollow';
 import { richTextToHtml } from '@/lib/richText';
+import type { ProductVariations, Variant } from '@/lib/productVariations';
 
 type DetailImage = {
     id: number;
@@ -62,6 +63,7 @@ type DetailProduct = {
     flash_sale?: { ends_at?: string; remaining_quantity?: number } | null;
     stock: number;
     weight_grams?: number;
+    variations?: ProductVariations | null;
     status: string;
     seller: DetailSeller | null;
     category: { name: string; slug: string } | null;
@@ -181,7 +183,80 @@ const otherProductCards = computed(() =>
     ),
 );
 
-const isOutOfStock = computed(() => product.value.stock <= 0);
+const variationTypes = computed(() => product.value.variations?.types ?? []);
+const variants = computed<Variant[]>(() => product.value.variations?.variants ?? []);
+const hasVariations = computed(() => variationTypes.value.length > 0);
+/** Chosen option position per variation type (null = not chosen yet). */
+const selectedOptions = ref<(number | null)[]>(variationTypes.value.map(() => null));
+const showVariationHint = ref(false);
+
+const selectedVariant = computed<Variant | null>(() =>
+    hasVariations.value && selectedOptions.value.every((position) => position !== null)
+        ? (variants.value.find((variant) => variant.options.every((position, level) => position === selectedOptions.value[level])) ?? null)
+        : null,
+);
+
+const missingVariationNames = computed(() =>
+    variationTypes.value.filter((_, level) => selectedOptions.value[level] === null).map((type) => type.name),
+);
+
+/** An option is sold out when no in-stock variant has it next to the other picks. */
+function isOptionAvailable(level: number, position: number): boolean {
+    return variants.value.some(
+        (variant) =>
+            variant.stock > 0 &&
+            variant.options[level] === position &&
+            variant.options.every((other, otherLevel) => otherLevel === level || selectedOptions.value[otherLevel] === null || selectedOptions.value[otherLevel] === other),
+    );
+}
+
+function chooseOption(level: number, position: number): void {
+    const next = [...selectedOptions.value];
+    next[level] = next[level] === position ? null : position;
+    selectedOptions.value = next;
+    showVariationHint.value = false;
+
+    const image = variationTypes.value[level]?.options[position]?.image_url;
+    if (next[level] !== null && image) activeImage.value = image;
+}
+
+/** Shown price: the chosen variant, else the range across variants. */
+function priceRange(key: 'price' | 'effective_price'): string {
+    const amounts = variants.value.map((variant) => Number(variant[key]));
+    const low = Math.min(...amounts);
+    const high = Math.max(...amounts);
+
+    return low === high ? formatAmount(low) : `${formatAmount(low)} – ${formatAmount(high)}`;
+}
+
+const displayPrice = computed(() => {
+    if (selectedVariant.value) return formatAmount(Number(selectedVariant.value.effective_price));
+    if (hasVariations.value && variants.value.length) return priceRange('effective_price');
+
+    return formatAmount(Number(product.value.effective_price ?? product.value.price));
+});
+
+const displayNormalPrice = computed(() => {
+    if (selectedVariant.value) return formatAmount(Number(selectedVariant.value.price));
+    if (hasVariations.value && variants.value.length) return priceRange('price');
+
+    return formatAmount(Number(product.value.normal_price ?? product.value.price));
+});
+
+const availableStock = computed(() => selectedVariant.value?.stock ?? product.value.stock);
+const isOutOfStock = computed(() => availableStock.value <= 0);
+
+watch(availableStock, (stock) => {
+    quantity.value = Math.max(1, Math.min(quantity.value, stock));
+});
+
+/** True when every variation is chosen; otherwise points the shopper at what is missing. */
+function ensureVariationChosen(): boolean {
+    if (!hasVariations.value || selectedVariant.value) return true;
+    showVariationHint.value = true;
+
+    return false;
+}
 
 const weightLabel = computed(() =>
     product.value.weight_grams != null
@@ -194,7 +269,7 @@ function selectImage(url: string): void {
 }
 
 function increment(): void {
-    if (quantity.value < product.value.stock) {
+    if (quantity.value < availableStock.value) {
         quantity.value += 1;
     }
 }
@@ -254,14 +329,27 @@ function toggleFavorite(): void {
 }
 
 function addToCart(): void {
+    if (!ensureVariationChosen()) return;
+
+    const variant = selectedVariant.value;
     add({
         productId: product.value.id,
+        variantId: variant?.id ?? null,
+        variantLabel: variant?.label ?? null,
         slug: product.value.slug,
         name: product.value.name,
-        price: Number(product.value.effective_price ?? product.value.price),
-        image: product.value.primary_image,
-        stock: product.value.stock,
+        price: Number(variant?.effective_price ?? product.value.effective_price ?? product.value.price),
+        image: (variant ? variationTypes.value[0]?.options[variant.options[0]]?.image_url : null) ?? product.value.primary_image,
+        stock: availableStock.value,
     }, quantity.value);
+}
+
+function buyNow(): void {
+    if (!ensureVariationChosen()) return;
+
+    const variantId = selectedVariant.value?.id ?? null;
+    startBuy(product.value.id, product.value.slug, quantity.value, variantId);
+    router.visit(`/checkout/${product.value.slug}?quantity=${quantity.value}${variantId ? `&variant=${variantId}` : ''}`);
 }
 </script>
 
@@ -405,12 +493,12 @@ function addToCart(): void {
                             v-if="product.flash_sale_active"
                             class="mt-2 text-sm text-[var(--text-muted)] line-through"
                         >
-                            {{ formatAmount(Number(product.normal_price ?? product.price)) }}
+                            {{ displayNormalPrice }}
                         </p>
                         <p
                             class="text-3xl font-semibold tracking-tight text-[var(--brand-primary)]"
                         >
-                            {{ formatAmount(Number(product.effective_price ?? product.price)) }}
+                            {{ displayPrice }}
                         </p>
                         <p
                             v-if="product.flash_sale_active && product.flash_sale?.remaining_quantity !== undefined"
@@ -422,7 +510,48 @@ function addToCart(): void {
                             v-if="!isOutOfStock"
                             class="mt-1 text-sm text-[var(--text-secondary)]"
                         >
-                            {{ product.stock }} available
+                            {{ availableStock }} available
+                        </p>
+                    </div>
+
+                    <!-- Variations -->
+                    <div v-if="hasVariations" class="mt-6 grid gap-4">
+                        <div v-for="(type, level) in variationTypes" :key="type.name">
+                            <p class="mb-2 text-sm font-medium text-[var(--text-primary)]">
+                                {{ type.name }}
+                                <span v-if="selectedOptions[level] !== null" class="font-normal text-[var(--text-secondary)]">
+                                    : {{ type.options[selectedOptions[level] ?? 0]?.name }}
+                                </span>
+                            </p>
+                            <div class="flex flex-wrap gap-2" role="group" :aria-label="type.name">
+                                <button
+                                    v-for="(option, position) in type.options"
+                                    :key="option.id"
+                                    type="button"
+                                    :aria-pressed="selectedOptions[level] === position"
+                                    :disabled="!isOptionAvailable(level, position)"
+                                    :title="isOptionAvailable(level, position) ? option.name : `${option.name} (sold out)`"
+                                    :class="[
+                                        'relative flex h-10 min-w-12 items-center gap-2 rounded-sm border bg-white px-3 text-sm transition disabled:cursor-not-allowed disabled:border-dashed disabled:text-[var(--text-muted)] disabled:opacity-60',
+                                        option.image_url ? 'pl-1' : '',
+                                        selectedOptions[level] === position
+                                            ? 'border-[var(--brand-primary)] text-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)]'
+                                            : 'border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--brand-primary)]',
+                                    ]"
+                                    @click="chooseOption(level, position)"
+                                >
+                                    <img v-if="option.image_url" :src="option.image_url" alt="" class="size-8 rounded-sm object-cover" />
+                                    {{ option.name }}
+                                    <Check
+                                        v-if="selectedOptions[level] === position"
+                                        class="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-[var(--brand-primary)] p-0.5 text-white"
+                                        aria-hidden="true"
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                        <p v-if="showVariationHint" class="text-sm font-medium text-[var(--accent-red)]" role="alert">
+                            Please choose {{ missingVariationNames.join(' and ') }} first.
                         </p>
                     </div>
 
@@ -453,7 +582,7 @@ function addToCart(): void {
                             <button
                                 type="button"
                                 :disabled="
-                                    quantity >= product.stock || isOutOfStock
+                                    quantity >= availableStock || isOutOfStock
                                 "
                                 class="flex h-full w-10 items-center justify-center text-lg text-[var(--text-secondary)] disabled:opacity-40"
                                 aria-label="Increase quantity"
@@ -491,20 +620,14 @@ function addToCart(): void {
                             </svg>
                             Add to Cart
                         </button>
-                        <Link
-                            :href="`/checkout/${product.slug}?quantity=${quantity}`"
-                            :class="[
-                                'flex h-12 flex-1 items-center justify-center rounded-sm bg-[var(--brand-primary)] px-6 font-semibold text-white transition hover:bg-[var(--brand-primary-hover)]',
-                                isOutOfStock
-                                    ? 'pointer-events-none opacity-50'
-                                    : '',
-                            ]"
-                            @click="
-                                startBuy(product.id, product.slug, quantity)
-                            "
+                        <button
+                            type="button"
+                            :disabled="isOutOfStock"
+                            class="flex h-12 flex-1 items-center justify-center rounded-sm bg-[var(--brand-primary)] px-6 font-semibold text-white transition hover:bg-[var(--brand-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                            @click="buyNow"
                         >
                             Buy Now
-                        </Link>
+                        </button>
                         <button
                             v-if="isLoggedIn"
                             type="button"

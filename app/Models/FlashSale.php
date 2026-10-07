@@ -41,6 +41,25 @@ class FlashSale extends Model
         return $this->belongsTo(Product::class);
     }
 
+    /**
+     * Promo price of the product, or of one of its variants. A percentage
+     * sale takes the same percentage off the variant price; a fixed promo
+     * price (set against the cheapest variant) keeps the same saving.
+     */
+    public function priceFor(Product $product, ?ProductVariant $variant = null): float
+    {
+        if ($variant === null) {
+            return (float) $this->price;
+        }
+
+        $base = (float) $variant->price;
+        $price = $this->discount_type === 'percentage'
+            ? $base * (1 - (float) $this->discount_value / 100)
+            : $base - max(0, (float) $product->price - (float) $this->price);
+
+        return round(max(0.01, min($base, $price)), 2);
+    }
+
     public function remainingQuantity(): int
     {
         return max(0, $this->quantity - $this->quantity_sold);

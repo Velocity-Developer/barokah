@@ -18,6 +18,7 @@ export type CheckoutStep = 1 | 2 | 3 | 4;
 
 type CheckoutState = {
     productId: number | null;
+    variantId: number | null;
     productSlug: string;
     quantity: number;
     buyer: BuyerInformation;
@@ -29,6 +30,7 @@ type CheckoutState = {
 
 const state = reactive<CheckoutState>({
     productId: null,
+    variantId: null,
     productSlug: '',
     quantity: 1,
     buyer: {
@@ -53,8 +55,9 @@ const state = reactive<CheckoutState>({
 const orderNumber = ref<string | null>(null);
 
 export function useCheckoutStore() {
-    function startBuy(productId: number, slug: string, quantity = 1): void {
+    function startBuy(productId: number, slug: string, quantity = 1, variantId: number | null = null): void {
         state.productId = productId;
+        state.variantId = variantId;
         state.productSlug = slug;
         state.quantity = quantity;
         state.step = 1;
@@ -71,6 +74,7 @@ export function useCheckoutStore() {
 
     function reset(): void {
         state.productId = null;
+        state.variantId = null;
         state.productSlug = '';
         state.quantity = 1;
         state.buyer = {

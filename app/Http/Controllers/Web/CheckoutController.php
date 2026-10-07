@@ -25,7 +25,7 @@ class CheckoutController extends Controller
         $product = Product::query()
             ->active()
             ->where('slug', $slug)
-            ->with(['seller', 'category', 'images'])
+            ->with(['seller', 'category', 'images', 'variationOptions', 'variants'])
             ->firstOrFail();
 
         return Inertia::render('Checkout/Show', [
@@ -33,6 +33,7 @@ class CheckoutController extends Controller
             'profile' => $this->buyerDefaults($request),
             'cartCheckout' => false,
             'initialQuantity' => max(1, (int) $request->integer('quantity', 1)),
+            'initialVariantId' => $request->filled('variant') ? $request->integer('variant') : null,
         ]);
     }
 
@@ -107,6 +108,7 @@ class CheckoutController extends Controller
                 'created_at' => $order->created_at,
                 'items' => $order->items->map(fn ($item) => [
                     'product_name' => $item->product_name_snapshot,
+                    'variant_label' => $item->variant_label,
                     'quantity' => $item->quantity,
                     'price' => $item->price_snapshot,
                     'subtotal' => $item->subtotal,

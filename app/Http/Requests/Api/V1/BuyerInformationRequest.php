@@ -48,9 +48,11 @@ class BuyerInformationRequest extends FormRequest
 
         return [
             'product_id' => ['required_without:items', 'nullable', 'integer', Rule::exists('products', 'id')],
+            'variant_id' => ['nullable', 'integer'],
             'quantity' => ['required_without:items', 'nullable', 'integer', 'min:1', 'max:1000000'],
             'items' => ['required_without:product_id', 'nullable', 'array', 'min:1', 'max:50'],
             'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')],
+            'items.*.variant_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
             'buyer' => ['required', 'array'],
             'buyer.name' => ['required', 'string', 'max:255'],

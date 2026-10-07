@@ -19,6 +19,7 @@ class CouponPreviewRequest extends FormRequest
             'coupon_code' => ['required', 'string', 'max:50'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.variant_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'shipping_fee' => ['nullable', 'numeric', 'min:0'],
         ];

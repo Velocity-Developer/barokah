@@ -29,6 +29,11 @@ class ProductResource extends JsonResource
             'stock' => $this->stock,
             'sold_count' => $this->when($this->sold_count !== null, fn (): int => (int) $this->sold_count),
             'weight_grams' => $this->weight_grams,
+            'variation_names' => $this->variation_names ?? [],
+            'variations' => $this->when(
+                $this->hasVariations() && $this->relationLoaded('variationOptions') && $this->relationLoaded('variants'),
+                fn (): array => (new ProductVariationsResource($this->resource))->resolve($request),
+            ),
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : $this->status,
             'seller' => new SellerResource($this->whenLoaded('seller')),
             'category' => new CategoryResource($this->whenLoaded('category')),
