@@ -16,6 +16,7 @@ import { useCartStore } from '@/stores/cart';
 import { useSettingsStore } from '@/stores/settings';
 import { openStoreChat } from '@/composables/useChatApi';
 import { useSellerFollow } from '@/composables/useSellerFollow';
+import { richTextToHtml } from '@/lib/richText';
 
 type DetailImage = {
     id: number;
@@ -102,6 +103,7 @@ function unwrapImages(images: DetailProduct['images']): DetailImage[] {
 }
 
 const gallery = computed(() => unwrapImages(product.value.images));
+const descriptionHtml = computed(() => richTextToHtml(product.value.description));
 
 const reviews = computed<ProductReview[]>(() => {
     const raw = product.value.reviews;
@@ -709,11 +711,12 @@ function addToCart(): void {
                     >
                         Product Description
                     </h3>
-                    <p
-                        class="px-4 pb-4 text-sm leading-relaxed whitespace-pre-line text-[var(--text-secondary)]"
-                    >
-                        {{ product.description || '—' }}
-                    </p>
+                    <div
+                        v-if="descriptionHtml"
+                        class="rich-text px-4 pb-4 text-sm leading-relaxed text-[var(--text-secondary)]"
+                        v-html="descriptionHtml"
+                    />
+                    <p v-else class="px-4 pb-4 text-sm text-[var(--text-secondary)]">—</p>
                 </div>
             </section>
 

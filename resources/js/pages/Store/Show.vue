@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { login } from '@/routes';
 import { openStoreChat } from '@/composables/useChatApi';
 import { useSellerFollow } from '@/composables/useSellerFollow';
+import { htmlToParagraphs } from '@/lib/richText';
 import MarketplaceLayout from '@/layouts/MarketplaceLayout.vue';
 import ProductCard from '@/components/product/ProductCard.vue';
 import {
@@ -113,6 +114,8 @@ function closeLightbox(): void {
     lightboxMedia.value = null;
 }
 
+// Short one-line summary for the store header; the editor stores HTML.
+const descriptionText = computed(() => htmlToParagraphs(seller.value.description).join(' '));
 const location = computed(
     () => seller.value.city || seller.value.state || null,
 );
@@ -182,10 +185,10 @@ const productCards = computed(() =>
                                 {{ location ?? 'Marketplace seller' }}
                             </p>
                             <p
-                                v-if="seller.description"
+                                v-if="descriptionText"
                                 class="mt-2 line-clamp-2 max-w-2xl text-sm text-[var(--text-muted)]"
                             >
-                                {{ seller.description }}
+                                {{ descriptionText }}
                             </p>
                             <p
                                 v-if="seller.store_location"

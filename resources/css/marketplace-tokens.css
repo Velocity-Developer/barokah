@@ -78,3 +78,57 @@
     border-radius: 999px;
     background: linear-gradient(90deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 35%, #f3b6dd));
 }
+
+/* Rich-text descriptions (product page): Tailwind's reset strips list
+   markers and spacing, so give the editor's HTML back a readable shape. */
+.rich-text > * + * {
+    margin-top: 0.6em;
+}
+
+.rich-text ul,
+.rich-text ol {
+    padding-left: 1.4em;
+}
+
+.rich-text ul {
+    list-style: disc;
+}
+
+.rich-text ol {
+    list-style: decimal;
+}
+
+.rich-text li + li {
+    margin-top: 0.2em;
+}
+
+.rich-text li > p {
+    margin: 0;
+}
+
+.rich-text h2,
+.rich-text h3,
+.rich-text h4 {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.rich-text h2 {
+    font-size: 1.1em;
+}
+
+.rich-text strong,
+.rich-text b {
+    font-weight: 700;
+}
+
+.rich-text blockquote {
+    border-left: 3px solid var(--brand-primary);
+    padding-left: 0.8em;
+    font-style: italic;
+}
+
+.rich-text a {
+    color: var(--brand-primary);
+    text-decoration: underline;
+}
